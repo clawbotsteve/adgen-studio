@@ -1,8 +1,10 @@
 "use client";
 
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 
 export default function BrandForm() {
+  const router = useRouter();
   const [name, setName] = useState("");
   const [voice, setVoice] = useState("");
   const [driveFolderId, setDriveFolderId] = useState("");
@@ -27,6 +29,7 @@ export default function BrandForm() {
     setName("");
     setVoice("");
     setDriveFolderId("");
+    router.refresh();
   };
 
   return (

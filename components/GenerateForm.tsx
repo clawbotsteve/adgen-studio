@@ -1,9 +1,11 @@
 "use client";
 
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 import type { Brand } from "@/types/domain";
 
 export default function GenerateForm({ brands }: { brands: Brand[] }) {
+  const router = useRouter();
   const [brandId, setBrandId] = useState(brands[0]?.id || "");
   const [prompt, setPrompt] = useState("");
   const [referenceImageUrl, setReferenceImageUrl] = useState("");
@@ -30,6 +32,7 @@ export default function GenerateForm({ brands }: { brands: Brand[] }) {
 
     setResult(json.outputUrl || "Completed.");
     setLoading(false);
+    router.refresh();
   };
 
   return (

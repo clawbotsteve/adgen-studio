@@ -29,15 +29,21 @@ export const getTenantByHost = async (host?: string): Promise<Tenant | null> => 
 };
 
 export const requireTenantContext = async () => {
+  const host = await getHost();
   const supabase = await createSupabaseServer();
   const {
     data: { user },
   } = await supabase.auth.getUser();
 
   if (!user) {
-    return { user: null, tenant: null };
+    console.log("[tenant] No authenticated user, host:", host);
+    return { user: null, tenant: null, host };
   }
 
-  const tenant = await getTenantByHost();
-  return { user, tenant };
+  const tenant = await getTenantByHost(host);
+  console.log(
+    "[tenant] Resolution:",
+    JSON.stringify({ host, userId: user.id, tenantId: tenant?.id ?? null }),
+  );
+  return { user, tenant, host };
 };
