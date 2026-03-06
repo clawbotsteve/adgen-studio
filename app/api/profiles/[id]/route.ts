@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
-import { requireUserTenantApi } from "A/lib/auth";
-import { assertTenantUser } from "A/lib/access";
-import { getProfile, updateProfile, deleteProfile } from "A/lib/data/profiles";
+import { requireUserTenantApi } from "@/lib/auth";
+import { assertTenantUser } from "@/lib/access";
+import { getProfile, updateProfile, deleteProfile } from "@/lib/data/profiles";
 
 export async function PATCH(
   request: Request,

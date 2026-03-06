@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
-import { requireUserTenantApi } from "A/lib/auth";
-import { assertTenantUser } from "A/lib/access";
-import { listProfiles, createProfile } from "A/lib/data/profiles";
+import { requireUserTenantApi } from "@/lib/auth";
+import { assertTenantUser } from "@/lib/access";
+import { listProfiles, createProfile } from "@/lib/data/profiles";
 
 export async function GET() {
   const auth = await requireUserTenantApi();
@@ -39,7 +39,7 @@ export async function POST(request: Request) {
     prompt_suffix?: string | null;
     cost_estimate_cents?: number | null;
   }
-  COnst body = (await request.json()) as ProfileBody;
+  const body = (await request.json()) as ProfileBody;
 
   if (!body.name?.trim()) {
     return NextResponse.json({ error: "Profile name is required" }, { status: 400 });

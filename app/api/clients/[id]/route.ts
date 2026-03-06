@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
-import { requireUserTenantApi } from "A/lib/auth";
-import { assertTenantUser } from "A/lib/access";
-import { updateClient, archiveClient, getClient } from "A/lib/data/clients";
+import { requireUserTenantApi } from "@/lib/auth";
+import { assertTenantUser } from "@/lib/access";
+import { updateClient, archiveClient, getClient } from "@/lib/data/clients";
 
 export async function PATCH(
   request: Request,

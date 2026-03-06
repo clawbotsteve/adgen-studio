@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
-import { requireUserTenantApi } from "A/lib/auth";
-import { getBatchRun } from "A/lib/data/batches";
-import { createSupabaseService } from "A/lib/supabase";
+import { requireUserTenantApi } from "@/lib/auth";
+import { getBatchRun } from "@/lib/data/batches";
+import { createSupabaseService } from "@/lib/supabase";
 
 export async function POST(
   request: Request,
