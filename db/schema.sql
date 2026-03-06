@@ -4,8 +4,9 @@ create extension if not exists "pgcrypto";
 create table if not exists tenants (
   id uuid primary key default gen_random_uuid(),
   name text not null,
-  hostname text not null unique,
-  is_active boolean not null default true,
+  domain text not null unique,
+  logo_url text,
+  primary_color text default '#7c3aed',
   created_at timestamptz not null default now()
 );
 
