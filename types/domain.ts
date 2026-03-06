@@ -1,8 +1,7 @@
 export type Tenant = {
   id: string;
   name: string;
-  hostname: string;
-  is_active: boolean;
+  domain: string;
 };
 
 export type Brand = {
