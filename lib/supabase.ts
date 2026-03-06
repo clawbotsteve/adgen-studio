@@ -1,4 +1,3 @@
-import { cookies } from "next/headers";
 import { createBrowserClient, createServerClient } from "@supabase/ssr";
 import { createClient } from "@supabase/supabase-js";
 import { requireServiceRole, requireSupabasePublic } from "./env";
@@ -10,6 +9,7 @@ export const createSupabaseBrowser = () => {
 
 export const createSupabaseServer = async () => {
   const cfg = requireSupabasePublic();
+  const { cookies } = await import("next/headers");
   const cookieStore = await cookies();
   return createServerClient(cfg.url, cfg.anonKey, {
     cookies: {

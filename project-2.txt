@@ -1,0 +1,290 @@
+# OpenClaw Instructions: AdGen Studio
+
+Build a **white-label internal image generation tool** called **AdGen Studio**.
+
+---
+
+## What It Does
+
+1. Employee logs into a branded web app (client thinks they own it)
+2. Selects a saved brand context doc
+3. Uploads images or a document to clone
+4. Picks a resolution
+5. Clicks "Generate Ads"
+6. AI generates images via Fal.ai (`fal-ai/nano-banana-2/edit`)
+7. Images upload to a Google Drive folder
+8. Slack posts the Drive link to the team channel
+
+**Billing:** Usage tracked in DB. Builder exports monthly report → sends client a manual invoice. No checkout page needed.
+
+---
+
+## Pricing
+
+| Resolution | Fal.ai Cost | Client Charge | Margin |
+|------------|-------------|---------------|--------|
+| 0.5K | $0.12 | $1.00 | 88% |
+| 1K | $0.16 | $1.50 | 89% |
+| 2K | $0.24 | $2.00 | 88% |
+| 4K | $0.32 | $3.50 | 91% |
+
+---
+
+## White-Label Rules (Critical)
+
+- Each client gets their own domain (e.g. `tool.doncreative.com`)
+- App detects tenant by `window.location.hostname`, loads their logo/name/colors from DB
+- **Never show:** Fal.ai, Supabase, OpenClaw, or builder name anywhere in UI or error messages
+- All DB queries must filter by `tenant_id`
+
+---
+
+## Stack
+
+- **Framework:** Next.js (App Router), deployed to Vercel
+- **Auth:** Supabase Auth — magic link login, invite-only
+- **Database:** Supabase
+- **Image Gen:** `@fal-ai/client` — model: `fal-ai/nano-banana-2/edit`
+- **Output Storage:** Google Drive API (service account)
+- **Notifications:** Slack Incoming Webhook
+
+---
+
+## Database Schema
+
+```sql
+-- One row per white-label client
+create table tenants (
+  id uuid primary key default gen_random_uuid(),
+  name text not null,
+  domain text unique,
+  logo_url text,
+  primary_color text default '#7c3aed',
+  created_at timestamp default now()
+);
+
+-- Brand context docs (one per brand/client account)
+create table brands (
+  id uuid primary key default gen_random_uuid(),
+  tenant_id uuid references tenants(id),
+  name text not null,
+  context_text text,
+  slack_channel text,
+  created_at timestamp default now()
+);
+
+-- Generation jobs
+create table jobs (
+  id uuid primary key default gen_random_uuid(),
+  tenant_id uuid references tenants(id),
+  employee_id uuid references auth.users(id),
+  brand_id uuid references brands(id),
+  input_files jsonb,
+  resolution text default '1k',
+  output_drive_folder_url text,
+  output_image_count integer,
+  fal_cost_usd numeric(10,4),
+  client_charge_usd numeric(10,4),
+  slack_posted boolean default false,
+  status text default 'pending',
+  created_at timestamp default now()
+);
+```
+
+---
+
+## API Endpoints
+
+### `POST /api/brands`
+1. Accept PDF/docx/txt upload
+2. Extract text (use OpenAI to summarize if PDF)
+3. Store in Supabase under the current `tenant_id`
+
+### `POST /api/generate`
+
+```js
+import { fal } from "@fal-ai/client";
+fal.config({ credentials: process.env.FAL_API_KEY });
+
+const PRICING = {
+  "0.5k": { falCost: 0.12, clientCharge: 1.00, imageSize: 512  },
+  "1k":   { falCost: 0.16, clientCharge: 1.50, imageSize: 1024 },
+  "2k":   { falCost: 0.24, clientCharge: 2.00, imageSize: 2048 },
+  "4k":   { falCost: 0.32, clientCharge: 3.50, imageSize: 4096 },
+};
+
+export async function POST(req) {
+  const { brandId, inputFiles, resolution = "1k" } = await req.json();
+  const tenantId = /* from session */;
+  const employeeId = /* from session */;
+  const pricing = PRICING[resolution];
+
+  const brand = await supabase.from("brands").select("*")
+    .eq("id", brandId).eq("tenant_id", tenantId).single();
+
+  const job = await supabase.from("jobs").insert({
+    tenant_id: tenantId, employee_id: employeeId,
+    brand_id: brandId, input_files: inputFiles,
+    resolution, status: "processing",
+  }).select().single();
+
+  // Generate each image
+  const outputImages = [];
+  for (const fileUrl of inputFiles) {
+    try {
+      const result = await fal.subscribe("fal-ai/nano-banana-2/edit", {
+        input: {
+          prompt: `${brand.data.context_text} Create a high-converting static ad creative.`,
+          image_url: fileUrl,
+          image_size: pricing.imageSize,
+        },
+      });
+      outputImages.push(result.data.images[0].url);
+    } catch (e) {
+      // Skip failed images, log error
+    }
+  }
+
+  const driveFolderUrl = await uploadToGoogleDrive(outputImages, job.data.id);
+  const totalFalCost = outputImages.length * pricing.falCost;
+  const totalCharge = outputImages.length * pricing.clientCharge;
+
+  await postToSlack(brand.data.slack_channel, driveFolderUrl, outputImages.length, resolution, totalCharge);
+
+  await supabase.from("jobs").update({
+    output_drive_folder_url: driveFolderUrl,
+    output_image_count: outputImages.length,
+    fal_cost_usd: totalFalCost,
+    client_charge_usd: totalCharge,
+    slack_posted: true, status: "done",
+  }).eq("id", job.data.id);
+
+  return Response.json({ driveFolderUrl, count: outputImages.length, totalCharge });
+}
+```
+
+### `GET /api/usage-report?month=YYYY-MM`
+Returns all jobs for the tenant in the given month with totals:
+```json
+{
+  "month": "2026-03",
+  "total_images": 247,
+  "total_fal_cost": 39.52,
+  "total_client_charge": 370.50,
+  "jobs": [...]
+}
+```
+This is used to generate the monthly invoice.
+
+---
+
+## Google Drive Integration
+
+```js
+import { google } from "googleapis";
+
+async function uploadToGoogleDrive(imageUrls, jobId) {
+  const auth = new google.auth.GoogleAuth({
+    credentials: JSON.parse(process.env.GOOGLE_SERVICE_ACCOUNT_JSON),
+    scopes: ["https://www.googleapis.com/auth/drive"],
+  });
+  const drive = google.drive({ version: "v3", auth });
+
+  const folder = await drive.files.create({
+    requestBody: {
+      name: `AdGen Job ${jobId}`,
+      mimeType: "application/vnd.google-apps.folder",
+      parents: [process.env.GOOGLE_DRIVE_OUTPUT_FOLDER_ID],
+    },
+  });
+
+  await drive.permissions.create({
+    fileId: folder.data.id,
+    requestBody: { role: "reader", type: "anyone" },
+  });
+
+  for (let i = 0; i < imageUrls.length; i++) {
+    const buf = await fetch(imageUrls[i]).then(r => r.arrayBuffer());
+    await drive.files.create({
+      requestBody: { name: `ad_${i + 1}.png`, parents: [folder.data.id] },
+      media: { mimeType: "image/png", body: Buffer.from(buf) },
+    });
+  }
+
+  return `https://drive.google.com/drive/folders/${folder.data.id}`;
+}
+```
+
+---
+
+## Slack Notification
+
+```js
+async function postToSlack(channel, driveUrl, count, resolution, charge) {
+  await fetch(process.env.SLACK_WEBHOOK_URL, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      channel,
+      text: `✅ *${count} ads generated* at ${resolution.toUpperCase()} — $${charge.toFixed(2)} total\n📁 <${driveUrl}|Open Drive Folder>`,
+    }),
+  });
+}
+```
+
+---
+
+## UI Design
+
+**Colors:** Background `#0f1117` | Cards `#1a1f2e` | Accent `#7c3aed` | Font: Inter
+**Layout:** Fixed left sidebar (logo, nav, employee email) + main content area
+
+### Pages
+
+**`/dashboard` — Generate Ads (4-step form)**
+1. Select Brand (dropdown + "Upload Brand Doc" link)
+2. Upload Images/Doc to Clone (drag & drop, PNG/JPG/PDF)
+3. Resolution (`0.5K·$1.00` | `1K·$1.50` | `2K·$2.00` | `4K·$3.50` pill selector)
+4. Slack Channel (pre-filled, editable)
+- "Generate Ads →" button (show estimate: "3 images × $1.50 = $4.50")
+- Result: Drive folder link + Slack confirmation
+
+**`/brands` — Brand Library**
+- Table: brand name, Slack channel, date added, Edit button
+- "Add Brand" button → upload context doc
+
+**`/history` — History & Usage**
+- Table: date, brand, images, resolution, client charge
+- "Export Month" button → downloads CSV for monthly invoice
+
+---
+
+## Environment Variables
+
+```env
+FAL_API_KEY=
+SUPABASE_URL=
+SUPABASE_SERVICE_ROLE_KEY=
+NEXT_PUBLIC_SUPABASE_URL=
+NEXT_PUBLIC_SUPABASE_ANON_KEY=
+SLACK_WEBHOOK_URL=
+GOOGLE_SERVICE_ACCOUNT_JSON=
+GOOGLE_DRIVE_OUTPUT_FOLDER_ID=
+```
+
+---
+
+## Build Order
+
+1. Supabase: create tables, enable Auth (magic link, invite-only)
+2. Build tenant branding loader (detect domain → load logo/name/colors)
+3. Google Drive: service account setup
+4. `POST /api/brands` — brand upload + text extraction
+5. `POST /api/generate` — core generation endpoint
+6. `GET /api/usage-report` — monthly invoice data
+7. Build `/brands` page
+8. Build `/dashboard` page (4-step form)
+9. Build `/history` page with CSV export
+10. Deploy to Vercel
+11. Add client's custom domain in Vercel dashboard
+12. Test: upload brand → generate → verify Drive folder + Slack message
