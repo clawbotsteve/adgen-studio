@@ -1,0 +1,17 @@
+* { box-sizing: border-box; }
+html, body { margin: 0; padding: 0; font-family: Inter, system-ui, -apple-system, Segoe UI, Roboto, sans-serif; background: #0b1020; color: #e8ecf2; }
+a { color: inherit; text-decoration: none; }
+main { max-width: 1100px; margin: 0 auto; padding: 24px; }
+.card { background: #121a2f; border: 1px solid #263350; border-radius: 12px; padding: 16px; }
+.grid { display: grid; gap: 16px; }
+.grid-3 { grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); }
+button, input, textarea, select { font: inherit; }
+input, textarea, select { width: 100%; background: #0c1430; color: #e8ecf2; border: 1px solid #31416a; border-radius: 8px; padding: 10px; }
+button { background: #3060ff; color: white; border: none; border-radius: 8px; padding: 10px 14px; cursor: pointer; }
+button:disabled { opacity: 0.6; cursor: not-allowed; }
+.table { width: 100%; border-collapse: collapse; }
+.table th, .table td { border-bottom: 1px solid #27355a; text-align: left; padding: 10px; }
+.nav { display: flex; gap: 12px; margin-bottom: 18px; }
+.badge { font-size: 12px; background: #1b2c57; border-radius: 999px; padding: 4px 8px; }
+.error { color: #ff9ea4; }
+.success { color: #95f7a4; }
