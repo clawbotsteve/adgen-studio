@@ -44,7 +44,7 @@ export async function getBatchRun(
   return (data ?? null) as BatchRun | null;
 }
 
-export async function createBatchRun
+export async function createBatchRun(
   tenantId: string,
   data: {
     client_id: string;
@@ -197,7 +197,7 @@ export async function listBatchErrors(runId: string): Promise<BatchItemResult[]>
   return (data ?? []) as BatchItemResult[];
 }
 
-export async function cloneBatchRun
+export async function cloneBatchRun(
   tenantId: string,
   originalRunId: string,
   userId: string
