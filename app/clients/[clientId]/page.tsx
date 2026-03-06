@@ -3,16 +3,17 @@ import { PageHeader } from "@/components/layout/PageHeader";
 import { getClient } from "@/lib/data/clients";
 
 interface ClientDetailPageProps {
-  params: {
+  params: Promise<{
     clientId: string;
-  };
+  }>;
 }
 
 export default async function ClientDetailPage({
   params,
 }: ClientDetailPageProps) {
+  const { clientId } = await params;
   const { tenant } = await requireUserTenantPage();
-  const client = await getClient(tenant.id, params.clientId);
+  const client = await getClient(tenant.id, clientId);
 
   if (!client) {
     return (

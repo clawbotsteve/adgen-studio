@@ -5,18 +5,19 @@ import { PromptExportButton } from "@/components/prompts/PromptExportButton";
 import { getPromptPack, listPromptItems } from "@/lib/data/prompts";
 
 interface PromptPackDetailPageProps {
-  params: {
+  params: Promise<{
     packId: string;
-  };
+  }>;
 }
 
 export default async function PromptPackDetailPage({
   params,
 }: PromptPackDetailPageProps) {
+  const { packId } = await params;
   const { tenant } = await requireUserTenantPage();
   const [pack, items] = await Promise.all([
-    getPromptPack(tenant.id, params.packId),
-    listPromptItems(params.packId),
+    getPromptPack(tenant.id, packId),
+    listPromptItems(packId),
   ]);
 
   if (!pack) {
@@ -44,7 +45,7 @@ export default async function PromptPackDetailPage({
       <div style={{ display: "grid", gap: 24 }}>
         <div className="card">
           <h3 style={{ marginTop: 0 }}>Prompt Management</h3>
-          <PromptItemEditor packId={params.packId} items={items} />
+          <PromptItemEditor packId={packId} items={items} />
         </div>
 
         {pack.tags && pack.tags.length > 0 && (
