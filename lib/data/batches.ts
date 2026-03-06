@@ -44,7 +44,7 @@ export async function getBatchRun(
   return (data ?? null) as BatchRun | null;
 }
 
-export async function createBatchRun(
+export async function createBatchRun
   tenantId: string,
   data: {
     client_id: string;
@@ -73,7 +73,7 @@ export async function createBatchRun(
       created_by: data.created_by,
     })
     .select(
-      "id,tenant_id,client_id,profile_id,prompt_pack_id,status,total_items,queued_count,running_count,completed_count,failed_count,started_at,stopped_at,created_by,created_at"
+      "id,tenant_id,client_id,profile_id,prompt_pacck_id,status,total_items,queued_count,running_count,completed_count,failed_count,started_at,stopped_at,created_by,created_at"
     )
     .single();
 
@@ -89,8 +89,8 @@ export async function updateBatchRunStatus(
       BatchRun,
       "queued_count" | "running_count" | "completed_count" | "failed_count"
     >
-  
-) {
+  >
+): Promise<void> {
   const svc = createSupabaseService();
   const updateData: Record<string, string | number> = { status };
 
@@ -197,7 +197,7 @@ export async function listBatchErrors(runId: string): Promise<BatchItemResult[]>
   return (data ?? []) as BatchItemResult[];
 }
 
-export async function cloneBatchRun(
+export async function cloneBatchRun
   tenantId: string,
   originalRunId: string,
   userId: string
@@ -216,7 +216,7 @@ export async function cloneBatchRun(
   if (!originalRun) return null;
 
   // Create new batch run
-  Cconst { data: newRun, error: runError } = await svc
+  const { data: newRun, error: runError } = await svc
     .from("batch_runs")
     .insert({
       tenant_id: tenantId,
@@ -229,6 +229,7 @@ export async function cloneBatchRun(
       running_count: 0,
       completed_count: 0,
       failed_count: 0,
+
       started_at: new Date().toISOString(),
       stopped_at: null,
       created_by: userId,

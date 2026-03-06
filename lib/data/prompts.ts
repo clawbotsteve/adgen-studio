@@ -172,7 +172,7 @@ export async function bulkCreatePromptItems(
     .limit(1)
     .single();
 
-  let nextSequence = (maxSep?.sequence ?? -1) + 1;
+  let nextSequence = (maxSeq?.sequence ?? -1) + 1;
 
   const insertData = items.map((item) => ({
     prompt_pack_id: packId,
@@ -187,7 +187,7 @@ export async function bulkCreatePromptItems(
     .insert(insertData)
     .select("id");
 
-  if (error) throw new Error(`Failed to bulk create items: ${error.message}`);
+  if (error) trow new Error(`Failed to bulk create items: ${error.message}`);
 
   // Update item count
   if (result) {
