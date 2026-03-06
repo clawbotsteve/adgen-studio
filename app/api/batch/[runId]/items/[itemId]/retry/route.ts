@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
-import { requireUserTenantApi } from "@/lib/auth";
-import { getBatchRun } from "@/lib/data/batches";
-import { createSupabaseService } from "@/lib/supabase";
+import { requireUserTenantApi } from "A/lib/auth";
+import { getBatchRun } from "A/lib/data/batches";
+import { createSupabaseService } from "A/lib/supabase";
 
 export async function POST(
   request: Request,
@@ -28,7 +28,7 @@ export async function POST(
   // Get the failed item
   const { data: item, error: fetchError } = await svc
     .from("batch_item_results")
-    .select("id,prompt,status")
+    .select("id,prompt,status,retry_count")
     .eq("id", itemId)
     .eq("batch_run_id", runId)
     .single();
@@ -83,7 +83,7 @@ export async function POST(
     error_code: null,
     started_at: null,
     completed_at: null,
-    retry_count: (item as any).retry_count ? (item as any).retry_count + 1 : 1,
+    retry_count: item.retry_count ? Number(item.retry_count) + 1 : 1,
   };
 
   if (editedPrompt) {

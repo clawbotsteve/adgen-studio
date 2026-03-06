@@ -120,7 +120,7 @@ export async function updatePromptItem(
   data: Partial<PromptItem>
 ): Promise<PromptItem | null> {
   const svc = createSupabaseService();
-  const updateData: Record<string, any> = {};
+  const updateData: Record<string, unknown> = {};
 
   if (data.concept !== undefined) updateData.concept = data.concept;
   if (data.prompt_text !== undefined) updateData.prompt_text = data.prompt_text;
@@ -172,7 +172,7 @@ export async function bulkCreatePromptItems(
     .limit(1)
     .single();
 
-  let nextSequence = (maxSeq?.sequence ?? -1) + 1;
+  let nextSequence = (maxSep?.sequence ?? -1) + 1;
 
   const insertData = items.map((item) => ({
     prompt_pack_id: packId,

@@ -49,7 +49,7 @@ export function ProfileForm({ onSuccess }: ProfileFormProps) {
     }
 
     try {
-      const payload: Record<string, any> = {
+      const payload: Record<string, string | number | boolean | null> = {
         name: formData.name.trim(),
         mode,
         endpoint: formData.endpoint.trim(),

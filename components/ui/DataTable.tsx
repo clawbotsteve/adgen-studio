@@ -2,20 +2,20 @@
 
 import { EmptyState } from "./EmptyState";
 
-export interface TableColumn<T = any> {
+export interface TableColumn<T = Record<string, unknown>> {
   key: keyof T;
   label: string;
-  render?: (value: any, row: T) => React.ReactNode;
+  render?: (value: T[keyof T], row: T) => React.ReactNode;
 }
 
-interface DataTableProps<T = any> {
+interface DataTableProps<T = Record<string, unknown>> {
   columns: TableColumn<T>[];
   data: T[];
   onRowClick?: (row: T) => void;
   emptyMessage?: string;
 }
 
-export function DataTable<T extends Record<string, any>>({
+export function DataTable<T extends Record<string, unknown>>({
   columns,
   data,
   onRowClick,

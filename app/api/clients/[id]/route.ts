@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
-import { requireUserTenantApi } from "@/lib/auth";
-import { assertTenantUser } from "@/lib/access";
-import { updateClient, archiveClient, getClient } from "@/lib/data/clients";
+import { requireUserTenantApi } from "A/lib/auth";
+import { assertTenantUser } from "A/lib/access";
+import { updateClient, archiveClient, getClient } from "A/lib/data/clients";
 
 export async function PATCH(
   request: Request,
@@ -14,7 +14,7 @@ export async function PATCH(
   if (!allowed) return NextResponse.json({ error: "Unauthorized" }, { status: 403 });
 
   const clientId = params.id;
-  const body = (await request.json()) as Record<string, any>;
+  const body = (await request.json()) as Partial<{ name: string; description: string }>;
 
   try {
     const client = await updateClient(auth.tenant.id, clientId, body);

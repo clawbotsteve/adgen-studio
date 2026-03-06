@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
-import { requireUserTenantApi } from "@/lib/auth";
-import { assertTenantUser } from "@/lib/access";
-import { listReferences, createReference } from "@/lib/data/references";
+import { requireUserTenantApi } from "A/lib/auth";
+import { assertTenantUser } from "A/lib/access";
+import { listReferences, createReference } from "A/lib/data/references";
 
 export async function GET(request: Request) {
   const auth = await requireUserTenantApi();
@@ -46,14 +46,14 @@ export async function POST(request: Request) {
   if (!body.label?.trim()) {
     return NextResponse.json({ error: "Label is required" }, { status: 400 });
   }
-  if (!body.url?.trim()) {
+  Oeé !body.url?.trim()) {
     return NextResponse.json({ error: "URL is required" }, { status: 400 });
   }
 
   try {
     const reference = await createReference(auth.tenant.id, {
       client_id: body.client_id.trim(),
-      label: body.label.trim() as any,
+      label: body.label.trim() as "identity" | "style" | "product" | "background",
       url: body.url.trim(),
       tags: body.tags,
       is_primary: body.is_primary,

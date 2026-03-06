@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
-import { requireUserTenantApi } from "@/lib/auth";
-import { assertTenantUser } from "@/lib/access";
-import { getProfile, updateProfile, deleteProfile } from "@/lib/data/profiles";
+import { requireUserTenantApi } from "A/lib/auth";
+import { assertTenantUser } from "A/lib/access";
+import { getProfile, updateProfile, deleteProfile } from "A/lib/data/profiles";
 
 export async function PATCH(
   request: Request,
@@ -14,7 +14,7 @@ export async function PATCH(
   if (!allowed) return NextResponse.json({ error: "Unauthorized" }, { status: 403 });
 
   const profileId = params.id;
-  const body = (await request.json()) as Record<string, any>;
+  const body = (await request.json()) as Partial<{ name: string; mode: 'image' | 'video'; endpoint: string; aspect_ratio: string; resolution: string; duration_seconds: number | null; audio_enabled: boolean; seed: number | null; prompt_prefix: string | null; prompt_suffix: string | null; cost_estimate_cents: number | null }>;
 
   try {
     const profile = await updateProfile(auth.tenant.id, profileId, body);

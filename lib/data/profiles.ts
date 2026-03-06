@@ -65,7 +65,7 @@ export async function updateProfile(
   data: Partial<Profile>
 ): Promise<Profile | null> {
   const svc = createSupabaseService();
-  const updateData: Record<string, any> = {};
+  const updateData: Record<string, unknown> = {};
 
   if (data.name !== undefined) updateData.name = data.name;
   if (data.mode !== undefined) updateData.mode = data.mode;

@@ -89,10 +89,10 @@ export async function updateBatchRunStatus(
       BatchRun,
       "queued_count" | "running_count" | "completed_count" | "failed_count"
     >
-  >
-): Promise<void> {
+  
+) {
   const svc = createSupabaseService();
-  const updateData: Record<string, any> = { status };
+  const updateData: Record<string, string | number> = { status };
 
   if (counts) {
     if (counts.queued_count !== undefined)
@@ -216,7 +216,7 @@ export async function cloneBatchRun(
   if (!originalRun) return null;
 
   // Create new batch run
-  const { data: newRun, error: runError } = await svc
+  Cconst { data: newRun, error: runError } = await svc
     .from("batch_runs")
     .insert({
       tenant_id: tenantId,
