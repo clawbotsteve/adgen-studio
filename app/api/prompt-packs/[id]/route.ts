@@ -9,8 +9,9 @@ import {
 
 export async function GET(
   request: Request,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
+  const { id } = await params;
   const auth = await requireUserTenantApi();
   if ("error" in auth) return NextResponse.json({ error: auth.error }, { status: auth.status });
 
@@ -18,12 +19,12 @@ export async function GET(
   if (!allowed) return NextResponse.json({ error: "Unauthorized" }, { status: 403 });
 
   try {
-    const pack = await getPromptPack(auth.tenant.id, params.id);
+    const pack = await getPromptPack(auth.tenant.id, id);
     if (!pack) {
       return NextResponse.json({ error: "Pack not found" }, { status: 404 });
     }
 
-    const items = await listPromptItems(params.id);
+    const items = await listPromptItems(id);
 
     return NextResponse.json({ pack, items });
   } catch (error) {
@@ -37,8 +38,9 @@ export async function GET(
 
 export async function DELETE(
   request: Request,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
+  const { id } = await params;
   const auth = await requireUserTenantApi();
   if ("error" in auth) return NextResponse.json({ error: auth.error }, { status: auth.status });
 
@@ -46,12 +48,12 @@ export async function DELETE(
   if (!allowed) return NextResponse.json({ error: "Unauthorized" }, { status: 403 });
 
   try {
-    const pack = await getPromptPack(auth.tenant.id, params.id);
+    const pack = await getPromptPack(auth.tenant.id, id);
     if (!pack) {
       return NextResponse.json({ error: "Pack not found" }, { status: 404 });
     }
 
-    const success = await deletePromptPack(auth.tenant.id, params.id);
+    const success = await deletePromptPack(auth.tenant.id, id);
     if (!success) {
       return NextResponse.json({ error: "Failed to delete pack" }, { status: 500 });
     }

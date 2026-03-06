@@ -5,15 +5,16 @@ import { updateClient, archiveClient, getClient } from "@/lib/data/clients";
 
 export async function PATCH(
   request: Request,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
+  const { id } = await params;
   const auth = await requireUserTenantApi();
   if ("error" in auth) return NextResponse.json({ error: auth.error }, { status: auth.status });
 
   const allowed = await assertTenantUser(auth.tenant.id, auth.user.id);
   if (!allowed) return NextResponse.json({ error: "Unauthorized" }, { status: 403 });
 
-  const clientId = params.id;
+  const clientId = id;
   const body = (await request.json()) as Partial<{ name: string; description: string }>;
 
   try {
@@ -30,15 +31,16 @@ export async function PATCH(
 
 export async function DELETE(
   request: Request,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
+  const { id } = await params;
   const auth = await requireUserTenantApi();
   if ("error" in auth) return NextResponse.json({ error: auth.error }, { status: auth.status });
 
   const allowed = await assertTenantUser(auth.tenant.id, auth.user.id);
   if (!allowed) return NextResponse.json({ error: "Unauthorized" }, { status: 403 });
 
-  const clientId = params.id;
+  const clientId = id;
 
   try {
     // Verify client exists and belongs to tenant

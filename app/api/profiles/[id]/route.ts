@@ -5,15 +5,16 @@ import { getProfile, updateProfile, deleteProfile } from "@/lib/data/profiles";
 
 export async function PATCH(
   request: Request,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
+  const { id } = await params;
   const auth = await requireUserTenantApi();
   if ("error" in auth) return NextResponse.json({ error: auth.error }, { status: auth.status });
 
   const allowed = await assertTenantUser(auth.tenant.id, auth.user.id);
   if (!allowed) return NextResponse.json({ error: "Unauthorized" }, { status: 403 });
 
-  const profileId = params.id;
+  const profileId = id;
   const body = (await request.json()) as Partial<{ name: string; mode: 'image' | 'video'; endpoint: string; aspect_ratio: string; resolution: string; duration_seconds: number | null; audio_enabled: boolean; seed: number | null; prompt_prefix: string | null; prompt_suffix: string | null; cost_estimate_cents: number | null }>;
 
   try {
@@ -30,15 +31,16 @@ export async function PATCH(
 
 export async function DELETE(
   request: Request,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
+  const { id } = await params;
   const auth = await requireUserTenantApi();
   if ("error" in auth) return NextResponse.json({ error: auth.error }, { status: auth.status });
 
   const allowed = await assertTenantUser(auth.tenant.id, auth.user.id);
   if (!allowed) return NextResponse.json({ error: "Unauthorized" }, { status: 403 });
 
-  const profileId = params.id;
+  const profileId = id;
 
   try {
     // Verify profile exists and belongs to tenant

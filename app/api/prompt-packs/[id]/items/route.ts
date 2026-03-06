@@ -5,8 +5,9 @@ import { listPromptItems, createPromptItem } from "@/lib/data/prompts";
 
 export async function GET(
   request: Request,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
+  const { id } = await params;
   const auth = await requireUserTenantApi();
   if ("error" in auth) return NextResponse.json({ error: auth.error }, { status: auth.status });
 
@@ -14,7 +15,7 @@ export async function GET(
   if (!allowed) return NextResponse.json({ error: "Unauthorized" }, { status: 403 });
 
   try {
-    const items = await listPromptItems(params.id);
+    const items = await listPromptItems(id);
     return NextResponse.json({ items });
   } catch (error) {
     console.error("[prompt-packs items GET]", error);
@@ -24,8 +25,9 @@ export async function GET(
 
 export async function POST(
   request: Request,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
+  const { id } = await params;
   const auth = await requireUserTenantApi();
   if ("error" in auth) return NextResponse.json({ error: auth.error }, { status: auth.status });
 
@@ -46,7 +48,7 @@ export async function POST(
   }
 
   try {
-    const item = await createPromptItem(params.id, {
+    const item = await createPromptItem(id, {
       concept: body.concept.trim(),
       prompt_text: body.prompt_text.trim(),
       tags: body.tags || [],

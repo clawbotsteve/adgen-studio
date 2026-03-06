@@ -5,8 +5,9 @@ import { deleteReference, setPrimaryReference } from "@/lib/data/references";
 
 export async function DELETE(
   request: Request,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
+  const { id } = await params;
   const auth = await requireUserTenantApi();
   if ("error" in auth) return NextResponse.json({ error: auth.error }, { status: auth.status });
 
@@ -14,7 +15,7 @@ export async function DELETE(
   if (!allowed) return NextResponse.json({ error: "Unauthorized" }, { status: 403 });
 
   try {
-    const success = await deleteReference(auth.tenant.id, params.id);
+    const success = await deleteReference(auth.tenant.id, id);
     if (!success) {
       return NextResponse.json({ error: "Reference not found" }, { status: 404 });
     }
@@ -27,8 +28,9 @@ export async function DELETE(
 
 export async function PATCH(
   request: Request,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
+  const { id } = await params;
   const auth = await requireUserTenantApi();
   if ("error" in auth) return NextResponse.json({ error: auth.error }, { status: auth.status });
 
@@ -42,7 +44,7 @@ export async function PATCH(
       const success = await setPrimaryReference(
         auth.tenant.id,
         body.client_id,
-        params.id
+        id
       );
       if (!success) {
         return NextResponse.json({ error: "Failed to set primary reference" }, { status: 500 });
