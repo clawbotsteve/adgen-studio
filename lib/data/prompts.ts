@@ -187,7 +187,7 @@ export async function bulkCreatePromptItems(
     .insert(insertData)
     .select("id");
 
-  if (error) trow new Error(`Failed to bulk create items: ${error.message}`);
+  if (error) throw new Error(`Failed to bulk create items: ${error.message}`);
 
   // Update item count
   if (result) {
