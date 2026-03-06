@@ -19,9 +19,8 @@ export const getTenantByHost = async (host?: string): Promise<Tenant | null> => 
 
   const { data, error } = await svc
     .from("tenants")
-    .select("id,name,hostname,is_active")
-    .eq("hostname", hostname)
-    .eq("is_active", true)
+    .select("id,name,domain")
+    .eq("domain", hostname)
     .single();
 
   if (error || !data) return null;
