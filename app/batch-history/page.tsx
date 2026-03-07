@@ -3,6 +3,7 @@ import { createSupabaseService } from "@/lib/supabase";
 import { listClients } from "@/lib/data/clients";
 import { PageHeader } from "@/components/layout/PageHeader";
 import Link from "next/link";
+import BatchHistoryGrid from "@/components/generate/BatchHistoryGrid";
 
 export const metadata = { title: "Batch History" };
 
@@ -20,10 +21,17 @@ export default async function BatchHistoryPage() {
 
   const clientMap = new Map(clients.map((c) => [c.id, c.name]));
 
-  const grouped = (generations || []).reduce<Record<string, typeof generations>>((acc, gen) => {
+  const grouped = (generations || []).reduce<Record<string, any[]>>((acc, gen) => {
     const name = clientMap.get(gen.client_id) || "Unknown";
     if (!acc[name]) acc[name] = [];
-    acc[name].push(gen);
+    acc[name].push({
+      id: gen.id,
+      output_url: gen.output_url,
+      prompt: gen.prompt,
+      aspect_ratio: gen.aspect_ratio,
+      resolution: gen.resolution,
+      created_at: gen.created_at,
+    });
     return acc;
   }, {});
 
@@ -47,26 +55,7 @@ export default async function BatchHistoryPage() {
           </div>
         </div>
       ) : (
-        clientNames.map((clientName) => (
-          <div key={clientName} className="card" style={{ marginBottom: "1.5rem" }}>
-            <h2 style={{ fontSize: "1.1rem", fontWeight: 600, marginBottom: "1rem", color: "#e2e8f0" }}>
-              {clientName} ({grouped[clientName]!.length} generations)
-            </h2>
-            <div className="batch-history-grid">
-              {grouped[clientName]!.map((gen) => (
-                <div key={gen.id} className="batch-history-item">
-                  <img src={gen.output_url} alt={gen.prompt} />
-                  <div className="batch-history-meta">
-                    <p className="batch-history-prompt">{gen.prompt}</p>
-                    <span className="batch-history-details">
-                      {gen.aspect_ratio} &middot; {gen.resolution} &middot; {new Date(gen.created_at).toLocaleDateString()}
-                    </span>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-        ))
+        <BatchHistoryGrid grouped={grouped} clientNames={clientNames} />
       )}
     </div>
   );
