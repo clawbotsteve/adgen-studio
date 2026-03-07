@@ -6,7 +6,6 @@ import Link from "next/link";
 export function Sidebar() {
   const pathname = usePathname();
 
-  // Hide sidebar on login and error pages
   if (pathname === "/login" || pathname === "/error") {
     return null;
   }
@@ -20,10 +19,7 @@ export function Sidebar() {
       <div className="sidebar-logo">◆ AdGen Studio</div>
 
       <nav className="sidebar-section">
-        <Link
-          href="/dashboard"
-          className={`sidebar-link ${isActive("/dashboard") ? "active" : ""}`}
-        >
+        <Link href="/dashboard" className={`sidebar-link ${isActive("/dashboard") ? "active" : ""}`}>
           <span className="sidebar-icon">⌂</span>
           <span>Dashboard</span>
         </Link>
@@ -31,31 +27,19 @@ export function Sidebar() {
 
       <div className="sidebar-section">
         <div className="sidebar-section-header">Manage</div>
-        <Link
-          href="/clients"
-          className={`sidebar-link ${isActive("/clients") ? "active" : ""}`}
-        >
+        <Link href="/clients" className={`sidebar-link ${isActive("/clients") ? "active" : ""}`}>
           <span className="sidebar-icon">👥</span>
           <span>Clients</span>
         </Link>
-        <Link
-          href="/references"
-          className={`sidebar-link ${isActive("/references") ? "active" : ""}`}
-        >
+        <Link href="/references" className={`sidebar-link ${isActive("/references") ? "active" : ""}`}>
           <span className="sidebar-icon">🖼</span>
           <span>References</span>
         </Link>
-        <Link
-          href="/profiles"
-          className={`sidebar-link ${isActive("/profiles") ? "active" : ""}`}
-        >
+        <Link href="/profiles" className={`sidebar-link ${isActive("/profiles") ? "active" : ""}`}>
           <span className="sidebar-icon">⚙</span>
           <span>Profiles</span>
         </Link>
-        <Link
-          href="/prompt-packs"
-          className={`sidebar-link ${isActive("/prompt-packs") ? "active" : ""}`}
-        >
+        <Link href="/prompt-packs" className={`sidebar-link ${isActive("/prompt-packs") ? "active" : ""}`}>
           <span className="sidebar-icon">📦</span>
           <span>Prompt Packs</span>
         </Link>
@@ -63,19 +47,17 @@ export function Sidebar() {
 
       <div className="sidebar-section">
         <div className="sidebar-section-header">Generate</div>
-        <Link
-          href="/batch/create"
-          className={`sidebar-link ${isActive("/batch/create") ? "active" : ""}`}
-        >
+        <Link href="/batch/create" className={`sidebar-link ${isActive("/batch/create") ? "active" : ""}`}>
           <span className="sidebar-icon">▶</span>
           <span>Generate</span>
         </Link>
-        <Link
-          href="/run-history"
-          className={`sidebar-link ${isActive("/run-history") ? "active" : ""}`}
-        >
+        <Link href="/batch/generate" className={`sidebar-link ${isActive("/batch/generate") ? "active" : ""}`}>
+          <span className="sidebar-icon">⚡</span>
+          <span>Batch Generate</span>
+        </Link>
+        <Link href="/batch-history" className={`sidebar-link ${isActive("/batch-history") ? "active" : ""}`}>
           <span className="sidebar-icon">📋</span>
-          <span>Run History</span>
+          <span>Batch History</span>
         </Link>
       </div>
     </aside>
