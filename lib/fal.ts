@@ -7,7 +7,9 @@ if (env.falApiKey) {
 
 export const generateImage = async (
   prompt: string,
-  referenceImageUrl?: string
+  referenceImageUrl?: string,
+  aspectRatio: string = "1:1",
+  resolution: string = "1K"
 ): Promise<string> => {
   if (!env.falApiKey) throw new Error("Image generation is not configured.");
 
@@ -15,7 +17,8 @@ export const generateImage = async (
     prompt,
     num_images: 1,
     output_format: "png",
-    resolution: "1K",
+    aspect_ratio: aspectRatio,
+    resolution,
   };
 
   if (referenceImageUrl) {
@@ -29,7 +32,7 @@ export const generateImage = async (
     logs: false,
   });
 
-  console.log("[fal] Result:", JSON.stringify(result.data));
+  console.log("[fal] Result received");
 
   const data = result.data as { images?: Array<{ url?: string }> };
   const first = data?.images?.[0]?.url;

@@ -8,11 +8,24 @@ interface GeneratePageProps {
   clients: Client[];
 }
 
+const ASPECT_RATIOS = [
+  { value: "1:1", label: "1:1 (Square)" },
+  { value: "9:16", label: "9:16 (Portrait)" },
+] as const;
+
+const RESOLUTIONS = [
+  { value: "1K", label: "1K" },
+  { value: "2K", label: "2K" },
+  { value: "4K", label: "4K" },
+] as const;
+
 export function GeneratePage({ clients }: GeneratePageProps) {
   const [clientId, setClientId] = useState<string>(clients[0]?.id ?? "");
   const [images, setImages] = useState<ReferenceImage[]>([]);
   const [selectedImage, setSelectedImage] = useState<ReferenceImage | null>(null);
   const [prompt, setPrompt] = useState("");
+  const [aspectRatio, setAspectRatio] = useState("1:1");
+  const [resolution, setResolution] = useState("1K");
   const [generating, setGenerating] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [outputUrl, setOutputUrl] = useState<string | null>(null);
@@ -63,17 +76,14 @@ export function GeneratePage({ clients }: GeneratePageProps) {
         formData.append("file", file);
         formData.append("clientId", clientId);
         formData.append("label", "identity");
-
         const res = await fetch("/api/generate/upload", {
           method: "POST",
           body: formData,
         });
-
         if (!res.ok) {
           const data = await res.json();
           throw new Error(data.error || "Upload failed");
         }
-
         const data = await res.json();
         const newImage = data.image as ReferenceImage;
         setImages((prev) => [newImage, ...prev]);
@@ -86,7 +96,6 @@ export function GeneratePage({ clients }: GeneratePageProps) {
     },
     [clientId]
   );
-
   // Delete image
   const handleDelete = useCallback(
     async (imageId: string) => {
@@ -107,7 +116,6 @@ export function GeneratePage({ clients }: GeneratePageProps) {
     setGenerating(true);
     setError(null);
     setOutputUrl(null);
-
     try {
       const res = await fetch("/api/generate", {
         method: "POST",
@@ -116,14 +124,14 @@ export function GeneratePage({ clients }: GeneratePageProps) {
           clientId,
           prompt: prompt.trim(),
           referenceImageUrl: selectedImage.url,
+          aspectRatio,
+          resolution,
         }),
       });
-
       if (!res.ok) {
         const data = await res.json();
         throw new Error(data.error || "Generation failed");
       }
-
       const data = await res.json();
       setOutputUrl(data.outputUrl);
     } catch (err) {
@@ -131,7 +139,7 @@ export function GeneratePage({ clients }: GeneratePageProps) {
     } finally {
       setGenerating(false);
     }
-  }, [clientId, selectedImage, prompt]);
+  }, [clientId, selectedImage, prompt, aspectRatio, resolution]);
 
   // Save output to library
   const handleSaveToLibrary = useCallback(async () => {
@@ -156,7 +164,6 @@ export function GeneratePage({ clients }: GeneratePageProps) {
   }, [outputUrl, clientId]);
 
   const canGenerate = selectedImage && prompt.trim() && !generating;
-
   return (
     <div className="generate-page">
       {/* Header */}
@@ -185,7 +192,7 @@ export function GeneratePage({ clients }: GeneratePageProps) {
       {error && (
         <div className="generate-error">
           <span>{error}</span>
-          <button onClick={() => setError(null)}>×</button>
+          <button onClick={() => setError(null)}>\u00d7</button>
         </div>
       )}
 
@@ -220,6 +227,39 @@ export function GeneratePage({ clients }: GeneratePageProps) {
               <span>Select an image from the library</span>
             </div>
           )}
+          {/* Aspect Ratio selector */}
+          <div className="generate-setting">
+            <label>Aspect Ratio</label>
+            <div className="setting-options">
+              {ASPECT_RATIOS.map((ar) => (
+                <button
+                  key={ar.value}
+                  className={`setting-option ${aspectRatio === ar.value ? "active" : ""}`}
+                  onClick={() => setAspectRatio(ar.value)}
+                  type="button"
+                >
+                  {ar.label}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* Resolution selector */}
+          <div className="generate-setting">
+            <label>Resolution</label>
+            <div className="setting-options">
+              {RESOLUTIONS.map((r) => (
+                <button
+                  key={r.value}
+                  className={`setting-option ${resolution === r.value ? "active" : ""}`}
+                  onClick={() => setResolution(r.value)}
+                  type="button"
+                >
+                  {r.label}
+                </button>
+              ))}
+            </div>
+          </div>
 
           {/* Prompt input */}
           <div className="generate-prompt">
@@ -241,7 +281,8 @@ export function GeneratePage({ clients }: GeneratePageProps) {
           >
             {generating ? (
               <>
-                <span className="btn-spinner" /> Generating...
+                <span className="btn-spinner" />
+                Generating...
               </>
             ) : (
               "Generate"
