@@ -31,6 +31,7 @@ export function GeneratePage({ clients }: GeneratePageProps) {
   const [outputUrl, setOutputUrl] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [loadingImages, setLoadingImages] = useState(false);
+  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
 
   const fetchImages = useCallback(async (cId: string) => {
     if (!cId) return;
@@ -47,62 +48,45 @@ export function GeneratePage({ clients }: GeneratePageProps) {
     }
   }, []);
 
-  const handleClientChange = useCallback(
-    (newClientId: string) => {
-      setClientId(newClientId);
-      setSelectedImage(null);
-      setOutputUrl(null);
-      setError(null);
-      fetchImages(newClientId);
-    },
-    [fetchImages]
-  );
+  const handleClientChange = useCallback((newClientId: string) => {
+    setClientId(newClientId);
+    setSelectedImage(null);
+    setOutputUrl(null);
+    setError(null);
+    fetchImages(newClientId);
+  }, [fetchImages]);
 
-  useState(() => {
-    if (clientId) fetchImages(clientId);
-  });
+  useState(() => { if (clientId) fetchImages(clientId); });
 
-  const handleUpload = useCallback(
-    async (file: File) => {
-      if (!clientId) return;
-      setUploading(true);
-      setError(null);
-      try {
-        const formData = new FormData();
-        formData.append("file", file);
-        formData.append("clientId", clientId);
-        formData.append("label", "identity");
-        const res = await fetch("/api/generate/upload", {
-          method: "POST",
-          body: formData,
-        });
-        if (!res.ok) {
-          const data = await res.json();
-          throw new Error(data.error || "Upload failed");
-        }
-        const data = await res.json();
-        const newImage = data.image as ReferenceImage;
-        setImages((prev) => [newImage, ...prev]);
-        setSelectedImage(newImage);
-      } catch (err) {
-        setError(err instanceof Error ? err.message : "Upload failed");
-      } finally {
-        setUploading(false);
-      }
-    },
-    [clientId]
-  );
-  const handleDelete = useCallback(
-    async (imageId: string) => {
-      try {
-        await fetch(`/api/references/${imageId}`, { method: "DELETE" });
-        setImages((prev) => prev.filter((img) => img.id !== imageId));
-        if (selectedImage?.id === imageId) setSelectedImage(null);
-      } catch {}
-    },
-    [selectedImage]
-  );
+  const handleUpload = useCallback(async (file: File) => {
+    if (!clientId) return;
+    setUploading(true);
+    setError(null);
+    try {
+      const formData = new FormData();
+      formData.append("file", file);
+      formData.append("clientId", clientId);
+      formData.append("label", "identity");
+      const res = await fetch("/api/generate/upload", { method: "POST", body: formData });
+      if (!res.ok) { const data = await res.json(); throw new Error(data.error || "Upload failed"); }
+      const data = await res.json();
+      const newImage = data.image as ReferenceImage;
+      setImages((prev) => [newImage, ...prev]);
+      setSelectedImage(newImage);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Upload failed");
+    } finally {
+      setUploading(false);
+    }
+  }, [clientId]);
 
+  const handleDelete = useCallback(async (imageId: string) => {
+    try {
+      await fetch(`/api/references/${imageId}`, { method: "DELETE" });
+      setImages((prev) => prev.filter((img) => img.id !== imageId));
+      if (selectedImage?.id === imageId) setSelectedImage(null);
+    } catch {}
+  }, [selectedImage]);
   const handleGenerate = useCallback(async () => {
     if (!selectedImage || !prompt.trim()) return;
     setGenerating(true);
@@ -112,18 +96,9 @@ export function GeneratePage({ clients }: GeneratePageProps) {
       const res = await fetch("/api/generate", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          clientId,
-          prompt: prompt.trim(),
-          referenceImageUrl: selectedImage.url,
-          aspectRatio,
-          resolution,
-        }),
+        body: JSON.stringify({ clientId, prompt: prompt.trim(), referenceImageUrl: selectedImage.url, aspectRatio, resolution }),
       });
-      if (!res.ok) {
-        const data = await res.json();
-        throw new Error(data.error || "Generation failed");
-      }
+      if (!res.ok) { const data = await res.json(); throw new Error(data.error || "Generation failed"); }
       const data = await res.json();
       setOutputUrl(data.outputUrl);
     } catch (err) {
@@ -133,37 +108,57 @@ export function GeneratePage({ clients }: GeneratePageProps) {
     }
   }, [clientId, selectedImage, prompt, aspectRatio, resolution]);
 
+  const handleDownload = useCallback(async (url: string, filename?: string) => {
+    try {
+      const res = await fetch(url);
+      const blob = await res.blob();
+      const a = document.createElement("a");
+      a.href = URL.createObjectURL(blob);
+      a.download = filename || "generated-image.png";
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(a.href);
+    } catch {
+      window.open(url, "_blank");
+    }
+  }, []);
+
   const handleSaveToLibrary = useCallback(async () => {
     if (!outputUrl || !clientId) return;
     try {
       const res = await fetch("/api/references", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          client_id: clientId,
-          label: "identity",
-          url: outputUrl,
-        }),
+        body: JSON.stringify({ client_id: clientId, label: "identity", url: outputUrl }),
       });
-      if (res.ok) {
-        const data = await res.json();
-        setImages((prev) => [data.reference, ...prev]);
-      }
+      if (res.ok) { const data = await res.json(); setImages((prev) => [data.reference, ...prev]); }
     } catch {}
   }, [outputUrl, clientId]);
 
   const canGenerate = selectedImage && prompt.trim() && !generating;
   return (
     <div className="generate-page">
+      {/* Preview Modal */}
+      {previewUrl && (
+        <div className="preview-modal-overlay" onClick={() => setPreviewUrl(null)}>
+          <div className="preview-modal" onClick={(e) => e.stopPropagation()}>
+            <button className="preview-modal-close" onClick={() => setPreviewUrl(null)}>\u00d7</button>
+            <img src={previewUrl} alt="Preview" />
+            <div className="preview-modal-actions">
+              <button className="btn btn-primary btn-sm" onClick={() => handleDownload(previewUrl)}>Download</button>
+            </div>
+          </div>
+        </div>
+      )}
+
       <div className="generate-header">
         <h1>Generate</h1>
         <div className="generate-client-select">
           <label htmlFor="client-select">Client:</label>
           <select id="client-select" value={clientId} onChange={(e) => handleClientChange(e.target.value)}>
             {clients.length === 0 && <option value="">No clients yet</option>}
-            {clients.map((c) => (
-              <option key={c.id} value={c.id}>{c.name}</option>
-            ))}
+            {clients.map((c) => (<option key={c.id} value={c.id}>{c.name}</option>))}
           </select>
         </div>
       </div>
@@ -176,7 +171,6 @@ export function GeneratePage({ clients }: GeneratePageProps) {
       )}
 
       <div className="generate-content">
-        {/* LEFT: Generate Panel */}
         <div className="generate-panel">
           {selectedImage ? (
             <div className="selected-preview">
@@ -219,28 +213,24 @@ export function GeneratePage({ clients }: GeneratePageProps) {
           {outputUrl && (
             <div className="generate-output">
               <label>Generated Image</label>
-              <img src={outputUrl} alt="Generated output" />
+              <div className="generate-output-image-wrap">
+                <img src={outputUrl} alt="Generated output" onClick={() => setPreviewUrl(outputUrl)} className="clickable-image" />
+                <div className="image-hover-hint">Click to preview</div>
+              </div>
               <div className="generate-output-actions">
-                <a href={outputUrl} target="_blank" rel="noopener noreferrer" className="btn btn-sm btn-secondary">Open Full Size</a>
-                <button className="btn btn-sm btn-secondary" onClick={handleSaveToLibrary}>Save to Library</button>
+                <button className="btn btn-sm btn-primary" onClick={() => handleDownload(outputUrl)}>⬇ Download</button>
+                <button className="btn btn-sm btn-secondary" onClick={() => setPreviewUrl(outputUrl)}>🔍 Preview</button>
+                <button className="btn btn-sm btn-secondary" onClick={handleSaveToLibrary}>💾 Save to Library</button>
               </div>
             </div>
           )}
         </div>
 
-        {/* RIGHT: Creative Library */}
         <div className="generate-library-section">
           {loadingImages ? (
             <div className="generate-loading">Loading images...</div>
           ) : (
-            <CreativeLibrary
-              images={images}
-              selectedImage={selectedImage}
-              onSelect={setSelectedImage}
-              onUpload={handleUpload}
-              onDelete={handleDelete}
-              uploading={uploading}
-            />
+            <CreativeLibrary images={images} selectedImage={selectedImage} onSelect={setSelectedImage} onUpload={handleUpload} onDelete={handleDelete} uploading={uploading} />
           )}
         </div>
       </div>
