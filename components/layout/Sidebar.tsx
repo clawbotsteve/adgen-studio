@@ -37,7 +37,7 @@ export function Sidebar() {
         </Link>
         <Link href="/profiles" className={`sidebar-link ${isActive("/profiles") ? "active" : ""}`}>
           <span className="sidebar-icon">⚙</span>
-          <span>Profiles</span>
+          <span>Client Profiles</span>
         </Link>
       </div>
 

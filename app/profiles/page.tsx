@@ -1,26 +1,21 @@
 import { requireUserTenantPage } from "@/lib/auth";
 import { PageHeader } from "@/components/layout/PageHeader";
-import { ProfileForm } from "@/components/profiles/ProfileForm";
-import { ProfileTable } from "@/components/profiles/ProfileTable";
-import { listProfiles } from "@/lib/data/profiles";
+import { ClientHubPage } from "@/components/generate/ClientHubPage";
+import { listClients } from "@/lib/data/clients";
+
+export const metadata = { title: "Client Profiles" };
 
 export default async function ProfilesPage() {
   const { tenant } = await requireUserTenantPage();
-  const profiles = await listProfiles(tenant.id);
+  const clients = await listClients(tenant.id);
 
   return (
     <div className="page-container">
       <PageHeader
-        title="Profiles"
-        description="Create and manage image and video generation profiles"
+        title="Client Profiles"
+        description="View and manage your clients creative operations"
       />
-      <div style={{ display: "grid", gap: 24 }}>
-        <ProfileForm />
-        <div className="card">
-          <h3 style={{ marginTop: 0 }}>Profiles List</h3>
-          <ProfileTable profiles={profiles} />
-        </div>
-      </div>
+      <ClientHubPage clients={clients} />
     </div>
   );
 }
