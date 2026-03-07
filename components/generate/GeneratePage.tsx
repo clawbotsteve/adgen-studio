@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback } from "react";
+import { useState, useCallback, useRef } from "react";
 import type { Client, ReferenceImage } from "@/types/domain";
 import { CreativeLibrary } from "./CreativeLibrary";
 
@@ -32,6 +32,8 @@ export function GeneratePage({ clients }: GeneratePageProps) {
   const [error, setError] = useState<string | null>(null);
   const [loadingImages, setLoadingImages] = useState(false);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+  const [isDragging, setIsDragging] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const fetchImages = useCallback(async (cId: string) => {
     if (!cId) return;
@@ -41,11 +43,8 @@ export function GeneratePage({ clients }: GeneratePageProps) {
       const data = await res.json();
       setImages(data.references ?? []);
       setSelectedImage(null);
-    } catch {
-      setImages([]);
-    } finally {
-      setLoadingImages(false);
-    }
+    } catch { setImages([]); }
+    finally { setLoadingImages(false); }
   }, []);
 
   const handleClientChange = useCallback((newClientId: string) => {
@@ -73,12 +72,38 @@ export function GeneratePage({ clients }: GeneratePageProps) {
       const newImage = data.image as ReferenceImage;
       setImages((prev) => [newImage, ...prev]);
       setSelectedImage(newImage);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Upload failed");
-    } finally {
-      setUploading(false);
-    }
+    } catch (err) { setError(err instanceof Error ? err.message : "Upload failed"); }
+    finally { setUploading(false); }
   }, [clientId]);
+  const handleDragOver = useCallback((e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDragging(true);
+  }, []);
+
+  const handleDragLeave = useCallback((e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDragging(false);
+  }, []);
+
+  const handleDrop = useCallback((e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDragging(false);
+    const file = e.dataTransfer.files?.[0];
+    if (file && file.type.startsWith("image/")) {
+      handleUpload(file);
+    } else {
+      setError("Please drop an image file (PNG, JPG, etc.)");
+    }
+  }, [handleUpload]);
+
+  const handleFileSelect = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) handleUpload(file);
+    if (fileInputRef.current) fileInputRef.current.value = "";
+  }, [handleUpload]);
 
   const handleDelete = useCallback(async (imageId: string) => {
     try {
@@ -87,6 +112,7 @@ export function GeneratePage({ clients }: GeneratePageProps) {
       if (selectedImage?.id === imageId) setSelectedImage(null);
     } catch {}
   }, [selectedImage]);
+
   const handleGenerate = useCallback(async () => {
     if (!selectedImage || !prompt.trim()) return;
     setGenerating(true);
@@ -101,11 +127,8 @@ export function GeneratePage({ clients }: GeneratePageProps) {
       if (!res.ok) { const data = await res.json(); throw new Error(data.error || "Generation failed"); }
       const data = await res.json();
       setOutputUrl(data.outputUrl);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Generation failed");
-    } finally {
-      setGenerating(false);
-    }
+    } catch (err) { setError(err instanceof Error ? err.message : "Generation failed"); }
+    finally { setGenerating(false); }
   }, [clientId, selectedImage, prompt, aspectRatio, resolution]);
 
   const handleDownload = useCallback(async (url: string, filename?: string) => {
@@ -119,9 +142,7 @@ export function GeneratePage({ clients }: GeneratePageProps) {
       a.click();
       document.body.removeChild(a);
       URL.revokeObjectURL(a.href);
-    } catch {
-      window.open(url, "_blank");
-    }
+    } catch { window.open(url, "_blank"); }
   }, []);
 
   const handleSaveToLibrary = useCallback(async () => {
@@ -172,14 +193,53 @@ export function GeneratePage({ clients }: GeneratePageProps) {
 
       <div className="generate-content">
         <div className="generate-panel">
+          {/* Hidden file input */}
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept="image/*"
+            onChange={handleFileSelect}
+            style={{ display: "none" }}
+          />
+
           {selectedImage ? (
             <div className="selected-preview">
               <label>Reference Image</label>
               <img src={selectedImage.url} alt="Selected reference" />
+              <button
+                className="btn btn-sm btn-secondary"
+                style={{ marginTop: "0.5rem" }}
+                onClick={() => setSelectedImage(null)}
+              >
+                Change Image
+              </button>
             </div>
           ) : (
-            <div className="selected-preview empty">
-              <span>Select an image from the library</span>
+            <div
+              className={`drop-zone ${isDragging ? "drop-zone-active" : ""} ${uploading ? "drop-zone-uploading" : ""}`}
+              onDragOver={handleDragOver}
+              onDragLeave={handleDragLeave}
+              onDrop={handleDrop}
+              onClick={() => !uploading && fileInputRef.current?.click()}
+            >
+              {uploading ? (
+                <div className="drop-zone-content">
+                  <div className="drop-zone-spinner" />
+                  <span>Uploading...</span>
+                </div>
+              ) : (
+                <div className="drop-zone-content">
+                  <div className="drop-zone-icon">
+                    <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                      <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+                      <polyline points="17 8 12 3 7 8" />
+                      <line x1="12" y1="3" x2="12" y2="15" />
+                    </svg>
+                  </div>
+                  <span className="drop-zone-text">Drag & drop an image here</span>
+                  <span className="drop-zone-subtext">or click to browse from your device</span>
+                </div>
+              )}
             </div>
           )}
 
@@ -218,9 +278,9 @@ export function GeneratePage({ clients }: GeneratePageProps) {
                 <div className="image-hover-hint">Click to preview</div>
               </div>
               <div className="generate-output-actions">
-                <button className="btn btn-sm btn-primary" onClick={() => handleDownload(outputUrl)}>⬇ Download</button>
-                <button className="btn btn-sm btn-secondary" onClick={() => setPreviewUrl(outputUrl)}>🔍 Preview</button>
-                <button className="btn btn-sm btn-secondary" onClick={handleSaveToLibrary}>💾 Save to Library</button>
+                <button className="btn btn-sm btn-primary" onClick={() => handleDownload(outputUrl)}>Download</button>
+                <button className="btn btn-sm btn-secondary" onClick={() => setPreviewUrl(outputUrl)}>Preview</button>
+                <button className="btn btn-sm btn-secondary" onClick={handleSaveToLibrary}>Save to Library</button>
               </div>
             </div>
           )}
@@ -230,7 +290,14 @@ export function GeneratePage({ clients }: GeneratePageProps) {
           {loadingImages ? (
             <div className="generate-loading">Loading images...</div>
           ) : (
-            <CreativeLibrary images={images} selectedImage={selectedImage} onSelect={setSelectedImage} onUpload={handleUpload} onDelete={handleDelete} uploading={uploading} />
+            <CreativeLibrary
+              images={images}
+              selectedImage={selectedImage}
+              onSelect={setSelectedImage}
+              onUpload={handleUpload}
+              onDelete={handleDelete}
+              uploading={uploading}
+            />
           )}
         </div>
       </div>
