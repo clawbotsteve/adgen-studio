@@ -2416,3 +2416,51 @@ select {
     order: -1;
   }
 }
+
+
+/* Generate Settings - Aspect Ratio & Resolution */
+.generate-setting {
+  margin-bottom: 16px;
+}
+
+.generate-setting > label {
+  display: block;
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: #94a3b8;
+  margin-bottom: 8px;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.setting-options {
+  display: flex;
+  gap: 8px;
+}
+
+.setting-option {
+  flex: 1;
+  padding: 10px 16px;
+  border: 1px solid rgba(148, 163, 184, 0.2);
+  border-radius: 8px;
+  background: rgba(15, 23, 42, 0.6);
+  color: #cbd5e1;
+  font-size: 0.9rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  text-align: center;
+}
+
+.setting-option:hover {
+  border-color: rgba(96, 165, 250, 0.4);
+  color: #e2e8f0;
+  background: rgba(30, 41, 59, 0.8);
+}
+
+.setting-option.active {
+  border-color: #3b82f6;
+  background: rgba(59, 130, 246, 0.15);
+  color: #60a5fa;
+  box-shadow: 0 0 0 1px rgba(59, 130, 246, 0.3);
+}
