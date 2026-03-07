@@ -220,7 +220,7 @@ export function ClientHubPage({ clients }: ClientHubPageProps) {
 
           <div className="hub-quick-actions">
             <button className="btn btn-primary" onClick={() => router.push("/batch/create")}>
-              \u25B6 Generate New
+              ▶ Generate New
             </button>
             <button className="btn btn-secondary" disabled>
               View All in Gallery (Coming Soon)
