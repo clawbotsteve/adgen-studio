@@ -39,10 +39,6 @@ export function Sidebar() {
           <span className="sidebar-icon">⚙</span>
           <span>Profiles</span>
         </Link>
-        <Link href="/prompt-packs" className={`sidebar-link ${isActive("/prompt-packs") ? "active" : ""}`}>
-          <span className="sidebar-icon">📦</span>
-          <span>Prompt Packs</span>
-        </Link>
       </div>
 
       <div className="sidebar-section">
