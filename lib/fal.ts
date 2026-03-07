@@ -11,15 +11,10 @@ export const generateImage = async (
 ): Promise<string> => {
   if (!env.falApiKey) throw new Error("Image generation is not configured.");
 
-  const result = await fal.subscribe("fal-ai/flux/dev/image-to-image", {
+  const result = await fal.subscribe("fal-ai/nano-banana-2/edit", {
     input: {
       prompt,
-      image_url: referenceImageUrl || "",
-      strength: 0.85,
-      num_inference_steps: 30,
-      guidance_scale: 3.5,
-      num_images: 1,
-      output_format: "jpeg",
+      ...(referenceImageUrl ? { image_url: referenceImageUrl } : {}),
     },
     logs: false,
   });
