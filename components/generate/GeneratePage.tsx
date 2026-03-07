@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback, useRef } from "react";
+import { useState, useCallback, useRef, useEffect } from "react";
 import type { Client, ReferenceImage } from "@/types/domain";
 import { CreativeLibrary } from "./CreativeLibrary";
 
@@ -34,6 +34,15 @@ export function GeneratePage({ clients }: GeneratePageProps) {
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [isDragging, setIsDragging] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // Check for prompt passed from Prompt Engine
+  useEffect(() => {
+    const savedPrompt = sessionStorage.getItem("adgen_prompt");
+    if (savedPrompt) {
+      setPrompt(savedPrompt);
+      sessionStorage.removeItem("adgen_prompt");
+    }
+  }, []);
 
   const fetchImages = useCallback(async (cId: string) => {
     if (!cId) return;

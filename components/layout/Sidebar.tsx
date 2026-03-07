@@ -47,6 +47,10 @@ export function Sidebar() {
 
       <div className="sidebar-section">
         <div className="sidebar-section-header">Generate</div>
+        <Link href="/prompt-engine" className={`sidebar-link ${isActive("/prompt-engine") ? "active" : ""}`}>
+          <span className="sidebar-icon">🧠</span>
+          <span>Prompt Engine</span>
+        </Link>
         <Link href="/batch/create" className={`sidebar-link ${isActive("/batch/create") ? "active" : ""}`}>
           <span className="sidebar-icon">▶</span>
           <span>Generate</span>
