@@ -31,7 +31,8 @@ export default function LoginForm() {
     });
 
     if (signInError) {
-      setError("Unable to send sign-in link. Please try again.");
+      console.error("Sign-in error:", signInError);
+      setError(signInError.message || "Unable to send sign-in link. Please try again.");
       return;
     }
 
