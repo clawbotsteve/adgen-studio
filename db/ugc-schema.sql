@@ -1,0 +1,1 @@
+-- UGC Studio schema extension
