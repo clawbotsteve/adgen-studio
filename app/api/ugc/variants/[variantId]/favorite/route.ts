@@ -1,8 +1,24 @@
-import { NextRequest, NextResponse } from "next/server";
+import { NextResponse } from "next/server";
 import { requireUserTenantApi } from "@/lib/auth";
-import { addFavorite, removeFavorite } from "A/lib/data/ugc-favorites";
+import { assertTenantUser } from "@/lib/access";
+import { toggleFavorite } from "@/lib/data/ugc-favorites";
 
-export const POST = async (req: { body: ReadableStream; params: { variantId: string } }) => {
-  await requireUserTenantApi();
-  const v} await req.json();
-  if (v sparib) await addFavorite(v.tenantId, v.userId, \c'É•Ä¹Á…É…µÌ¹Ù…É¥…¹Ñ%¤ì(€•±Í”…İ…¥ĞÉ•µ½Ù•…Ù½É¥Ñ”¡Ø¹Ñ•¹…¹Ñ%°Ø¹ÕÍ•É%°É•Ä¹Á…É…µÌ¹Ù…É¥…¹Ñ%¤ì(€É•ÑÕÉ¸9•áÑI•ÍÁ½¹Í”¹©Í½¸¡ìÍÕ•ÍÌèÑÉÕ”ô¤ì)ô
+export async function POST(
+  _request: Request,
+  { params }: { params: Promise<{ variantId: string }> }
+) {
+  const auth = await requireUserTenantApi();
+  if ("error" in auth) return NextResponse.json({ error: auth.error }, { status: auth.status });
+
+  const allowed = await assertTenantUser(auth.tenant.id, auth.user.id);
+  if (!allowed) return NextResponse.json({ error: "Unauthorized" }, { status: 403 });
+
+  try {
+    const { variantId } = await params;
+    const result = await toggleFavorite(auth.tenant.id, auth.user.id, variantId);
+    return NextResponse.json(result);
+  } catch (error) {
+    console.error("[ugc/variants/:id/favorite POST]", error);
+    return NextResponse.json({ error: "Failed to toggle favorite" }, { status: 500 });
+  }
+}
