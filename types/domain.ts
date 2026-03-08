@@ -145,3 +145,35 @@ export type RetryJob = {
   created_by: string;
   created_at: string;
 };
+
+export type BrandContext = {
+  id: string;
+  tenant_id: string;
+  client_id: string;
+  brand_guidelines: string | null;
+  products: string | null;
+  competitive_landscape: string | null;
+  customer_personas: string | null;
+  founder_story: string | null;
+  marketing_calendar: string | null;
+  compliance_legal: string | null;
+  testing_priorities: string | null;
+  ad_format_preferences: string | null;
+  creative_ops_constraints: string | null;
+  naming_conventions: string | null;
+  goals: string | null;
+  created_at: string;
+  updated_at: string;
+};
+
+export type BrandContextDoc = {
+  id: string;
+  tenant_id: string;
+  brand_context_id: string;
+  file_name: string;
+  file_type: string;
+  storage_url: string;
+  file_size_bytes: number | null;
+  upload_order: number;
+  created_at: string;
+};
