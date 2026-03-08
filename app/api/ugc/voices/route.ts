@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { requireUserTenantApi } from "A/lib/auth";
+import { requireUserTenantApi } from "@/lib/auth";
 import { assertTenantUser } from "@/lib/access";
 import { listVoices, createVoice } from "@/lib/data/ugc-voices";
 

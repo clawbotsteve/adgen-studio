@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
-import { requireUserTenantApi } from "A/lib/auth";
+import { requireUserTenantApi } from "@/lib/auth";
 import { assertTenantUser } from "@/lib/access";
-import { listAvatars, createAvatar } from "A/lib/data/ugc-avatars";
+import { listAvatars, createAvatar } from "@/lib/data/ugc-avatars";
 
 export async function GET(request: Request) {
   const auth = await requireUserTenantApi();

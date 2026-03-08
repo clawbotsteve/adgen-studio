@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
-import { requireUserTenantApi } from "A/lib/auth";
+import { requireUserTenantApi } from "@/lib/auth";
 import { assertTenantUser } from "@/lib/access";
-import { generateVideo } from "A/lib/fal";
+import { generateVideo } from "@/lib/fal";
 import { createVariant, updateVariant } from "@/lib/data/ugc-variants";
 import { computeKlingCost, computeClientCharge, computeMargin } from "@/lib/pricing";
 

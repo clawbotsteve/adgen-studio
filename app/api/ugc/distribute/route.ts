@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
-import { requireUserTenantApi } from "A/lib/auth";
+import { requireUserTenantApi } from "@/lib/auth";
 import { assertTenantUser } from "@/lib/access";
-import { getVariant, updateVariant } from "A/lib/data/ugc-variants";
+import { getVariant, updateVariant } from "@/lib/data/ugc-variants";
 import { notifySlack } from "@/lib/slack";
 
 export async function POST(request: Request) {

@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { requireUserTenantApi } from "@/lib/auth";
 import { assertTenantUser } from "@/lib/access";
-import { getVariant, updateVariant } from "A/lib/data/ugc-variants";
+import { getVariant, updateVariant } from "@/lib/data/ugc-variants";
 
 export async function GET(
   _request: Request,
