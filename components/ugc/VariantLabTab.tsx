@@ -4,6 +4,9 @@ import { useState, useRef, useCallback } from "react";
 import type { UgcConcept, UgcVariant } from "@/types/ugc";
 import { VariantCard } from "./VariantCard";
 import { PricingPreview } from "./PricingPreview";
+import { createSupabaseBrowser } from "@/lib/supabase";
+
+type ImageMode = "upload" | "url";
 
 export function VariantLabTab({
   brandId,
@@ -22,6 +25,7 @@ export function VariantLabTab({
   const [duration, setDuration] = useState(5);
   const [aspectRatio, setAspectRatio] = useState("16:9");
   const [prompt, setPrompt] = useState("");
+  const [imageMode, setImageMode] = useState<ImageMode>("upload");
   const [imageUrl, setImageUrl] = useState("");
   const [imageFile, setImageFile] = useState<File | null>(null);
   const [imagePreview, setImagePreview] = useState<string | null>(null);
@@ -43,7 +47,6 @@ export function VariantLabTab({
     const reader = new FileReader();
     reader.onload = (e) => setImagePreview(e.target?.result as string);
     reader.readAsDataURL(file);
-    setImageUrl(""); // Clear any previous URL
   }, []);
 
   const handleDrop = useCallback(
@@ -69,30 +72,41 @@ export function VariantLabTab({
   const removeImage = () => {
     setImageFile(null);
     setImagePreview(null);
-    setImageUrl("");
     if (fileInputRef.current) fileInputRef.current.value = "";
   };
 
-  const uploadImage = async (): Promise<string | undefined> => {
-    if (!imageFile) return imageUrl.trim() || undefined;
+  const uploadImageDirect = async (): Promise<string | undefined> => {
+    if (imageMode === "url") {
+      return imageUrl.trim() || undefined;
+    }
+    if (!imageFile) return undefined;
+
     setUploading(true);
     try {
-      const formData = new FormData();
-      formData.append("file", imageFile);
-      formData.append("brandId", brandId);
-      const res = await fetch("/api/ugc/upload", {
-        method: "POST",
-        body: formData,
-      });
-      if (!res.ok) {
-        const err = await res.json();
-        throw new Error(err.error || "Upload failed");
+      const supabase = createSupabaseBrowser();
+      const ext = imageFile.name.split(".").pop() || "png";
+      const uniqueName = `${crypto.randomUUID()}.${ext}`;
+      const path = `ugc-uploads/${brandId}/${uniqueName}`;
+
+      const { error } = await supabase.storage
+        .from("creatives")
+        .upload(path, imageFile, {
+          contentType: imageFile.type,
+          upsert: false,
+        });
+
+      if (error) {
+        throw new Error(error.message);
       }
-      const data = await res.json();
-      return data.url;
+
+      const { data: urlData } = supabase.storage
+        .from("creatives")
+        .getPublicUrl(path);
+
+      return urlData.publicUrl;
     } catch (err) {
       console.error("Upload failed:", err);
-      alert("Image upload failed. Please try again.");
+      alert("Image upload failed: " + (err instanceof Error ? err.message : "Unknown error"));
       return undefined;
     } finally {
       setUploading(false);
@@ -104,7 +118,12 @@ export function VariantLabTab({
     setGenerating(true);
     try {
       // Upload image first if a file was selected
-      const resolvedImageUrl = await uploadImage();
+      const resolvedImageUrl = await uploadImageDirect();
+      if (imageMode === "upload" && imageFile && !resolvedImageUrl) {
+        // Upload failed, don't proceed
+        setGenerating(false);
+        return;
+      }
 
       const endpoint = kind === "video" ? "/api/ugc/videos/generate" : "/api/ugc/variants";
       const body: Record<string, unknown> = {
@@ -125,10 +144,15 @@ export function VariantLabTab({
       if (res.ok) {
         setPrompt("");
         removeImage();
+        setImageUrl("");
         onCreated();
+      } else {
+        const err = await res.json().catch(() => null);
+        alert("Generation failed: " + (err?.error || "Unknown error"));
       }
     } catch (err) {
       console.error("Generation failed:", err);
+      alert("Generation failed. Please try again.");
     } finally {
       setGenerating(false);
     }
@@ -192,60 +216,90 @@ export function VariantLabTab({
             <PricingPreview duration={duration} audioTier={audioTier} />
           )}
 
-          {/* Drag-and-drop image upload */}
+          {/* Reference Image with mode toggle */}
           <div>
-            <label className="form-label">Reference Image (optional)</label>
-            <input
-              ref={fileInputRef}
-              type="file"
-              accept="image/*"
-              style={{ display: "none" }}
-              onChange={(e) => {
-                const file = e.target.files?.[0];
-                if (file) handleFileSelect(file);
-              }}
-            />
-
-            {imagePreview ? (
-              <div className="ugc-upload-preview">
-                <img
-                  src={imagePreview}
-                  alt="Reference"
-                  style={{
-                    maxHeight: 200,
-                    maxWidth: "100%",
-                    objectFit: "contain",
-                    borderRadius: 8,
-                  }}
-                />
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 8 }}>
+              <label className="form-label" style={{ marginBottom: 0 }}>Reference Image (optional)</label>
+              <div className="ugc-mode-toggle">
                 <button
-                  className="ugc-upload-remove"
-                  onClick={removeImage}
-                  title="Remove image"
+                  type="button"
+                  className={`ugc-mode-btn ${imageMode === "upload" ? "ugc-mode-btn-active" : ""}`}
+                  onClick={() => { setImageMode("upload"); setImageUrl(""); }}
                 >
-                  ✕
+                  Upload
+                </button>
+                <button
+                  type="button"
+                  className={`ugc-mode-btn ${imageMode === "url" ? "ugc-mode-btn-active" : ""}`}
+                  onClick={() => { setImageMode("url"); removeImage(); }}
+                >
+                  URL
                 </button>
               </div>
+            </div>
+
+            {imageMode === "upload" ? (
+              <>
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  accept="image/*"
+                  style={{ display: "none" }}
+                  onChange={(e) => {
+                    const file = e.target.files?.[0];
+                    if (file) handleFileSelect(file);
+                  }}
+                />
+
+                {imagePreview ? (
+                  <div className="ugc-upload-preview">
+                    <img
+                      src={imagePreview}
+                      alt="Reference"
+                      style={{
+                        maxHeight: 200,
+                        maxWidth: "100%",
+                        objectFit: "contain",
+                        borderRadius: 8,
+                      }}
+                    />
+                    <button
+                      className="ugc-upload-remove"
+                      onClick={removeImage}
+                      title="Remove image"
+                    >
+                      ✕
+                    </button>
+                  </div>
+                ) : (
+                  <div
+                    className={`ugc-upload-dropzone ${dragOver ? "ugc-upload-dragover" : ""}`}
+                    onDrop={handleDrop}
+                    onDragOver={handleDragOver}
+                    onDragLeave={handleDragLeave}
+                    onClick={() => fileInputRef.current?.click()}
+                  >
+                    <div className="ugc-upload-icon">
+                      <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                        <rect x="3" y="3" width="18" height="18" rx="2" ry="2" />
+                        <circle cx="8.5" cy="8.5" r="1.5" />
+                        <polyline points="21 15 16 10 5 21" />
+                      </svg>
+                    </div>
+                    <p className="ugc-upload-text">
+                      Drag & drop an image here, or <span className="ugc-upload-link">browse files</span>
+                    </p>
+                    <p className="ugc-upload-hint">PNG, JPG, WEBP up to 10MB</p>
+                  </div>
+                )}
+              </>
             ) : (
-              <div
-                className={`ugc-upload-dropzone ${dragOver ? "ugc-upload-dragover" : ""}`}
-                onDrop={handleDrop}
-                onDragOver={handleDragOver}
-                onDragLeave={handleDragLeave}
-                onClick={() => fileInputRef.current?.click()}
-              >
-                <div className="ugc-upload-icon">
-                  <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-                    <rect x="3" y="3" width="18" height="18" rx="2" ry="2" />
-                    <circle cx="8.5" cy="8.5" r="1.5" />
-                    <polyline points="21 15 16 10 5 21" />
-                  </svg>
-                </div>
-                <p className="ugc-upload-text">
-                  Drag & drop an image here, or <span className="ugc-upload-link">browse files</span>
-                </p>
-                <p className="ugc-upload-hint">PNG, JPG, WEBP up to 10MB</p>
-              </div>
+              <input
+                className="form-input"
+                value={imageUrl}
+                onChange={(e) => setImageUrl(e.target.value)}
+                placeholder="https://example.com/image.jpg"
+              />
             )}
           </div>
 

@@ -3022,3 +3022,42 @@ select {
 .ugc-upload-remove:hover {
   background: rgba(239, 68, 68, 0.8);
 }
+
+/* UGC Mode Toggle */
+.ugc-mode-toggle {
+  display: flex;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  overflow: hidden;
+}
+
+.ugc-mode-btn {
+  padding: var(--space-1) var(--space-3);
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-weight-500);
+  background: var(--color-bg-tertiary);
+  color: var(--color-text-muted);
+  border: none;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  border-radius: 0;
+}
+
+.ugc-mode-btn:first-child {
+  border-right: 1px solid var(--color-border);
+}
+
+.ugc-mode-btn:hover {
+  color: var(--color-text-secondary);
+  background: var(--color-bg-secondary);
+}
+
+.ugc-mode-btn-active {
+  background: var(--color-accent);
+  color: white;
+}
+
+.ugc-mode-btn-active:hover {
+  background: var(--color-accent-hover);
+  color: white;
+}
