@@ -22,7 +22,6 @@ export function StepReview({
   onLaunch,
   launching,
 }: StepReviewProps) {
-  // Validate
   const validation = validateBatchCreate({
     clientId: client?.id ?? null,
     profileId: profile?.id ?? null,
@@ -37,94 +36,95 @@ export function StepReview({
     (r) => r.label === "identity" && r.is_primary
   );
 
+  const canLaunch = validation.valid && hasPrimaryIdentity;
+
+  const configItems = [
+    { label: "Client", value: client?.name, icon: "M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" },
+    { label: "Mode", value: mode ? mode.charAt(0).toUpperCase() + mode.slice(1) : "-", icon: "M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" },
+    { label: "Profile", value: profile?.name, icon: "M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.066 2.573c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.573 1.066c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.066-2.573c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" },
+    { label: "Prompt Pack", value: promptPack?.name, icon: "M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" },
+    { label: "Total Items", value: promptPack?.item_count || 0, icon: "M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" },
+    { label: "References", value: `${references.length} selected`, icon: "M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" },
+  ];
+
   return (
-    <div className="wizard-step">
-      <div className="step-header">
-        <h2>Review & Launch</h2>
-        <p>Verify your batch run configuration before launching.</p>
+    <div className="bw-step">
+      <div className="bw-step-header">
+        <h2 className="bw-step-title">Review & Launch</h2>
+        <p className="bw-step-desc">Verify your batch configuration before launching.</p>
       </div>
 
-      <div className="review-summary">
-        <div className="summary-card">
-          <h3>Batch Configuration</h3>
-          <div className="summary-row">
-            <span className="summary-label">Client:</span>
-            <span className="summary-value">{client?.name || "-"}</span>
-          </div>
-          <div className="summary-row">
-            <span className="summary-label">Mode:</span>
-            <span className="summary-value">
-              {mode ? mode.charAt(0).toUpperCase() + mode.slice(1) : "-"}
-            </span>
-          </div>
-          <div className="summary-row">
-            <span className="summary-label">Profile:</span>
-            <span className="summary-value">{profile?.name || "-"}</span>
-          </div>
-          <div className="summary-row">
-            <span className="summary-label">Prompt Pack:</span>
-            <span className="summary-value">{promptPack?.name || "-"}</span>
-          </div>
-          <div className="summary-row">
-            <span className="summary-label">Total Items:</span>
-            <span className="summary-value">{promptPack?.item_count || 0}</span>
-          </div>
-          <div className="summary-row">
-            <span className="summary-label">References:</span>
-            <span className="summary-value">{references.length} selected</span>
-          </div>
-        </div>
-
-        {references.length > 0 && (
-          <div className="summary-card">
-            <h3>Selected References</h3>
-            <div className="reference-preview">
-              {references.map((ref) => (
-                <div key={ref.id} className="preview-thumb">
-                  <img src={ref.url} alt={ref.label} />
-                  <div className="thumb-label">{ref.label}</div>
-                </div>
-              ))}
+      {/* Config summary */}
+      <div className="bw-review-grid">
+        {configItems.map((item) => (
+          <div key={item.label} className="bw-review-item">
+            <div className="bw-review-icon">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d={item.icon}/></svg>
+            </div>
+            <div className="bw-review-detail">
+              <span className="bw-review-label">{item.label}</span>
+              <span className="bw-review-value">{item.value || "-"}</span>
             </div>
           </div>
-        )}
+        ))}
+      </div>
 
-        {validation.errors.length > 0 && (
-          <div className="summary-card warning-card error-card">
-            <h3>❌ Issues Blocking Launch</h3>
-            <ul className="issue-list">
-              {validation.errors.map((err, idx) => (
-                <li key={idx}>{err}</li>
-              ))}
-            </ul>
+      {/* Reference thumbnails */}
+      {references.length > 0 && (
+        <div className="bw-review-refs">
+          <h3 className="bw-review-section-title">Selected References</h3>
+          <div className="bw-review-thumbs">
+            {references.map((ref) => (
+              <div key={ref.id} className="bw-review-thumb">
+                <img src={ref.url} alt={ref.label} />
+                <span className="bw-thumb-label">{ref.label}</span>
+                {ref.is_primary && <span className="bw-thumb-primary">Primary</span>}
+              </div>
+            ))}
           </div>
-        )}
+        </div>
+      )}
 
-        {validation.warnings.length > 0 && (
-          <div className="summary-card warning-card">
-            <h3>⚠️ Warnings</h3>
-            <ul className="issue-list">
-              {validation.warnings.map((warn, idx) => (
-                <li key={idx}>{warn}</li>
-              ))}
-            </ul>
+      {/* Validation messages */}
+      {validation.errors.length > 0 && (
+        <div className="bw-alert bw-alert-error">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg>
+          <div>
+            <strong>Issues Blocking Launch</strong>
+            {validation.errors.map((err, idx) => <p key={idx}>{err}</p>)}
           </div>
-        )}
+        </div>
+      )}
 
-        {!hasPrimaryIdentity && (
-          <div className="summary-card warning-card error-card">
-            <h3>❌ Missing Primary Identity</h3>
+      {!hasPrimaryIdentity && (
+        <div className="bw-alert bw-alert-error">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg>
+          <div>
+            <strong>Missing Primary Identity</strong>
             <p>At least one primary identity image is required to launch.</p>
           </div>
-        )}
+        </div>
+      )}
 
-        {validation.valid && hasPrimaryIdentity && (
-          <div className="summary-card success-card">
-            <h3>✓ Ready to Launch</h3>
+      {validation.warnings.length > 0 && (
+        <div className="bw-alert bw-alert-warn">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+          <div>
+            <strong>Warnings</strong>
+            {validation.warnings.map((w, idx) => <p key={idx}>{w}</p>)}
+          </div>
+        </div>
+      )}
+
+      {canLaunch && (
+        <div className="bw-alert bw-alert-success">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M22 11.08V12a10 10 0 11-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
+          <div>
+            <strong>Ready to Launch</strong>
             <p>All requirements are met. You can now launch this batch run.</p>
           </div>
-        )}
-      </div>
+        </div>
+      )}
     </div>
   );
 }
