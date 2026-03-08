@@ -170,7 +170,10 @@ export function UgcStudioPage({
         {activeTab === "brief" && (
           <BriefBuilderTab
             concept={selectedConcept}
-            onUpdated={fetchConcepts}
+            onUpdated={(updated) => {
+              if (updated) setSelectedConcept(updated);
+              fetchConcepts();
+            }}
           />
         )}
         {activeTab === "variants" && (

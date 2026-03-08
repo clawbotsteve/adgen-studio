@@ -8,7 +8,7 @@ export function BriefBuilderTab({
   onUpdated,
 }: {
   concept: UgcConcept | null;
-  onUpdated: () => void;
+  onUpdated: (updated?: UgcConcept) => void;
 }) {
   const [form, setForm] = useState({
     title: "",
@@ -20,6 +20,7 @@ export function BriefBuilderTab({
     script_text: "",
   });
   const [saving, setSaving] = useState(false);
+  const [message, setMessage] = useState<{ type: "success" | "error"; text: string } | null>(null);
 
   useEffect(() => {
     if (concept) {
@@ -45,6 +46,7 @@ export function BriefBuilderTab({
 
   const handleSave = async (newStatus?: string) => {
     setSaving(true);
+    setMessage(null);
     try {
       const body: Record<string, unknown> = { ...form };
       if (newStatus) body.status = newStatus;
@@ -54,9 +56,18 @@ export function BriefBuilderTab({
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(body),
       });
-      if (res.ok) onUpdated();
+      if (res.ok) {
+        const json = await res.json();
+        const label = newStatus === "approved" ? "Brief approved" : "Draft saved";
+        setMessage({ type: "success", text: `${label} successfully!` });
+        onUpdated(json.concept);
+      } else {
+        const json = await res.json().catch(() => ({}));
+        setMessage({ type: "error", text: json.error || "Failed to save. Please try again." });
+      }
     } catch (err) {
       console.error("Failed to update concept:", err);
+      setMessage({ type: "error", text: "Network error. Please try again." });
     } finally {
       setSaving(false);
     }
@@ -153,6 +164,22 @@ export function BriefBuilderTab({
           </div>
         </div>
       </div>
+
+      {message && (
+        <div
+          style={{
+            marginTop: 16,
+            padding: "12px 16px",
+            borderRadius: 8,
+            background: message.type === "success" ? "rgba(34, 197, 94, 0.15)" : "rgba(239, 68, 68, 0.15)",
+            border: `1px solid ${message.type === "success" ? "rgba(34, 197, 94, 0.3)" : "rgba(239, 68, 68, 0.3)"}`,
+            color: message.type === "success" ? "#22c55e" : "#ef4444",
+            fontSize: "0.9rem",
+          }}
+        >
+          {message.text}
+        </div>
+      )}
 
       <div className="status-workflow" style={{ marginTop: 16 }}>
         <span className="text-muted">Current status: </span>
