@@ -1,0 +1,118 @@
+import { NextResponse } from "next/server";
+import { requireUserTenantApi } from "@/lib/auth";
+import { assertTenantUser } from "@/lib/access";
+import { createBatchRun, createBatchItems } from "@/lib/data/batches";
+import { getProfile } from "@/lib/data/profiles";
+import { getPromptPack, listPromptItems } from "@/lib/data/prompts";
+import { getClient } from "@/lib/data/clients";
+import { buildMasterContextString } from "@/lib/data/brand-context";
+
+export async function POST(request: Request) {
+  const auth = await requireUserTenantApi();
+  if ("error" in auth) {
+    return NextResponse.json({ error: auth.error }, { status: auth.status });
+  }
+
+  const allowed = await assertTenantUser(auth.tenant.id, auth.user.id);
+  if (!allowed) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 403 });
+  }
+
+  const body = (await request.json()) as {
+    clientId?: string;
+    profileId?: string;
+    promptPackId?: string;
+    briefText?: string;
+    additionalContext?: string;
+    useBrandContext?: boolean;
+  };
+
+  if (!body.clientId || !body.profileId || !body.promptPackId) {
+    return NextResponse.json(
+      { error: "Missing required fields: clientId, profileId, promptPackId" },
+      { status: 400 }
+    );
+  }
+
+  try {
+    // Verify resources exist
+    const [client, profile, promptPack] = await Promise.all([
+      getClient(auth.tenant.id, body.clientId),
+      getProfile(auth.tenant.id, body.profileId),
+      getPromptPack(auth.tenant.id, body.promptPackId),
+    ]);
+
+    if (!client || !profile || !promptPack) {
+      return NextResponse.json(
+        { error: "Client, profile, or prompt pack not found" },
+        { status: 404 }
+      );
+    }
+
+    // Build context prefix from brand context + brief + additional
+    const contextParts: string[] = [];
+
+    if (body.useBrandContext !== false) {
+      const masterContext = await buildMasterContextString(
+        auth.tenant.id,
+        body.clientId
+      );
+      if (masterContext) {
+        contextParts.push(masterContext);
+      }
+    }
+
+    if (body.briefText?.trim()) {
+      contextParts.push(`=== BRIEF ===\n\n${body.briefText.trim()}\n\n=== END BRIEF ===`);
+    }
+
+    if (body.additionalContext?.trim()) {
+      contextParts.push(
+        `=== ADDITIONAL CONTEXT ===\n\n${body.additionalContext.trim()}\n\n=== END ADDITIONAL CONTEXT ===`
+      );
+    }
+
+    const contextPrefix = contextParts.length > 0
+      ? contextParts.join("\n\n") + "\n\n"
+      : "";
+
+    // Get prompt items
+    const promptItems = await listPromptItems(body.promptPackId);
+
+    if (promptItems.length === 0) {
+      return NextResponse.json(
+        { error: "Prompt pack has no items" },
+        { status: 400 }
+      );
+    }
+
+    // Create batch run
+    const batchRun = await createBatchRun({
+      tenantId: auth.tenant.id,
+      clientId: body.clientId,
+      profileId: body.profileId,
+      promptPackId: body.promptPackId,
+      totalItems: promptItems.length,
+      createdBy: auth.user.id,
+    });
+
+    // Create batch items with enhanced prompts
+    const batchItems = promptItems.map((item) => ({
+      promptItemId: item.id,
+      concept: item.concept,
+      prompt: contextPrefix
+        ? `${contextPrefix}Generate creative for:\n${item.prompt_text}`
+        : item.prompt_text,
+    }));
+
+    await createBatchItems(batchRun.id, batchItems);
+
+    return NextResponse.json({ run: batchRun }, { status: 201 });
+  } catch (error) {
+    console.error("[smart-batch create]", error);
+    return NextResponse.json(
+      { error: "Failed to create smart batch" },
+      { status: 500 }
+    );
+  }
+}
