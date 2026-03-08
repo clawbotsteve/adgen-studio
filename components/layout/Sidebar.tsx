@@ -62,6 +62,17 @@ export function Sidebar() {
       </div>
 
       <div className="sidebar-section">
+        <div className="sidebar-section-header">Context</div>
+        <Link
+          href="/brand-context"
+          className={`sidebar-link ${isActive("/brand-context") ? "active" : ""}`}
+        >
+          <span className="sidebar-icon">🧠</span>
+          <span>Brand Context</span>
+        </Link>
+      </div>
+
+      <div className="sidebar-section">
         <div className="sidebar-section-header">Create</div>
         <Link
           href="/ugc-studio"
@@ -80,6 +91,13 @@ export function Sidebar() {
         >
           <span className="sidebar-icon">▶</span>
           <span>Generate</span>
+        </Link>
+        <Link
+          href="/smart-batch"
+          className={`sidebar-link ${isActive("/smart-batch") ? "active" : ""}`}
+        >
+          <span className="sidebar-icon">🚀</span>
+          <span>Smart Batch</span>
         </Link>
         <Link
           href="/batch/generate"
