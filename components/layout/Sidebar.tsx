@@ -82,8 +82,15 @@ export function Sidebar() {
           <span>Generate</span>
         </Link>
         <Link
-          href="/run-history"
-          className={`sidebar-link ${isActive("/run-history") ? "active" : ""}`}
+          href="/batch/generate"
+          className={`sidebar-link ${isActive("/batch/generate") ? "active" : ""}`}
+        >
+          <span className="sidebar-icon">⚡</span>
+          <span>Batch Generate</span>
+        </Link>
+        <Link
+          href="/history"
+          className={`sidebar-link ${isActive("/history") ? "active" : ""}`}
         >
           <span className="sidebar-icon">📋</span>
           <span>Run History</span>

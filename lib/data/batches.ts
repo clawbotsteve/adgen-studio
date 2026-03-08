@@ -3,26 +3,21 @@ import type { BatchRun, BatchItemResult } from "@/types/domain";
 
 export async function listBatchRuns(
   tenantId: string,
-  filters?: { clientId?: string; status?: string; limit?: number }
+  options?: { limit?: number; clientId?: string }
 ): Promise<BatchRun[]> {
   const svc = createSupabaseService();
   let query = svc
     .from("batch_runs")
-    .select(
-      "id,tenant_id,client_id,profile_id,prompt_pack_id,status,total_items,queued_count,running_count,completed_count,failed_count,started_at,stopped_at,created_by,created_at"
-    )
-    .eq("tenant_id", tenantId);
+    .select("*")
+    .eq("tenant_id", tenantId)
+    .order("created_at", { ascending: false });
 
-  if (filters?.clientId) {
-    query = query.eq("client_id", filters.clientId);
+  if (options?.clientId) {
+    query = query.eq("client_id", options.clientId);
   }
-
-  if (filters?.status) {
-    query = query.eq("status", filters.status);
+  if (options?.limit) {
+    query = query.limit(options.limit);
   }
-
-  const limit = filters?.limit ?? 100;
-  query = query.order("created_at", { ascending: false }).limit(limit);
 
   const { data } = await query;
   return (data ?? []) as BatchRun[];
@@ -35,163 +30,106 @@ export async function getBatchRun(
   const svc = createSupabaseService();
   const { data } = await svc
     .from("batch_runs")
-    .select(
-      "id,tenant_id,client_id,profile_id,prompt_pack_id,status,total_items,queued_count,running_count,completed_count,failed_count,started_at,stopped_at,created_by,created_at"
-    )
+    .select("*")
     .eq("tenant_id", tenantId)
     .eq("id", runId)
     .single();
-  return (data ?? null) as BatchRun | null;
+  return data as BatchRun | null;
 }
 
-export async function createBatchRun(
-  tenantId: string,
-  data: {
-    client_id: string;
-    profile_id: string;
-    prompt_pack_id: string;
-    total_items: number;
-    created_by: string;
-  }
-): Promise<BatchRun> {
+export async function getBatchRunStatus(runId: string): Promise<BatchRun | null> {
   const svc = createSupabaseService();
-  const { data: result, error } = await svc
+  const { data } = await svc
+    .from("batch_runs")
+    .select("*")
+    .eq("id", runId)
+    .single();
+  return data as BatchRun | null;
+}
+
+export async function createBatchRun(params: {
+  tenantId: string;
+  clientId: string;
+  profileId: string;
+  promptPackId: string;
+  totalItems: number;
+  createdBy: string;
+}): Promise<BatchRun> {
+  const svc = createSupabaseService();
+  const { data, error } = await svc
     .from("batch_runs")
     .insert({
-      tenant_id: tenantId,
-      client_id: data.client_id,
-      profile_id: data.profile_id,
-      prompt_pack_id: data.prompt_pack_id,
-      status: "running",
-      total_items: data.total_items,
-      queued_count: data.total_items,
+      tenant_id: params.tenantId,
+      client_id: params.clientId,
+      profile_id: params.profileId,
+      prompt_pack_id: params.promptPackId,
+      status: "queued",
+      total_items: params.totalItems,
+      queued_count: params.totalItems,
       running_count: 0,
       completed_count: 0,
       failed_count: 0,
-      started_at: new Date().toISOString(),
-      stopped_at: null,
-      created_by: data.created_by,
+      created_by: params.createdBy,
     })
-    .select(
-      "id,tenant_id,client_id,profile_id,prompt_pacck_id,status,total_items,queued_count,running_count,completed_count,failed_count,started_at,stopped_at,created_by,created_at"
-    )
+    .select()
     .single();
 
-  if (error) throw new Error(`Failed to create batch run: ${error.message}`);
-  return result as BatchRun;
+  if (error) throw error;
+  return data as BatchRun;
+}
+
+export async function createBatchItems(
+  batchRunId: string,
+  items: { promptItemId: string; concept: string; prompt: string }[]
+): Promise<void> {
+  const svc = createSupabaseService();
+  const rows = items.map((item) => ({
+    batch_run_id: batchRunId,
+    prompt_item_id: item.promptItemId,
+    concept: item.concept,
+    prompt: item.prompt,
+    status: "queued",
+  }));
+
+  const { error } = await svc.from("batch_item_results").insert(rows);
+  if (error) throw error;
 }
 
 export async function updateBatchRunStatus(
   runId: string,
   status: string,
-  counts?: Partial<
-    Pick<
-      BatchRun,
-      "queued_count" | "running_count" | "completed_count" | "failed_count"
-    >
-  >
+  extra?: Record<string, unknown>
 ): Promise<void> {
   const svc = createSupabaseService();
-  const updateData: Record<string, string | number> = { status };
-
-  if (counts) {
-    if (counts.queued_count !== undefined)
-      updateData.queued_count = counts.queued_count;
-    if (counts.running_count !== undefined)
-      updateData.running_count = counts.running_count;
-    if (counts.completed_count !== undefined)
-      updateData.completed_count = counts.completed_count;
-    if (counts.failed_count !== undefined)
-      updateData.failed_count = counts.failed_count;
-  }
-
+  const update: Record<string, unknown> = { status, ...extra };
   const { error } = await svc
     .from("batch_runs")
-    .update(updateData)
+    .update(update)
     .eq("id", runId);
-
-  if (error) throw new Error(`Failed to update batch run status: ${error.message}`);
-}
-
-export async function createBatchItems(
-  runId: string,
-  items: Array<{ prompt_item_id: string; concept: string; prompt: string }>
-): Promise<number> {
-  const svc = createSupabaseService();
-
-  const insertData = items.map((item) => ({
-    batch_run_id: runId,
-    prompt_item_id: item.prompt_item_id,
-    concept: item.concept,
-    prompt: item.prompt,
-    status: "queued",
-    output_url: null,
-    error_message: null,
-    error_code: null,
-    retry_count: 0,
-    started_at: null,
-    completed_at: null,
-  }));
-
-  const { error, data: result } = await svc
-    .from("batch_item_results")
-    .insert(insertData)
-    .select("id");
-
-  if (error) throw new Error(`Failed to create batch items: ${error.message}`);
-  return result?.length ?? 0;
-}
-
-export async function getBatchRunStatus(
-  runId: string
-): Promise<{
-  status: string;
-  total_items: number;
-  queued_count: number;
-  running_count: number;
-  completed_count: number;
-  failed_count: number;
-  started_at: string | null;
-} | null> {
-  const svc = createSupabaseService();
-  const { data } = await svc
-    .from("batch_runs")
-    .select(
-      "status,total_items,queued_count,running_count,completed_count,failed_count,started_at"
-    )
-    .eq("id", runId)
-    .single();
-  return data;
+  if (error) throw error;
 }
 
 export async function listBatchOutputs(
-  runId: string,
-  statusFilter?: string
+  batchRunId: string
 ): Promise<BatchItemResult[]> {
-  const svc = createSupabaseService();
-  let query = svc
-    .from("batch_item_results")
-    .select(
-      "id,batch_run_id,prompt_item_id,concept,prompt,status,output_url,error_message,error_code,retry_count,started_at,completed_at,created_at"
-    )
-    .eq("batch_run_id", runId);
-
-  if (statusFilter) {
-    query = query.eq("status", statusFilter);
-  }
-
-  const { data } = await query.order("created_at", { ascending: false });
-  return (data ?? []) as BatchItemResult[];
-}
-
-export async function listBatchErrors(runId: string): Promise<BatchItemResult[]> {
   const svc = createSupabaseService();
   const { data } = await svc
     .from("batch_item_results")
-    .select(
-      "id,batch_run_id,prompt_item_id,concept,prompt,status,output_url,error_message,error_code,retry_count,started_at,completed_at,created_at"
-    )
-    .eq("batch_run_id", runId)
+    .select("*")
+    .eq("batch_run_id", batchRunId)
+    .eq("status", "completed")
+    .order("completed_at", { ascending: false });
+  return (data ?? []) as BatchItemResult[];
+}
+
+export async function listBatchErrors(
+  batchRunId: string
+): Promise<BatchItemResult[]> {
+  const svc = createSupabaseService();
+  const { data } = await svc
+    .from("batch_item_results")
+    .select("*")
+    .eq("batch_run_id", batchRunId)
     .eq("status", "failed")
     .order("created_at", { ascending: false });
   return (data ?? []) as BatchItemResult[];
@@ -199,72 +137,42 @@ export async function listBatchErrors(runId: string): Promise<BatchItemResult[]>
 
 export async function cloneBatchRun(
   tenantId: string,
-  originalRunId: string,
-  userId: string
-): Promise<BatchRun | null> {
+  runId: string,
+  createdBy: string
+): Promise<BatchRun> {
+  const original = await getBatchRun(tenantId, runId);
+  if (!original) throw new Error("Batch run not found");
+
+  return createBatchRun({
+    tenantId: original.tenant_id,
+    clientId: original.client_id,
+    profileId: original.profile_id,
+    promptPackId: original.prompt_pack_id,
+    totalItems: original.total_items,
+    createdBy,
+  });
+}
+
+export async function listAllClientContent(
+  tenantId: string
+): Promise<BatchItemResult[]> {
   const svc = createSupabaseService();
-
-  // Get the original batch run
-  const { data: originalRun } = await svc
+  // Get all batch runs for this tenant, then their completed outputs
+  const { data: runs } = await svc
     .from("batch_runs")
-    .select(
-      "client_id,profile_id,prompt_pack_id,total_items,queued_count,running_count,completed_count,failed_count"
-    )
-    .eq("id", originalRunId)
-    .single();
+    .select("id")
+    .eq("tenant_id", tenantId);
 
-  if (!originalRun) return null;
+  if (!runs || runs.length === 0) return [];
 
-  // Create new batch run
-  const { data: newRun, error: runError } = await svc
-    .from("batch_runs")
-    .insert({
-      tenant_id: tenantId,
-      client_id: originalRun.client_id,
-      profile_id: originalRun.profile_id,
-      prompt_pack_id: originalRun.prompt_pack_id,
-      status: "running",
-      total_items: originalRun.total_items,
-      queued_count: originalRun.total_items,
-      running_count: 0,
-      completed_count: 0,
-      failed_count: 0,
-
-      started_at: new Date().toISOString(),
-      stopped_at: null,
-      created_by: userId,
-    })
-    .select(
-      "id,tenant_id,client_id,profile_id,prompt_pack_id,status,total_items,queued_count,running_count,completed_count,failed_count,started_at,stopped_at,created_by,created_at"
-    )
-    .single();
-
-  if (runError) return null;
-
-  // Get items from original batch
-  const { data: originalItems } = await svc
+  const runIds = runs.map((r: { id: string }) => r.id);
+  const { data } = await svc
     .from("batch_item_results")
-    .select("prompt_item_id,concept,prompt")
-    .eq("batch_run_id", originalRunId);
+    .select("*")
+    .in("batch_run_id", runIds)
+    .eq("status", "completed")
+    .order("completed_at", { ascending: false })
+    .limit(200);
 
-  if (!originalItems || originalItems.length === 0) return newRun as BatchRun;
-
-  // Create new batch items
-  const newItems = originalItems.map((item) => ({
-    batch_run_id: newRun.id,
-    prompt_item_id: item.prompt_item_id,
-    concept: item.concept,
-    prompt: item.prompt,
-    status: "queued",
-    output_url: null,
-    error_message: null,
-    error_code: null,
-    retry_count: 0,
-    started_at: null,
-    completed_at: null,
-  }));
-
-  await svc.from("batch_item_results").insert(newItems);
-
-  return newRun as BatchRun;
+  return (data ?? []) as BatchItemResult[];
 }
