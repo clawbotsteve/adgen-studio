@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useRef, useCallback } from "react";
 import type { UgcConcept, UgcVariant } from "@/types/ugc";
 import { VariantCard } from "./VariantCard";
 import { PricingPreview } from "./PricingPreview";
@@ -23,15 +23,89 @@ export function VariantLabTab({
   const [aspectRatio, setAspectRatio] = useState("16:9");
   const [prompt, setPrompt] = useState("");
   const [imageUrl, setImageUrl] = useState("");
+  const [imageFile, setImageFile] = useState<File | null>(null);
+  const [imagePreview, setImagePreview] = useState<string | null>(null);
+  const [uploading, setUploading] = useState(false);
   const [generating, setGenerating] = useState(false);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+  const [dragOver, setDragOver] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const conceptVariants = variants.filter((v) => v.concept_id === conceptId);
+
+  const handleFileSelect = useCallback((file: File) => {
+    if (!file.type.startsWith("image/")) return;
+    if (file.size > 10 * 1024 * 1024) {
+      alert("File too large. Max 10MB.");
+      return;
+    }
+    setImageFile(file);
+    const reader = new FileReader();
+    reader.onload = (e) => setImagePreview(e.target?.result as string);
+    reader.readAsDataURL(file);
+    setImageUrl(""); // Clear any previous URL
+  }, []);
+
+  const handleDrop = useCallback(
+    (e: React.DragEvent) => {
+      e.preventDefault();
+      setDragOver(false);
+      const file = e.dataTransfer.files[0];
+      if (file) handleFileSelect(file);
+    },
+    [handleFileSelect]
+  );
+
+  const handleDragOver = useCallback((e: React.DragEvent) => {
+    e.preventDefault();
+    setDragOver(true);
+  }, []);
+
+  const handleDragLeave = useCallback((e: React.DragEvent) => {
+    e.preventDefault();
+    setDragOver(false);
+  }, []);
+
+  const removeImage = () => {
+    setImageFile(null);
+    setImagePreview(null);
+    setImageUrl("");
+    if (fileInputRef.current) fileInputRef.current.value = "";
+  };
+
+  const uploadImage = async (): Promise<string | undefined> => {
+    if (!imageFile) return imageUrl.trim() || undefined;
+    setUploading(true);
+    try {
+      const formData = new FormData();
+      formData.append("file", imageFile);
+      formData.append("brandId", brandId);
+      const res = await fetch("/api/ugc/upload", {
+        method: "POST",
+        body: formData,
+      });
+      if (!res.ok) {
+        const err = await res.json();
+        throw new Error(err.error || "Upload failed");
+      }
+      const data = await res.json();
+      return data.url;
+    } catch (err) {
+      console.error("Upload failed:", err);
+      alert("Image upload failed. Please try again.");
+      return undefined;
+    } finally {
+      setUploading(false);
+    }
+  };
 
   const handleGenerate = async () => {
     if (!prompt.trim() || !conceptId) return;
     setGenerating(true);
     try {
+      // Upload image first if a file was selected
+      const resolvedImageUrl = await uploadImage();
+
       const endpoint = kind === "video" ? "/api/ugc/videos/generate" : "/api/ugc/variants";
       const body: Record<string, unknown> = {
         concept_id: conceptId,
@@ -41,7 +115,7 @@ export function VariantLabTab({
         duration_sec: duration,
         aspect_ratio: aspectRatio,
       };
-      if (imageUrl.trim()) body.image_url = imageUrl.trim();
+      if (resolvedImageUrl) body.image_url = resolvedImageUrl;
 
       const res = await fetch(endpoint, {
         method: "POST",
@@ -50,7 +124,7 @@ export function VariantLabTab({
       });
       if (res.ok) {
         setPrompt("");
-        setImageUrl("");
+        removeImage();
         onCreated();
       }
     } catch (err) {
@@ -63,7 +137,7 @@ export function VariantLabTab({
   return (
     <div>
       <div className="ugc-section-header">
-        <h3>Variant Lab</h3>
+        <h3>Video Lab</h3>
       </div>
 
       <div className="card" style={{ marginBottom: 16 }}>
@@ -90,9 +164,9 @@ export function VariantLabTab({
                 <div>
                   <label className="form-label">Audio Tier</label>
                   <select className="form-select" value={audioTier} onChange={(e) => setAudioTier(e.target.value)}>
-                    <option value="no_audio">No Audio ($0.07/s)</option>
-                    <option value="audio">Native Audio ($0.14/s)</option>
-                    <option value="audio_voice">Audio + Voice ($0.168/s)</option>
+                    <option value="no_audio">No Audio</option>
+                    <option value="audio">Native Audio</option>
+                    <option value="audio_voice">Audio + Voice</option>
                   </select>
                 </div>
                 <div>
@@ -118,14 +192,61 @@ export function VariantLabTab({
             <PricingPreview duration={duration} audioTier={audioTier} />
           )}
 
+          {/* Drag-and-drop image upload */}
           <div>
-            <label className="form-label">Reference Image URL (optional)</label>
+            <label className="form-label">Reference Image (optional)</label>
             <input
-              className="form-input"
-              value={imageUrl}
-              onChange={(e) => setImageUrl(e.target.value)}
-              placeholder="https://..."
+              ref={fileInputRef}
+              type="file"
+              accept="image/*"
+              style={{ display: "none" }}
+              onChange={(e) => {
+                const file = e.target.files?.[0];
+                if (file) handleFileSelect(file);
+              }}
             />
+
+            {imagePreview ? (
+              <div className="ugc-upload-preview">
+                <img
+                  src={imagePreview}
+                  alt="Reference"
+                  style={{
+                    maxHeight: 200,
+                    maxWidth: "100%",
+                    objectFit: "contain",
+                    borderRadius: 8,
+                  }}
+                />
+                <button
+                  className="ugc-upload-remove"
+                  onClick={removeImage}
+                  title="Remove image"
+                >
+                  ✕
+                </button>
+              </div>
+            ) : (
+              <div
+                className={`ugc-upload-dropzone ${dragOver ? "ugc-upload-dragover" : ""}`}
+                onDrop={handleDrop}
+                onDragOver={handleDragOver}
+                onDragLeave={handleDragLeave}
+                onClick={() => fileInputRef.current?.click()}
+              >
+                <div className="ugc-upload-icon">
+                  <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                    <rect x="3" y="3" width="18" height="18" rx="2" ry="2" />
+                    <circle cx="8.5" cy="8.5" r="1.5" />
+                    <polyline points="21 15 16 10 5 21" />
+                  </svg>
+                </div>
+                <p className="ugc-upload-text">
+                  Drag & drop an image here, or <span className="ugc-upload-link">browse files</span>
+                </p>
+                <p className="ugc-upload-hint">PNG, JPG, WEBP up to 10MB</p>
+              </div>
+            )}
           </div>
 
           <div>
@@ -142,9 +263,13 @@ export function VariantLabTab({
           <button
             className="button button-primary"
             onClick={handleGenerate}
-            disabled={generating || !prompt.trim() || !conceptId}
+            disabled={generating || uploading || !prompt.trim() || !conceptId}
           >
-            {generating ? "Generating..." : `Generate ${kind === "video" ? "Video" : "Image"}`}
+            {uploading
+              ? "Uploading image..."
+              : generating
+              ? "Generating..."
+              : `Generate ${kind === "video" ? "Video" : "Image"}`}
           </button>
         </div>
       </div>

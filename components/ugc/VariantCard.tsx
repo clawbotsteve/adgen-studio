@@ -72,7 +72,7 @@ export function VariantCard({
           <span>{variant.kind}</span>
           {variant.duration_sec && <span>{variant.duration_sec}s</span>}
           {variant.aspect_ratio && <span>{variant.aspect_ratio}</span>}
-          {variant.fal_cost_usd != null && <span>${variant.fal_cost_usd.toFixed(2)}</span>}
+          {variant.client_charge_usd != null && <span>${Number(variant.client_charge_usd).toFixed(2)}</span>}
         </div>
       </div>
     </div>

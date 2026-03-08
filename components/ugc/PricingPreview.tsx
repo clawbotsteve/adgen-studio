@@ -18,21 +18,12 @@ export function PricingPreview({
   const rate = RATES[audioTier] ?? RATES.no_audio;
   const cost = duration * rate;
   const charge = cost * (1 + MARKUP_PERCENT / 100);
-  const margin = charge - cost;
 
   return (
     <div className="pricing-preview">
       <div className="pricing-item">
-        <span className="pricing-label">fal Cost</span>
-        <span className="pricing-value">${cost.toFixed(4)}</span>
-      </div>
-      <div className="pricing-item">
-        <span className="pricing-label">Client Charge</span>
-        <span className="pricing-value">${charge.toFixed(4)}</span>
-      </div>
-      <div className="pricing-item">
-        <span className="pricing-label">Margin</span>
-        <span className="pricing-value pricing-margin">${margin.toFixed(4)}</span>
+        <span className="pricing-label">Estimated Cost</span>
+        <span className="pricing-value">${charge.toFixed(2)}</span>
       </div>
     </div>
   );
