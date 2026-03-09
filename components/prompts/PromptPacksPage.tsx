@@ -21,6 +21,12 @@ export function PromptPacksPage({ packs }: PromptPacksPageProps) {
   const [customDesc, setCustomDesc] = useState("");
   const [isCreating, setIsCreating] = useState(false);
 
+  // AI Generate state
+  const [aiBrief, setAiBrief] = useState("");
+  const [aiCount, setAiCount] = useState(20);
+  const [aiPackName, setAiPackName] = useState("");
+  const [isGenerating, setIsGenerating] = useState(false);
+
   const handleCreateCustom = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!customName.trim()) {
@@ -55,6 +61,44 @@ export function PromptPacksPage({ packs }: PromptPacksPageProps) {
     }
   };
 
+  const handleAIGenerate = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!aiBrief.trim()) {
+      addToast("Please describe what you want to generate", "error");
+      return;
+    }
+    setIsGenerating(true);
+    try {
+      const res = await fetch("/api/prompt-packs/generate", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          brief: aiBrief.trim(),
+          count: aiCount,
+          packName: aiPackName.trim() || undefined,
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        addToast(data.error || "Failed to generate prompts", "error");
+        return;
+      }
+      addToast(
+        `Generated ${data.promptCount} prompts successfully!`,
+        "success"
+      );
+      setAiBrief("");
+      setAiPackName("");
+      setAiCount(20);
+      router.push(`/prompt-packs/${data.pack.id}`);
+      router.refresh();
+    } catch {
+      addToast("An error occurred while generating", "error");
+    } finally {
+      setIsGenerating(false);
+    }
+  };
+
   // Icon color map for template cards
   const iconColors: Record<string, string> = {
     product_photography: "#818cf8",
@@ -66,6 +110,92 @@ export function PromptPacksPage({ packs }: PromptPacksPageProps) {
 
   return (
     <>
+      {/* ─── Generate with AI ─── */}
+      <section className="pp-section pp-ai-section">
+        <div className="pp-section-header">
+          <div className="pp-section-header-text">
+            <h2 className="pp-section-title">
+              <span className="pp-ai-sparkle">&#10024;</span>{" "}
+              Generate with AI
+            </h2>
+            <p className="pp-section-subtitle">
+              Describe your shoot and AI will generate 10–50 tailored image
+              prompts instantly
+            </p>
+          </div>
+        </div>
+
+        <form className="pp-ai-form" onSubmit={handleAIGenerate}>
+          <div className="pp-form-group">
+            <label className="pp-form-label">Creative Brief</label>
+            <textarea
+              className="pp-form-textarea"
+              placeholder="e.g., 50 lifestyle images for a streetwear hoodie brand. Include 4 different camera angles, urban settings, diverse models, natural lighting. Mix of solo shots and group lifestyle content."
+              value={aiBrief}
+              onChange={(e) => setAiBrief(e.target.value)}
+              disabled={isGenerating}
+              rows={3}
+            />
+          </div>
+          <div className="pp-form-row">
+            <div className="pp-form-group">
+              <label className="pp-form-label">Pack Name (optional)</label>
+              <input
+                type="text"
+                className="pp-form-input"
+                placeholder="Auto-generated from brief"
+                value={aiPackName}
+                onChange={(e) => setAiPackName(e.target.value)}
+                disabled={isGenerating}
+              />
+            </div>
+            <div className="pp-form-group pp-form-group-small">
+              <label className="pp-form-label">Number of Prompts</label>
+              <select
+                className="pp-form-input pp-form-select"
+                value={aiCount}
+                onChange={(e) => setAiCount(Number(e.target.value))}
+                disabled={isGenerating}
+              >
+                <option value={10}>10 prompts</option>
+                <option value={20}>20 prompts</option>
+                <option value={30}>30 prompts</option>
+                <option value={40}>40 prompts</option>
+                <option value={50}>50 prompts</option>
+              </select>
+            </div>
+          </div>
+          <button
+            type="submit"
+            className="pp-btn pp-btn-ai"
+            disabled={isGenerating || !aiBrief.trim()}
+          >
+            {isGenerating ? (
+              <>
+                <span className="pp-spinner" />
+                Generating {aiCount} prompts...
+              </>
+            ) : (
+              <>
+                <svg
+                  width="16"
+                  height="16"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                >
+                  <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2" />
+                </svg>
+                Generate Prompts
+              </>
+            )}
+          </button>
+        </form>
+      </section>
+
       {/* ─── Start from a Template ─── */}
       <section className="pp-section">
         <div className="pp-section-header">
