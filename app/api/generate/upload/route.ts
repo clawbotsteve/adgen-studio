@@ -4,6 +4,10 @@ import { assertTenantUser } from "@/lib/access";
 import { uploadCreativeImage } from "@/lib/storage";
 import { createReference } from "@/lib/data/references";
 
+// Increase body size limit for image uploads
+export const runtime = "nodejs";
+export const maxDuration = 30;
+
 export async function POST(request: Request) {
   const auth = await requireUserTenantApi();
   if ("error" in auth) return NextResponse.json({ error: auth.error }, { status: auth.status });
