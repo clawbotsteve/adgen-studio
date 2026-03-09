@@ -21,11 +21,17 @@ export function PromptPacksPage({ packs }: PromptPacksPageProps) {
   const [customDesc, setCustomDesc] = useState("");
   const [isCreating, setIsCreating] = useState(false);
 
-  // AI Generate state
-  const [aiBrief, setAiBrief] = useState("");
+  // AI Generate state — guided brief builder
+  const [brandName, setBrandName] = useState("");
+  const [brandStyle, setBrandStyle] = useState("");
+  const [shooting, setShooting] = useState("");
+  const [goals, setGoals] = useState("");
   const [aiCount, setAiCount] = useState(20);
   const [aiPackName, setAiPackName] = useState("");
   const [isGenerating, setIsGenerating] = useState(false);
+
+  const canGenerate =
+    brandName.trim() && shooting.trim() && !isGenerating;
 
   const handleCreateCustom = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -63,8 +69,8 @@ export function PromptPacksPage({ packs }: PromptPacksPageProps) {
 
   const handleAIGenerate = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!aiBrief.trim()) {
-      addToast("Please describe what you want to generate", "error");
+    if (!brandName.trim() || !shooting.trim()) {
+      addToast("Brand name and what you're shooting are required", "error");
       return;
     }
     setIsGenerating(true);
@@ -73,7 +79,10 @@ export function PromptPacksPage({ packs }: PromptPacksPageProps) {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          brief: aiBrief.trim(),
+          brandName: brandName.trim(),
+          brandStyle: brandStyle.trim() || undefined,
+          shooting: shooting.trim(),
+          goals: goals.trim() || undefined,
           count: aiCount,
           packName: aiPackName.trim() || undefined,
         }),
@@ -87,7 +96,10 @@ export function PromptPacksPage({ packs }: PromptPacksPageProps) {
         `Generated ${data.promptCount} prompts successfully!`,
         "success"
       );
-      setAiBrief("");
+      setBrandName("");
+      setBrandStyle("");
+      setShooting("");
+      setGoals("");
       setAiPackName("");
       setAiCount(20);
       router.push(`/prompt-packs/${data.pack.id}`);
@@ -119,31 +131,76 @@ export function PromptPacksPage({ packs }: PromptPacksPageProps) {
               Generate with AI
             </h2>
             <p className="pp-section-subtitle">
-              Describe your shoot and AI will generate 10–50 tailored image
-              prompts instantly
+              Answer a few questions about your brand and shoot — AI will
+              generate production-ready image prompts tailored to your vision
             </p>
           </div>
         </div>
 
         <form className="pp-ai-form" onSubmit={handleAIGenerate}>
+          {/* Row 1: Brand Name + Brand Style */}
+          <div className="pp-form-row">
+            <div className="pp-form-group">
+              <label className="pp-form-label">Brand Name *</label>
+              <input
+                type="text"
+                className="pp-form-input"
+                placeholder="e.g., RVCA, Glossier, Nike"
+                value={brandName}
+                onChange={(e) => setBrandName(e.target.value)}
+                disabled={isGenerating}
+                required
+              />
+            </div>
+            <div className="pp-form-group pp-form-group-grow">
+              <label className="pp-form-label">Brand Style / Vibe</label>
+              <input
+                type="text"
+                className="pp-form-input"
+                placeholder="e.g., minimalist streetwear, luxury skincare, bold athletic"
+                value={brandStyle}
+                onChange={(e) => setBrandStyle(e.target.value)}
+                disabled={isGenerating}
+              />
+            </div>
+          </div>
+
+          {/* Row 2: What are you shooting? */}
           <div className="pp-form-group">
-            <label className="pp-form-label">Creative Brief</label>
+            <label className="pp-form-label">What are you shooting? *</label>
             <textarea
               className="pp-form-textarea"
-              placeholder="e.g., 50 lifestyle images for a streetwear hoodie brand. Include 4 different camera angles, urban settings, diverse models, natural lighting. Mix of solo shots and group lifestyle content."
-              value={aiBrief}
-              onChange={(e) => setAiBrief(e.target.value)}
+              placeholder="e.g., Black oversized hoodie collection — lifestyle shots with diverse models in urban settings, 4 different camera angles, mix of solo and group content"
+              value={shooting}
+              onChange={(e) => setShooting(e.target.value)}
               disabled={isGenerating}
-              rows={3}
+              rows={2}
             />
           </div>
+
+          {/* Row 3: What do you want out of this? */}
+          <div className="pp-form-group">
+            <label className="pp-form-label">
+              What do you want out of this?
+            </label>
+            <textarea
+              className="pp-form-textarea"
+              placeholder="e.g., Instagram feed content, e-commerce product pages, ad creative for Meta campaigns, hero images for landing page"
+              value={goals}
+              onChange={(e) => setGoals(e.target.value)}
+              disabled={isGenerating}
+              rows={2}
+            />
+          </div>
+
+          {/* Row 4: Pack Name + Count */}
           <div className="pp-form-row">
             <div className="pp-form-group">
               <label className="pp-form-label">Pack Name (optional)</label>
               <input
                 type="text"
                 className="pp-form-input"
-                placeholder="Auto-generated from brief"
+                placeholder="Auto-generated from brand name"
                 value={aiPackName}
                 onChange={(e) => setAiPackName(e.target.value)}
                 disabled={isGenerating}
@@ -165,10 +222,11 @@ export function PromptPacksPage({ packs }: PromptPacksPageProps) {
               </select>
             </div>
           </div>
+
           <button
             type="submit"
             className="pp-btn pp-btn-ai"
-            disabled={isGenerating || !aiBrief.trim()}
+            disabled={!canGenerate}
           >
             {isGenerating ? (
               <>
