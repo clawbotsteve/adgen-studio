@@ -56,8 +56,10 @@ export async function POST(request: Request) {
     return NextResponse.json({ pack }, { status: 201 });
   } catch (error) {
     console.error("[use-template POST]", error);
+    const message =
+      error instanceof Error ? error.message : "Unknown error";
     return NextResponse.json(
-      { error: "Failed to create pack from template" },
+      { error: "Failed to create pack from template", detail: message },
       { status: 500 }
     );
   }
