@@ -56,27 +56,101 @@ export function GeneratePage({ clients }: GeneratePageProps) {
     if (clientId) fetchImages(clientId);
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
+  // Compress image client-side using Canvas to fit within Vercel's 4.5MB limit
+  const compressImage = useCallback(
+    (file: File, maxSizeMB = 4): Promise<File> => {
+      return new Promise((resolve, reject) => {
+        // If already under limit, return as-is
+        if (file.size <= maxSizeMB * 1024 * 1024) {
+          resolve(file);
+          return;
+        }
+
+        const img = new Image();
+        const url = URL.createObjectURL(file);
+
+        img.onload = () => {
+          URL.revokeObjectURL(url);
+
+          // Scale down large dimensions (max 2048px on longest side)
+          let { width, height } = img;
+          const MAX_DIM = 2048;
+          if (width > MAX_DIM || height > MAX_DIM) {
+            const ratio = Math.min(MAX_DIM / width, MAX_DIM / height);
+            width = Math.round(width * ratio);
+            height = Math.round(height * ratio);
+          }
+
+          const canvas = document.createElement("canvas");
+          canvas.width = width;
+          canvas.height = height;
+          const ctx = canvas.getContext("2d");
+          if (!ctx) {
+            reject(new Error("Canvas not supported"));
+            return;
+          }
+          ctx.drawImage(img, 0, 0, width, height);
+
+          // Try progressively lower quality until under limit
+          const tryQuality = (quality: number) => {
+            canvas.toBlob(
+              (blob) => {
+                if (!blob) {
+                  reject(new Error("Compression failed"));
+                  return;
+                }
+                if (blob.size <= maxSizeMB * 1024 * 1024 || quality <= 0.3) {
+                  const compressed = new File([blob], file.name.replace(/\.[^.]+$/, ".jpg"), {
+                    type: "image/jpeg",
+                  });
+                  resolve(compressed);
+                } else {
+                  tryQuality(quality - 0.1);
+                }
+              },
+              "image/jpeg",
+              quality
+            );
+          };
+
+          tryQuality(0.85);
+        };
+
+        img.onerror = () => {
+          URL.revokeObjectURL(url);
+          reject(new Error("Failed to load image for compression"));
+        };
+
+        img.src = url;
+      });
+    },
+    []
+  );
+
   // Upload image
   const handleUpload = useCallback(
     async (file: File) => {
       if (!clientId) return;
-
-      // Client-side size check (Vercel serverless limit is ~4.5MB)
-      if (file.size > 4.5 * 1024 * 1024) {
-        setError("File too large. Please use an image under 4.5 MB.");
-        return;
-      }
 
       if (!file.type.startsWith("image/")) {
         setError("Only image files are allowed.");
         return;
       }
 
+      // Reject extremely large files (over 20MB raw)
+      if (file.size > 20 * 1024 * 1024) {
+        setError("File too large. Please use an image under 20 MB.");
+        return;
+      }
+
       setUploading(true);
       setError(null);
       try {
+        // Compress if needed to fit within Vercel's ~4.5MB body limit
+        const uploadFile = await compressImage(file, 4);
+
         const formData = new FormData();
-        formData.append("file", file);
+        formData.append("file", uploadFile);
         formData.append("clientId", clientId);
         formData.append("label", "identity");
 
@@ -94,7 +168,7 @@ export function GeneratePage({ clients }: GeneratePageProps) {
           } catch {
             const text = await res.text();
             if (res.status === 413 || text.includes("Request Entity Too Large")) {
-              errorMsg = "File too large. Please use an image under 4.5 MB.";
+              errorMsg = "File too large. Please try a smaller image.";
             } else {
               errorMsg = `Upload failed (${res.status})`;
             }
@@ -112,7 +186,7 @@ export function GeneratePage({ clients }: GeneratePageProps) {
         setUploading(false);
       }
     },
-    [clientId]
+    [clientId, compressImage]
   );
 
   // Delete image
