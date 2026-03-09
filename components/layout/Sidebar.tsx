@@ -38,14 +38,7 @@ export function Sidebar() {
           <span className="sidebar-icon">👥</span>
           <span>Clients</span>
         </Link>
-        <Link
-          href="/references"
-          className={`sidebar-link ${isActive("/references") ? "active" : ""}`}
-        >
-          <span className="sidebar-icon">🖼</span>
-          <span>References</span>
-        </Link>
-        <Link
+<Link
           href="/profiles"
           className={`sidebar-link ${isActive("/profiles") ? "active" : ""}`}
         >
