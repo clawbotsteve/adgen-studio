@@ -6,11 +6,11 @@ export async function listPromptPacks(tenantId: string): Promise<PromptPack[]> {
   const { data } = await svc
     .from("prompt_packs")
     .select(
-      "id,tenant_id,name,item_count,created_at,updated_at"
+      "id,tenant_id,name,description,item_count,tags,created_at,updated_at"
     )
     .eq("tenant_id", tenantId)
     .order("created_at", { ascending: false });
-  return ((data ?? []) as Array<Record<string, unknown>>).map((d) => ({ ...d, description: null, tags: [] })) as PromptPack[];
+  return (data ?? []) as PromptPack[];
 }
 
 export async function getPromptPack(
@@ -21,12 +21,12 @@ export async function getPromptPack(
   const { data } = await svc
     .from("prompt_packs")
     .select(
-      "id,tenant_id,name,item_count,created_at,updated_at"
+      "id,tenant_id,name,description,item_count,tags,created_at,updated_at"
     )
     .eq("tenant_id", tenantId)
     .eq("id", packId)
     .single();
-  return data ? ({ ...data, description: null, tags: [] } as PromptPack) : null;
+  return data ? (data as PromptPack) : null;
 }
 
 export async function createPromptPack(
@@ -39,15 +39,17 @@ export async function createPromptPack(
     .insert({
       tenant_id: tenantId,
       name: data.name,
+      description: data.description ?? null,
       item_count: 0,
+      tags: data.tags ?? [],
     })
     .select(
-      "id,tenant_id,name,item_count,created_at,updated_at"
+      "id,tenant_id,name,description,item_count,tags,created_at,updated_at"
     )
     .single();
 
   if (error) throw new Error(`Failed to create prompt pack: ${error.message}`);
-  return { ...result, description: data.description ?? null, tags: data.tags ?? [] } as PromptPack;
+  return result as PromptPack;
 }
 
 export async function deletePromptPack(tenantId: string, packId: string): Promise<boolean> {
@@ -137,8 +139,6 @@ export async function updatePromptItem(
 
 export async function deletePromptItem(itemId: string): Promise<boolean> {
   const svc = createSupabaseService();
-
-  // Get the pack ID before deleting
   const { data: item } = await svc
     .from("prompt_items")
     .select("prompt_pack_id")
@@ -147,7 +147,7 @@ export async function deletePromptItem(itemId: string): Promise<boolean> {
 
   const { error } = await svc.from("prompt_items").delete().eq("id", itemId);
 
-  if (!error && item) {
+  if !error && item) {
     // Decrement the item count
     await decrementPackItemCount(item.prompt_pack_id);
   }
