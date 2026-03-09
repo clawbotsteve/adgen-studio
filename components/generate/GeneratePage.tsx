@@ -60,6 +60,18 @@ export function GeneratePage({ clients }: GeneratePageProps) {
   const handleUpload = useCallback(
     async (file: File) => {
       if (!clientId) return;
+
+      // Client-side size check (Vercel serverless limit is ~4.5MB)
+      if (file.size > 4.5 * 1024 * 1024) {
+        setError("File too large. Please use an image under 4.5 MB.");
+        return;
+      }
+
+      if (!file.type.startsWith("image/")) {
+        setError("Only image files are allowed.");
+        return;
+      }
+
       setUploading(true);
       setError(null);
       try {
@@ -74,8 +86,20 @@ export function GeneratePage({ clients }: GeneratePageProps) {
         });
 
         if (!res.ok) {
-          const data = await res.json();
-          throw new Error(data.error || "Upload failed");
+          // Handle non-JSON error responses (e.g. Vercel 413 plain text)
+          let errorMsg = "Upload failed";
+          try {
+            const data = await res.json();
+            errorMsg = data.error || errorMsg;
+          } catch {
+            const text = await res.text();
+            if (res.status === 413 || text.includes("Request Entity Too Large")) {
+              errorMsg = "File too large. Please use an image under 4.5 MB.";
+            } else {
+              errorMsg = `Upload failed (${res.status})`;
+            }
+          }
+          throw new Error(errorMsg);
         }
 
         const data = await res.json();
