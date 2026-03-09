@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback, useEffect } from "react";
+import { useState, useCallback, useEffect, useRef } from "react";
 import type { Client, ReferenceImage } from "@/types/domain";
 import { CreativeLibrary } from "./CreativeLibrary";
 
@@ -20,6 +20,8 @@ export function GeneratePage({ clients }: GeneratePageProps) {
   const [outputUrl, setOutputUrl] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [loadingImages, setLoadingImages] = useState(false);
+  const [refDragOver, setRefDragOver] = useState(false);
+  const refFileInputRef = useRef<HTMLInputElement>(null);
 
   // Fetch images for selected client
   const fetchImages = useCallback(async (cId: string) => {
@@ -207,7 +209,7 @@ export function GeneratePage({ clients }: GeneratePageProps) {
             <line x1="12" y1="16" x2="12.01" y2="16" />
           </svg>
           <span>{error}</span>
-          <button onClick={() => setError(null)}>Ã</button>
+          <button onClick={() => setError(null)}>×</button>
         </div>
       )}
 
@@ -221,6 +223,19 @@ export function GeneratePage({ clients }: GeneratePageProps) {
               <span className="gen-step-badge">1</span>
               <h3>Reference Image</h3>
             </div>
+            <input
+              ref={refFileInputRef}
+              type="file"
+              accept="image/*"
+              style={{ display: "none" }}
+              onChange={(e) => {
+                const file = e.target.files?.[0];
+                if (file) {
+                  handleUpload(file);
+                  e.target.value = "";
+                }
+              }}
+            />
             {selectedImage ? (
               <div className="gen-ref-preview">
                 <img src={selectedImage.url} alt="Selected reference" />
@@ -234,21 +249,45 @@ export function GeneratePage({ clients }: GeneratePageProps) {
                 </div>
               </div>
             ) : (
-              <div className="gen-ref-empty">
-                <svg
-                  width="32"
-                  height="32"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="1.5"
-                >
-                  <rect x="3" y="3" width="18" height="18" rx="2" ry="2" />
-                  <circle cx="8.5" cy="8.5" r="1.5" />
-                  <polyline points="21 15 16 10 5 21" />
-                </svg>
-                <p>Click an image in the library to select it</p>
-                <span>or upload a new one</span>
+              <div
+                className={`gen-ref-empty ${refDragOver ? "gen-ref-dragover" : ""} ${uploading ? "gen-ref-uploading" : ""}`}
+                onDragOver={(e) => { e.preventDefault(); e.stopPropagation(); setRefDragOver(true); }}
+                onDragLeave={(e) => { e.preventDefault(); e.stopPropagation(); setRefDragOver(false); }}
+                onDrop={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  setRefDragOver(false);
+                  const file = e.dataTransfer.files[0];
+                  if (file && file.type.startsWith("image/")) {
+                    handleUpload(file);
+                  }
+                }}
+                onClick={() => !uploading && refFileInputRef.current?.click()}
+                style={{ cursor: uploading ? "wait" : "pointer" }}
+              >
+                {uploading ? (
+                  <>
+                    <span className="gen-spinner" />
+                    <p>Uploading...</p>
+                  </>
+                ) : (
+                  <>
+                    <svg
+                      width="32"
+                      height="32"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="1.5"
+                    >
+                      <rect x="3" y="3" width="18" height="18" rx="2" ry="2" />
+                      <circle cx="8.5" cy="8.5" r="1.5" />
+                      <polyline points="21 15 16 10 5 21" />
+                    </svg>
+                    <p>{refDragOver ? "Drop image here" : "Drag & drop an image here"}</p>
+                    <span>or click to choose from your files</span>
+                  </>
+                )}
               </div>
             )}
           </div>
@@ -309,7 +348,7 @@ export function GeneratePage({ clients }: GeneratePageProps) {
           {outputUrl && (
             <div className="gen-card">
               <div className="gen-card-header">
-                <span className="gen-step-badge gen-step-done">â</span>
+                <span className="gen-step-badge gen-step-done">✓</span>
                 <h3>Generated Output</h3>
               </div>
               <div className="gen-output-image">
