@@ -75,7 +75,7 @@ Example format:
         Authorization: `Bearer ${apiKey}`,
       },
       body: JSON.stringify({
-        model: "grok-3-mini",
+        model: "grok-4-latest",
         messages: [
           { role: "system", content: systemPrompt },
           { role: "user", content: userPrompt },
@@ -100,7 +100,7 @@ Example format:
     const rawContent =
       grokData.choices?.[0]?.message?.content?.trim() ?? "";
 
-    // Parse the JSON response — strip markdown fences if present
+    // Parse the JSON response â strip markdown fences if present
     let cleaned = rawContent;
     if (cleaned.startsWith("```")) {
       cleaned = cleaned.replace(/^```(?:json)?\n?/, "").replace(/\n?```$/, "");
@@ -148,7 +148,7 @@ Example format:
     // Create the prompt pack
     const packName =
       body.packName?.trim() ||
-      `AI Generated — ${body.brief.trim().slice(0, 40)}`;
+      `AI Generated â ${body.brief.trim().slice(0, 40)}`;
 
     const pack = await createPromptPack(auth.tenant.id, {
       name: packName,
