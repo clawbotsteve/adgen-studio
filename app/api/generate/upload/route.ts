@@ -4,10 +4,6 @@ import { assertTenantUser } from "@/lib/access";
 import { uploadCreativeImage } from "@/lib/storage";
 import { createReference } from "@/lib/data/references";
 
-// Increase body size limit for image uploads
-export const runtime = "nodejs";
-export const maxDuration = 30;
-
 export async function POST(request: Request) {
   const auth = await requireUserTenantApi();
   if ("error" in auth) return NextResponse.json({ error: auth.error }, { status: auth.status });
@@ -40,7 +36,7 @@ export async function POST(request: Request) {
 
     // Upload to Supabase Storage
     const buffer = Buffer.from(await file.arrayBuffer());
-    const { url, fileSize } = await uploadCreativeImage(
+    const { url } = await uploadCreativeImage(
       buffer,
       file.name,
       file.type,
