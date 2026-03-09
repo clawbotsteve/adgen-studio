@@ -4141,6 +4141,22 @@ select {
   color: var(--color-text-muted);
 }
 
+.gen-ref-empty:hover {
+  border-color: var(--color-primary);
+  background: rgba(124, 58, 237, 0.05);
+}
+
+.gen-ref-dragover {
+  border-color: var(--color-primary) !important;
+  background: rgba(124, 58, 237, 0.1) !important;
+  box-shadow: 0 0 0 2px rgba(124, 58, 237, 0.2);
+}
+
+.gen-ref-uploading {
+  opacity: 0.7;
+  pointer-events: none;
+}
+
 /* Prompt textarea */
 .gen-prompt-input {
   background: var(--color-bg-tertiary);
