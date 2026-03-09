@@ -6,11 +6,11 @@ export async function listPromptPacks(tenantId: string): Promise<PromptPack[]> {
   const { data } = await svc
     .from("prompt_packs")
     .select(
-      "id,tenant_id,name,item_count,tags,created_at,updated_at"
+      "id,tenant_id,name,item_count,created_at,updated_at"
     )
     .eq("tenant_id", tenantId)
     .order("created_at", { ascending: false });
-  return ((data ?? []) as Array<Record<string, unknown>>).map((d) => ({ ...d, description: null })) as PromptPack[];
+  return ((data ?? []) as Array<Record<string, unknown>>).map((d) => ({ ...d, description: null, tags: [] })) as PromptPack[];
 }
 
 export async function getPromptPack(
@@ -21,12 +21,12 @@ export async function getPromptPack(
   const { data } = await svc
     .from("prompt_packs")
     .select(
-      "id,tenant_id,name,item_count,tags,created_at,updated_at"
+      "id,tenant_id,name,item_count,created_at,updated_at"
     )
     .eq("tenant_id", tenantId)
     .eq("id", packId)
     .single();
-  return data ? ({ ...data, description: null } as PromptPack) : null;
+  return data ? ({ ...data, description: null, tags: [] } as PromptPack) : null;
 }
 
 export async function createPromptPack(
@@ -40,15 +40,14 @@ export async function createPromptPack(
       tenant_id: tenantId,
       name: data.name,
       item_count: 0,
-      tags: data.tags ?? [],
     })
     .select(
-      "id,tenant_id,name,item_count,tags,created_at,updated_at"
+      "id,tenant_id,name,item_count,created_at,updated_at"
     )
     .single();
 
   if (error) throw new Error(`Failed to create prompt pack: ${error.message}`);
-  return { ...result, description: data.description ?? null } as PromptPack;
+  return { ...result, description: data.description ?? null, tags: data.tags ?? [] } as PromptPack;
 }
 
 export async function deletePromptPack(tenantId: string, packId: string): Promise<boolean> {
