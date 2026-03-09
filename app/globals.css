@@ -2959,7 +2959,7 @@ select {
   font-weight: var(--font-weight-500);
 }
 
-/* ─── Template Cards Grid ─── */
+/* âââ Template Cards Grid âââ */
 .pp-templates-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
@@ -3044,7 +3044,7 @@ select {
   gap: var(--space-2);
 }
 
-/* ─── Create Form ─── */
+/* âââ Create Form âââ */
 .pp-create-form {
   display: flex;
   flex-direction: column;
@@ -3101,7 +3101,75 @@ select {
   color: var(--color-text-muted);
 }
 
-/* ─── Buttons ─── */
+/* --- AI Generate Section --- */
+.pp-ai-section {
+  background: linear-gradient(135deg, rgba(99,102,241,0.06) 0%, rgba(168,85,247,0.06) 100%);
+  border: 1px solid rgba(129,140,248,0.2);
+  border-radius: var(--radius-lg);
+  padding: var(--space-5);
+}
+
+.pp-ai-sparkle {
+  font-size: 1.1em;
+}
+
+.pp-ai-form {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+  max-width: 720px;
+}
+
+.pp-form-textarea {
+  background: var(--color-bg-tertiary);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  padding: var(--space-3);
+  font-size: var(--font-size-sm);
+  color: var(--color-text-primary);
+  outline: none;
+  transition: border-color 0.2s ease;
+  width: 100%;
+  resize: vertical;
+  min-height: 72px;
+  font-family: inherit;
+  line-height: 1.5;
+}
+
+.pp-form-textarea:focus {
+  border-color: var(--color-accent);
+}
+
+.pp-form-textarea::placeholder {
+  color: var(--color-text-muted);
+}
+
+.pp-form-group-small {
+  min-width: 160px;
+  max-width: 180px;
+}
+
+.pp-form-select {
+  appearance: auto;
+  cursor: pointer;
+}
+
+.pp-btn-ai {
+  background: linear-gradient(135deg, #6366f1, #8b5cf6);
+  color: white;
+  font-weight: var(--font-weight-600);
+  padding: var(--space-3) var(--space-5);
+  align-self: flex-start;
+}
+
+.pp-btn-ai:hover:not(:disabled) {
+  filter: brightness(1.1);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(99,102,241,0.3);
+}
+
+
+/* âââ Buttons âââ */
 .pp-btn {
   display: inline-flex;
   align-items: center;
@@ -3146,7 +3214,7 @@ select {
   align-self: flex-start;
 }
 
-/* ─── Pack Cards Grid ─── */
+/* âââ Pack Cards Grid âââ */
 .pp-packs-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
@@ -3226,7 +3294,7 @@ select {
   color: var(--color-text-muted);
 }
 
-/* ─── Tags ─── */
+/* âââ Tags âââ */
 .pp-tag {
   font-size: 10px;
   padding: 2px 8px;
@@ -3236,7 +3304,7 @@ select {
   font-weight: var(--font-weight-500);
 }
 
-/* ─── Empty State ─── */
+/* âââ Empty State âââ */
 .pp-empty {
   display: flex;
   flex-direction: column;
@@ -3257,7 +3325,7 @@ select {
   opacity: 0.6;
 }
 
-/* ─── Modal ─── */
+/* âââ Modal âââ */
 .pp-modal-overlay {
   position: fixed;
   inset: 0;
@@ -3408,7 +3476,7 @@ select {
   border-top: 1px solid var(--color-border);
 }
 
-/* ─── Spinner ─── */
+/* âââ Spinner âââ */
 .pp-spinner {
   width: 14px;
   height: 14px;
@@ -3422,7 +3490,7 @@ select {
   to { transform: rotate(360deg); }
 }
 
-/* ─── Responsive ─── */
+/* âââ Responsive âââ */
 @media (max-width: 768px) {
   .pp-templates-grid {
     grid-template-columns: 1fr 1fr;
