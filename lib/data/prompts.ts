@@ -147,7 +147,7 @@ export async function deletePromptItem(itemId: string): Promise<boolean> {
 
   const { error } = await svc.from("prompt_items").delete().eq("id", itemId);
 
-  if !error && item) {
+  if (!error && item) {
     // Decrement the item count
     await decrementPackItemCount(item.prompt_pack_id);
   }
