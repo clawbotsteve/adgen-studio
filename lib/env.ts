@@ -9,6 +9,7 @@ export const env = {
   supabaseAnonKey: process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY,
   supabaseServiceRoleKey: process.env.SUPABASE_SERVICE_ROLE_KEY,
   falApiKey: process.env.FAL_KEY,
+  grokApiKey: process.env.GROK_API_KEY,
   slackWebhookUrl: process.env.SLACK_WEBHOOK_URL,
   driveServiceAccountEmail: process.env.GDRIVE_SERVICE_ACCOUNT_EMAIL,
   driveServiceAccountPrivateKey: process.env.GDRIVE_SERVICE_ACCOUNT_PRIVATE_KEY,
