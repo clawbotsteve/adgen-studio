@@ -56,25 +56,20 @@ export function GeneratePage({ clients }: GeneratePageProps) {
     if (clientId) fetchImages(clientId);
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
-  // Compress image client-side using Canvas to fit within Vercel's 4.5MB limit
+  // Compress image client-side using Canvas to stay well under server limits
   const compressImage = useCallback(
-    (file: File, maxSizeMB = 4): Promise<File> => {
+    (file: File, maxSizeMB = 3): Promise<File> => {
       return new Promise((resolve, reject) => {
-        // If already under limit, return as-is
-        if (file.size <= maxSizeMB * 1024 * 1024) {
-          resolve(file);
-          return;
-        }
-
+        // Always compress through canvas to normalize format & ensure size
         const img = new Image();
         const url = URL.createObjectURL(file);
 
         img.onload = () => {
           URL.revokeObjectURL(url);
 
-          // Scale down large dimensions (max 2048px on longest side)
+          // Scale down large dimensions (max 1600px on longest side)
           let { width, height } = img;
-          const MAX_DIM = 2048;
+          const MAX_DIM = 1600;
           if (width > MAX_DIM || height > MAX_DIM) {
             const ratio = Math.min(MAX_DIM / width, MAX_DIM / height);
             width = Math.round(width * ratio);
@@ -99,10 +94,11 @@ export function GeneratePage({ clients }: GeneratePageProps) {
                   reject(new Error("Compression failed"));
                   return;
                 }
-                if (blob.size <= maxSizeMB * 1024 * 1024 || quality <= 0.3) {
+                if (blob.size <= maxSizeMB * 1024 * 1024 || quality <= 0.2) {
                   const compressed = new File([blob], file.name.replace(/\.[^.]+$/, ".jpg"), {
                     type: "image/jpeg",
                   });
+                  console.log(`[upload] Compressed: ${(file.size/1024/1024).toFixed(1)}MB → ${(blob.size/1024/1024).toFixed(1)}MB (q=${quality.toFixed(1)}, ${width}x${height})`);
                   resolve(compressed);
                 } else {
                   tryQuality(quality - 0.1);
@@ -113,7 +109,7 @@ export function GeneratePage({ clients }: GeneratePageProps) {
             );
           };
 
-          tryQuality(0.85);
+          tryQuality(0.8);
         };
 
         img.onerror = () => {
@@ -146,8 +142,8 @@ export function GeneratePage({ clients }: GeneratePageProps) {
       setUploading(true);
       setError(null);
       try {
-        // Compress if needed to fit within Vercel's ~4.5MB body limit
-        const uploadFile = await compressImage(file, 4);
+        // Compress to fit within server body limit
+        const uploadFile = await compressImage(file, 3);
 
         const formData = new FormData();
         formData.append("file", uploadFile);
