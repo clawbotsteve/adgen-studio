@@ -5,7 +5,11 @@ if (env.falApiKey) {
   fal.config({ credentials: env.falApiKey });
 }
 
-export const generateImage = async (prompt: string, referenceImageUrl?: string): Promise<string> => {
+export const generateImage = async (
+  prompt: string,
+  referenceImageUrl?: string,
+  options?: { aspectRatio?: string; resolution?: string }
+): Promise<string> => {
   if (!env.falApiKey) throw new Error("Image generation is not configured.");
 
   const result = await fal.subscribe("fal-ai/nano-banana-2/edit", {
@@ -15,6 +19,8 @@ export const generateImage = async (prompt: string, referenceImageUrl?: string):
       num_images: 1,
       output_format: "png",
       safety_tolerance: "4",
+      ...(options?.aspectRatio ? { aspect_ratio: options.aspectRatio } : {}),
+      ...(options?.resolution ? { resolution: options.resolution } : {}),
     },
     logs: false,
   });
