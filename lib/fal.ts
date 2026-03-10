@@ -11,7 +11,10 @@ export const generateImage = async (prompt: string, referenceImageUrl?: string):
   const result = await fal.subscribe("fal-ai/nano-banana-2/edit", {
     input: {
       prompt,
-      ...(referenceImageUrl ? { image_url: referenceImageUrl } : {}),
+      ...(referenceImageUrl ? { image_urls: [referenceImageUrl] } : {}),
+      num_images: 1,
+      output_format: "png",
+      safety_tolerance: "4",
     },
     logs: false,
   });
