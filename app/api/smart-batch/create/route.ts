@@ -36,15 +36,24 @@ export async function POST(request: Request) {
 
   try {
     // Verify resources exist
-    const [client, profile, promptPack] = await Promise.all([
-      getClient(auth.tenant.id, body.clientId),
-      getProfile(auth.tenant.id, body.profileId),
-      getPromptPack(auth.tenant.id, body.promptPackId),
-    ]);
+    let client, profile, promptPack;
+    try {
+      [client, profile, promptPack] = await Promise.all([
+        getClient(auth.tenant.id, body.clientId),
+        getProfile(auth.tenant.id, body.profileId),
+        getPromptPack(auth.tenant.id, body.promptPackId),
+      ]);
+    } catch (lookupErr) {
+      console.error("[smart-batch] Resource lookup error:", lookupErr);
+      return NextResponse.json(
+        { error: `Resource lookup failed: ${lookupErr instanceof Error ? lookupErr.message : String(lookupErr)}` },
+        { status: 500 }
+      );
+    }
 
     if (!client || !profile || !promptPack) {
       return NextResponse.json(
-        { error: "Client, profile, or prompt pack not found" },
+        { error: `Not found: ${!client ? "client" : ""} ${!profile ? "profile" : ""} ${!promptPack ? "prompt pack" : ""}`.trim() },
         { status: 404 }
       );
     }
@@ -53,12 +62,17 @@ export async function POST(request: Request) {
     const contextParts: string[] = [];
 
     if (body.useBrandContext !== false) {
-      const masterContext = await buildMasterContextString(
-        auth.tenant.id,
-        body.clientId
-      );
-      if (masterContext) {
-        contextParts.push(masterContext);
+      try {
+        const masterContext = await buildMasterContextString(
+          auth.tenant.id,
+          body.clientId
+        );
+        if (masterContext) {
+          contextParts.push(masterContext);
+        }
+      } catch (ctxErr) {
+        console.error("[smart-batch] Brand context error:", ctxErr);
+        // Continue without brand context rather than failing entirely
       }
     }
 
@@ -87,14 +101,23 @@ export async function POST(request: Request) {
     }
 
     // Create batch run
-    const batchRun = await createBatchRun({
-      tenantId: auth.tenant.id,
-      clientId: body.clientId,
-      profileId: body.profileId,
-      promptPackId: body.promptPackId,
-      totalItems: promptItems.length,
-      createdBy: auth.user.id,
-    });
+    let batchRun;
+    try {
+      batchRun = await createBatchRun({
+        tenantId: auth.tenant.id,
+        clientId: body.clientId,
+        profileId: body.profileId,
+        promptPackId: body.promptPackId,
+        totalItems: promptItems.length,
+        createdBy: auth.user.id,
+      });
+    } catch (runErr) {
+      console.error("[smart-batch] createBatchRun error:", runErr);
+      return NextResponse.json(
+        { error: `Failed to create batch run: ${runErr instanceof Error ? runErr.message : String(runErr)}` },
+        { status: 500 }
+      );
+    }
 
     // Create batch items with enhanced prompts
     const batchItems = promptItems.map((item) => ({
@@ -105,13 +128,22 @@ export async function POST(request: Request) {
         : item.prompt_text,
     }));
 
-    await createBatchItems(batchRun.id, batchItems);
+    try {
+      await createBatchItems(batchRun.id, batchItems);
+    } catch (itemErr) {
+      console.error("[smart-batch] createBatchItems error:", itemErr);
+      return NextResponse.json(
+        { error: `Failed to create batch items: ${itemErr instanceof Error ? itemErr.message : String(itemErr)}` },
+        { status: 500 }
+      );
+    }
 
     return NextResponse.json({ run: batchRun }, { status: 201 });
   } catch (error) {
-    console.error("[smart-batch create]", error);
+    console.error("[smart-batch create] Unhandled error:", error);
+    const message = error instanceof Error ? error.message : "Failed to create smart batch";
     return NextResponse.json(
-      { error: "Failed to create smart batch" },
+      { error: message },
       { status: 500 }
     );
   }
