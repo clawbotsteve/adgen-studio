@@ -20,6 +20,8 @@ export function SmartBatchPage({
   const [briefText, setBriefText] = useState("");
   const [additionalContext, setAdditionalContext] = useState("");
   const [useBrandContext, setUseBrandContext] = useState(true);
+  const [aspectRatio, setAspectRatio] = useState("1:1");
+  const [resolution, setResolution] = useState("2K");
   const [brandContext, setBrandContext] = useState<BrandContext | null>(null);
   const [contextLoading, setContextLoading] = useState(false);
   const [showContextPreview, setShowContextPreview] = useState(false);
@@ -200,6 +202,33 @@ export function SmartBatchPage({
                 {selectedPack.description}
               </p>
             )}
+          </div>
+        </div>
+
+        {/* Output Settings */}
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16, marginTop: 16 }}>
+          <div>
+            <label className="form-label">Aspect Ratio</label>
+            <select
+              className="form-select"
+              value={aspectRatio}
+              onChange={(e) => setAspectRatio(e.target.value)}
+            >
+              <option value="1:1">1:1 (Square)</option>
+              <option value="9:16">9:16 (Portrait)</option>
+            </select>
+          </div>
+          <div>
+            <label className="form-label">Resolution</label>
+            <select
+              className="form-select"
+              value={resolution}
+              onChange={(e) => setResolution(e.target.value)}
+            >
+              <option value="1K">1K</option>
+              <option value="2K">2K (Recommended)</option>
+              <option value="4K">4K</option>
+            </select>
           </div>
         </div>
       </div>
