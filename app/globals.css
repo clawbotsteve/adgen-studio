@@ -5278,3 +5278,49 @@ select {
   height: 16px;
   accent-color: var(--color-accent);
 }
+
+
+/* -- Content Grid Download Styles -- */
+.cg-image-wrap {
+  position: relative;
+}
+
+.cg-download-btn {
+  position: absolute;
+  bottom: 8px;
+  right: 8px;
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  background: rgba(0, 0, 0, 0.6);
+  border: none;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 0;
+  transition: opacity 0.2s, background 0.2s;
+  backdrop-filter: blur(4px);
+}
+
+.cg-image-wrap:hover .cg-download-btn {
+  opacity: 1;
+}
+
+.cg-download-btn:hover {
+  background: rgba(0, 0, 0, 0.85);
+}
+
+.cg-download-btn:disabled {
+  cursor: wait;
+  opacity: 1;
+}
+
+.cg-card:hover {
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.12);
+}
+
+@keyframes spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
