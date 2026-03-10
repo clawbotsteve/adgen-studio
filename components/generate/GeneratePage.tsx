@@ -15,6 +15,8 @@ export function GeneratePage({ clients }: GeneratePageProps) {
     null
   );
   const [prompt, setPrompt] = useState("");
+  const [aspectRatio, setAspectRatio] = useState("1:1");
+  const [resolution, setResolution] = useState("2K");
   const [generating, setGenerating] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [outputUrl, setOutputUrl] = useState<string | null>(null);
@@ -214,6 +216,8 @@ export function GeneratePage({ clients }: GeneratePageProps) {
           clientId,
           prompt: prompt.trim(),
           referenceImageUrl: selectedImage.url,
+          aspectRatio,
+          resolution,
         }),
       });
 
@@ -401,6 +405,45 @@ export function GeneratePage({ clients }: GeneratePageProps) {
             />
             <div className="gen-prompt-hint">
               Be specific about setting, lighting, composition, and style.
+            </div>
+          </div>
+
+          {/* Step 3: Output Settings */}
+          <div className="gen-card">
+            <div className="gen-card-header">
+              <span className="gen-step-badge">3</span>
+              <h3>Output Settings</h3>
+            </div>
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
+              <div>
+                <label style={{ display: "block", fontSize: 13, color: "var(--color-text-secondary)", marginBottom: 6 }}>
+                  Aspect Ratio
+                </label>
+                <select
+                  className="gen-prompt-input"
+                  value={aspectRatio}
+                  onChange={(e) => setAspectRatio(e.target.value)}
+                  style={{ padding: "8px 12px", height: "auto" }}
+                >
+                  <option value="1:1">1:1 (Square)</option>
+                  <option value="9:16">9:16 (Portrait)</option>
+                </select>
+              </div>
+              <div>
+                <label style={{ display: "block", fontSize: 13, color: "var(--color-text-secondary)", marginBottom: 6 }}>
+                  Resolution
+                </label>
+                <select
+                  className="gen-prompt-input"
+                  value={resolution}
+                  onChange={(e) => setResolution(e.target.value)}
+                  style={{ padding: "8px 12px", height: "auto" }}
+                >
+                  <option value="1K">1K</option>
+                  <option value="2K">2K (Recommended)</option>
+                  <option value="4K">4K</option>
+                </select>
+              </div>
             </div>
           </div>
 
