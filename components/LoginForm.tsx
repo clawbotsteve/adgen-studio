@@ -31,8 +31,14 @@ export default function LoginForm() {
     });
 
     if (signInError) {
-      console.error("Sign-in error:", signInError);
-      setError(signInError.message || "Unable to send sign-in link. Please try again.");
+      console.error("[login] signInWithOtp error:", signInError);
+      if (signInError.message?.includes("rate limit")) {
+        setError("Too many sign-in attempts. Please wait a few minutes and try again.");
+      } else if (signInError.message?.includes("not authorized")) {
+        setError("This email is not authorized. Please contact your admin.");
+      } else {
+        setError(signInError.message || "Unable to send sign-in link. Please try again.");
+      }
       return;
     }
 
