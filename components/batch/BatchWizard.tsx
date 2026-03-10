@@ -39,6 +39,8 @@ export function BatchWizard({
   const [profileId, setProfileId] = useState<string | null>(null);
   const [promptPackId, setPromptPackId] = useState<string | null>(null);
   const [referenceImageIds, setReferenceImageIds] = useState<string[]>([]);
+  const [aspectRatio, setAspectRatio] = useState("1:1");
+  const [resolution, setResolution] = useState("2K");
   const [launching, setLaunching] = useState(false);
 
   const canContinue = (): boolean => {
@@ -170,7 +172,18 @@ export function BatchWizard({
       <div className="bw-content">
         {step === 1 && <StepClient clients={clients} selected={clientId} onSelect={setClientId} />}
         {step === 2 && <StepMode selected={mode} onSelect={setMode} />}
-        {step === 3 && <StepProfile profiles={profiles} mode={mode} selected={profileId} onSelect={setProfileId} />}
+        {step === 3 && (
+          <StepProfile
+            profiles={profiles}
+            mode={mode}
+            selected={profileId}
+            onSelect={setProfileId}
+            aspectRatio={aspectRatio}
+            onAspectRatioChange={setAspectRatio}
+            resolution={resolution}
+            onResolutionChange={setResolution}
+          />
+        )}
         {step === 4 && <StepPromptPack promptPacks={promptPacks} selected={promptPackId} onSelect={setPromptPackId} />}
         {step === 5 && <StepReferences references={clientReferences} selected={referenceImageIds} onSelect={setReferenceImageIds} />}
         {step === 6 && (
