@@ -1,10 +1,10 @@
 import { requireUserTenantPage } from "@/lib/auth";
 import { listBatchRuns, listAllClientContent } from "@/lib/data/batches";
 import { listClients } from "@/lib/data/clients";
-import { getClient } from "@/lib/data/clients";
 import { getProfile } from "@/lib/data/profiles";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { StatusBadge } from "@/components/ui/StatusBadge";
+import { ContentGrid } from "@/components/history/ContentGrid";
 import Link from "next/link";
 
 export const metadata = {
@@ -34,8 +34,11 @@ export default async function HistoryPage() {
     })
   );
 
-  // Map content to batch runs for client name lookup
-  const runClientMap = new Map(batchRuns.map((r) => [r.id, r.client_id]));
+  // Map batch_run_id -> client name for the content grid
+  const runClientNameMap: Record<string, string> = {};
+  for (const run of batchRuns) {
+    runClientNameMap[run.id] = clientMap.get(run.client_id) || "Unknown";
+  }
 
   const formatDuration = (startedAt: string | null, createdAt: string): string => {
     if (!startedAt) return "-";
@@ -47,6 +50,15 @@ export default async function HistoryPage() {
     const minutes = Math.floor(seconds / 60);
     return `${minutes}m`;
   };
+
+  // Serialize content items for the client component
+  const contentItems = allContent.map((item) => ({
+    id: item.id,
+    batch_run_id: item.batch_run_id,
+    concept: item.concept,
+    output_url: item.output_url,
+    completed_at: item.completed_at,
+  }));
 
   return (
     <div className="page-container">
@@ -65,80 +77,9 @@ export default async function HistoryPage() {
         }
       />
 
-      {/* Generated Content Grid */}
-      {allContent.length > 0 && (
-        <div style={{ marginBottom: 24 }}>
-          <h3 style={{ marginBottom: 12, color: "var(--text-primary)" }}>
-            Recent Generated Content ({allContent.length})
-          </h3>
-          <div
-            style={{
-              display: "grid",
-              gridTemplateColumns: "repeat(auto-fill, minmax(200px, 1fr))",
-              gap: 12,
-            }}
-          >
-            {allContent.slice(0, 20).map((item) => {
-              const cId = runClientMap.get(item.batch_run_id);
-              const cName = cId ? clientMap.get(cId) : "Unknown";
-              return (
-                <div key={item.id} className="card" style={{ padding: 0, overflow: "hidden" }}>
-                  {item.output_url ? (
-                    <div style={{ position: "relative" }}>
-                      <img
-                        src={item.output_url}
-                        alt={item.concept}
-                        style={{
-                          width: "100%",
-                          height: 160,
-                          objectFit: "cover",
-                          display: "block",
-                        }}
-                      />
-                    </div>
-                  ) : (
-                    <div
-                      style={{
-                        height: 160,
-                        background: "var(--bg-secondary)",
-                        display: "flex",
-                        alignItems: "center",
-                        justifyContent: "center",
-                        color: "var(--text-muted)",
-                        fontSize: "0.85rem",
-                      }}
-                    >
-                      No preview
-                    </div>
-                  )}
-                  <div style={{ padding: "8px 12px" }}>
-                    <div
-                      style={{
-                        fontSize: "0.85rem",
-                        fontWeight: 500,
-                        color: "var(--text-primary)",
-                        whiteSpace: "nowrap",
-                        overflow: "hidden",
-                        textOverflow: "ellipsis",
-                      }}
-                    >
-                      {item.concept}
-                    </div>
-                    <div
-                      style={{
-                        fontSize: "0.75rem",
-                        color: "var(--text-muted)",
-                        marginTop: 2,
-                      }}
-                    >
-                      {cName} · {item.completed_at ? new Date(item.completed_at).toLocaleDateString() : "-"}
-                    </div>
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-        </div>
+      {/* Generated Content Grid - Client Component with Download */}
+      {contentItems.length > 0 && (
+        <ContentGrid items={contentItems} clientNameMap={runClientNameMap} />
       )}
 
       {/* Batch Runs Table */}
