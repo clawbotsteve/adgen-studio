@@ -7,6 +7,17 @@ import { getPromptPack, listPromptItems } from "@/lib/data/prompts";
 import { getClient } from "@/lib/data/clients";
 import { buildMasterContextString } from "@/lib/data/brand-context";
 
+function errMsg(e: unknown): string {
+  if (e instanceof Error) return e.message;
+  if (e && typeof e === "object") {
+    const obj = e as Record<string, unknown>;
+    if (typeof obj.message === "string") return obj.message;
+    if (typeof obj.details === "string") return `${obj.message ?? "error"}: ${obj.details}`;
+    try { return JSON.stringify(e); } catch { /* fallback */ }
+  }
+  return String(e);
+}
+
 export async function POST(request: Request) {
   const auth = await requireUserTenantApi();
   if ("error" in auth) {
@@ -46,7 +57,7 @@ export async function POST(request: Request) {
     } catch (lookupErr) {
       console.error("[smart-batch] Resource lookup error:", lookupErr);
       return NextResponse.json(
-        { error: `Resource lookup failed: ${lookupErr instanceof Error ? lookupErr.message : String(lookupErr)}` },
+        { error: `Resource lookup failed: ${errMsg(lookupErr)}` },
         { status: 500 }
       );
     }
@@ -114,7 +125,7 @@ export async function POST(request: Request) {
     } catch (runErr) {
       console.error("[smart-batch] createBatchRun error:", runErr);
       return NextResponse.json(
-        { error: `Failed to create batch run: ${runErr instanceof Error ? runErr.message : String(runErr)}` },
+        { error: `Failed to create batch run: ${errMsg(runErr)}` },
         { status: 500 }
       );
     }
@@ -133,7 +144,7 @@ export async function POST(request: Request) {
     } catch (itemErr) {
       console.error("[smart-batch] createBatchItems error:", itemErr);
       return NextResponse.json(
-        { error: `Failed to create batch items: ${itemErr instanceof Error ? itemErr.message : String(itemErr)}` },
+        { error: `Failed to create batch items: ${errMsg(itemErr)}` },
         { status: 500 }
       );
     }
