@@ -107,6 +107,17 @@ export function Sidebar() {
           <span>Run History</span>
         </Link>
       </div>
+
+      <div className="sidebar-section">
+        <div className="sidebar-section-header">Admin</div>
+        <Link
+          href="/admin/billing"
+          className={`sidebar-link ${isActive("/admin/billing") ? "active" : ""}`}
+        >
+          <span className="sidebar-icon">💰</span>
+          <span>Billing</span>
+        </Link>
+      </div>
     </aside>
   );
 }
