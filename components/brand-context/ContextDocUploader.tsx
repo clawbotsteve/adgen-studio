@@ -2,7 +2,6 @@
 
 import { useState, useRef, useCallback } from "react";
 import type { BrandContextDoc } from "@/types/domain";
-import { createSupabaseBrowser } from "@/lib/supabase";
 
 const FILE_TYPE_ICONS: Record<string, string> = {
   pdf: "📄",
@@ -14,14 +13,7 @@ const FILE_TYPE_ICONS: Record<string, string> = {
   webp: "🖼",
 };
 
-const ALLOWED_TYPES = [
-  "application/pdf",
-  "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
-  "application/msword",
-  "image/png",
-  "image/jpeg",
-  "image/webp",
-];
+const ALLOWED_EXTENSIONS = ["pdf", "docx", "doc", "png", "jpg", "jpeg", "webp"];
 
 const MAX_SIZE = 10 * 1024 * 1024; // 10MB
 
@@ -54,8 +46,9 @@ export function ContextDocUploader({
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const uploadFile = async (file: File) => {
-    if (!ALLOWED_TYPES.includes(file.type)) {
-      alert("Unsupported file type. Please upload PDF, DOCX, PNG, JPG, or WEBP files.");
+    const ext = getFileExt(file.name);
+    if (!ALLOWED_EXTENSIONS.includes(ext)) {
+      alert(`Unsupported file type (.${ext}). Please upload PDF, DOCX, PNG, JPG, or WEBP files.`);
       return;
     }
     if (file.size > MAX_SIZE) {
@@ -65,35 +58,21 @@ export function ContextDocUploader({
 
     setUploading(true);
     try {
-      const supabase = createSupabaseBrowser();
-      const ext = getFileExt(file.name);
-      const uniqueName = `${crypto.randomUUID()}.${ext}`;
-      const path = `brand-context/${clientId}/${uniqueName}`;
+      // Upload via server API to bypass Supabase bucket MIME restrictions
+      const formData = new FormData();
+      formData.append("file", file);
+      formData.append("brandContextId", brandContextId);
+      formData.append("clientId", clientId);
 
-      const { error: uploadErr } = await supabase.storage
-        .from("creatives")
-        .upload(path, file, { contentType: file.type, upsert: false });
-
-      if (uploadErr) throw new Error(uploadErr.message);
-
-      const { data: urlData } = supabase.storage
-        .from("creatives")
-        .getPublicUrl(path);
-
-      // Register doc metadata via API
-      const res = await fetch("/api/brand-context/docs", {
+      const res = await fetch("/api/brand-context/docs/upload", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          brandContextId,
-          file_name: file.name,
-          file_type: ext,
-          storage_url: urlData.publicUrl,
-          file_size_bytes: file.size,
-        }),
+        body: formData,
       });
 
-      if (!res.ok) throw new Error("Failed to register document");
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({ error: "Upload failed" }));
+        throw new Error(data.error || "Upload failed");
+      }
 
       onUploaded();
     } catch (err) {
