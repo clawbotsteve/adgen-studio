@@ -81,6 +81,8 @@ export function SmartBatchPage({
           briefText: briefText.trim() || undefined,
           additionalContext: additionalContext.trim() || undefined,
           useBrandContext,
+          aspectRatio,
+          resolution,
         }),
       });
 
@@ -172,7 +174,7 @@ export function SmartBatchPage({
             >
               {profiles.map((p) => (
                 <option key={p.id} value={p.id}>
-                  {p.name} ({p.mode} · {p.aspect_ratio})
+                  {p.name} ({p.mode} Â· {p.aspect_ratio})
                 </option>
               ))}
             </select>
