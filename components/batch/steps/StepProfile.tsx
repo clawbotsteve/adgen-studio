@@ -8,9 +8,22 @@ interface StepProfileProps {
   mode: "image" | "video" | null;
   selected: string | null;
   onSelect: (profileId: string) => void;
+  aspectRatio: string;
+  onAspectRatioChange: (value: string) => void;
+  resolution: string;
+  onResolutionChange: (value: string) => void;
 }
 
-export function StepProfile({ profiles, mode, selected, onSelect }: StepProfileProps) {
+export function StepProfile({
+  profiles,
+  mode,
+  selected,
+  onSelect,
+  aspectRatio,
+  onAspectRatioChange,
+  resolution,
+  onResolutionChange,
+}: StepProfileProps) {
   const filtered = mode ? profiles.filter((p) => p.mode === mode) : [];
 
   return (
@@ -72,6 +85,42 @@ export function StepProfile({ profiles, mode, selected, onSelect }: StepProfileP
           ))}
         </div>
       )}
+
+      {/* Output Settings */}
+      <div style={{ marginTop: 24, padding: "16px 0", borderTop: "1px solid var(--color-border, #333)" }}>
+        <h3 style={{ margin: "0 0 12px", fontSize: 14, color: "var(--color-text-secondary)" }}>Output Settings</h3>
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
+          <div>
+            <label style={{ display: "block", fontSize: 12, color: "var(--color-text-secondary)", marginBottom: 4 }}>
+              Aspect Ratio
+            </label>
+            <select
+              className="form-select"
+              value={aspectRatio}
+              onChange={(e) => onAspectRatioChange(e.target.value)}
+              style={{ width: "100%" }}
+            >
+              <option value="1:1">1:1 (Square)</option>
+              <option value="9:16">9:16 (Portrait)</option>
+            </select>
+          </div>
+          <div>
+            <label style={{ display: "block", fontSize: 12, color: "var(--color-text-secondary)", marginBottom: 4 }}>
+              Resolution
+            </label>
+            <select
+              className="form-select"
+              value={resolution}
+              onChange={(e) => onResolutionChange(e.target.value)}
+              style={{ width: "100%" }}
+            >
+              <option value="1K">1K</option>
+              <option value="2K">2K (Recommended)</option>
+              <option value="4K">4K</option>
+            </select>
+          </div>
+        </div>
+      </div>
     </div>
   );
 }
