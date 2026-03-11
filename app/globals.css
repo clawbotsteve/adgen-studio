@@ -239,6 +239,12 @@ body.hide-sidebar .main-content {
   justify-content: center;
 }
 
+.sidebar-link svg {
+  min-width: 18px;
+  flex-shrink: 0;
+  stroke-width: 1.75;
+}
+
 /* =============================================================================
    PAGE HEADER
    ============================================================================= */
