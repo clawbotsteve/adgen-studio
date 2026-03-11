@@ -1,7 +1,8 @@
 import { NextResponse } from "next/server";
 import { createServerClient } from "@supabase/ssr";
-import { cookies } from "next/headers";
+import { cookies, headers } from "next/headers";
 import { requireSupabasePublic } from "@/lib/env";
+import { createSupabaseService } from "@/lib/supabase";
 
 export async function GET(request: Request) {
   const url = new URL(request.url);
@@ -87,5 +88,53 @@ export async function GET(request: Request) {
   }
 
   console.log("[auth/callback] Session established for user:", user.id);
+
+  // Auto-join: ensure user is linked to the tenant for this domain
+  try {
+    const h = await headers();
+    const host = (h.get("x-forwarded-host") || h.get("host") || "")
+      .split(":")[0]
+      .toLowerCase();
+
+    if (host) {
+      const svc = createSupabaseService();
+
+      // Find tenant by domain
+      const { data: tenant } = await svc
+        .from("tenants")
+        .select("id")
+        .eq("domain", host)
+        .single();
+
+      if (tenant) {
+        // Check if user already has a tenant_users record
+        const { data: existing } = await svc
+          .from("tenant_users")
+          .select("user_id")
+          .eq("tenant_id", tenant.id)
+          .eq("user_id", user.id)
+          .single();
+
+        if (!existing) {
+          // Auto-add as member
+          await svc.from("tenant_users").insert({
+            tenant_id: tenant.id,
+            user_id: user.id,
+            role: "member",
+          });
+          console.log(
+            "[auth/callback] Auto-joined user",
+            user.id,
+            "to tenant",
+            tenant.id,
+          );
+        }
+      }
+    }
+  } catch (joinErr) {
+    // Don't block login if auto-join fails
+    console.error("[auth/callback] Auto-join error (non-fatal):", joinErr);
+  }
+
   return NextResponse.redirect(new URL(next, url.origin));
 }
