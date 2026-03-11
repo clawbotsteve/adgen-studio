@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback } from "react";
+import { useState, useCallback, useRef } from "react";
 import {
   Fingerprint,
   Mic,
@@ -21,7 +21,13 @@ import {
   CheckCircle2,
   Circle,
   ChevronRight,
+  ChevronDown,
   Save,
+  FileText,
+  FolderOpen,
+  X,
+  UserPlus,
+  Building2,
 } from "lucide-react";
 
 /* ── Section / sub-item definitions ──────────────────────────── */
@@ -77,9 +83,36 @@ const SECTIONS: Section[] = [
       { id: "assets", label: "Brand Assets", icon: <Upload size={15} /> },
     ],
   },
+  {
+    id: "brand-docs",
+    number: 4,
+    title: "Brand Documents",
+    subtitle: "Upload Reference Files",
+    items: [
+      { id: "documents", label: "Upload Brand Docs", icon: <FileText size={15} /> },
+    ],
+  },
 ];
 
 const ALL_ITEMS = SECTIONS.flatMap((s) => s.items.map((i) => i.id));
+
+/* ── Client types ──────────────────────────────────────────────── */
+
+interface ClientProfile {
+  id: string;
+  name: string;
+  industry: string;
+  website: string;
+  createdAt: string;
+}
+
+interface BrandDoc {
+  id: string;
+  name: string;
+  size: string;
+  type: string;
+  uploadedAt: string;
+}
 
 /* ── Reusable form components ────────────────────────────────── */
 
@@ -224,6 +257,148 @@ const INITIAL_DATA: FormData = {
   fontPrimary: "",
   fontSecondary: "",
 };
+
+/* ── Client Selector Bar ─────────────────────────────────────── */
+
+function ClientSelectorBar({
+  clients,
+  selectedClient,
+  onSelect,
+  onCreateNew,
+  newClientName,
+  setNewClientName,
+  newClientIndustry,
+  setNewClientIndustry,
+  newClientWebsite,
+  setNewClientWebsite,
+  showNewForm,
+  setShowNewForm,
+}: {
+  clients: ClientProfile[];
+  selectedClient: ClientProfile | null;
+  onSelect: (id: string) => void;
+  onCreateNew: () => void;
+  newClientName: string;
+  setNewClientName: (v: string) => void;
+  newClientIndustry: string;
+  setNewClientIndustry: (v: string) => void;
+  newClientWebsite: string;
+  setNewClientWebsite: (v: string) => void;
+  showNewForm: boolean;
+  setShowNewForm: (v: boolean) => void;
+}) {
+  const [dropdownOpen, setDropdownOpen] = useState(false);
+
+  return (
+    <div className="cg-client-bar">
+      <div className="cg-client-bar-inner">
+        {/* Client dropdown */}
+        <div className="cg-client-selector">
+          <button
+            className="cg-client-dropdown-btn"
+            onClick={() => setDropdownOpen(!dropdownOpen)}
+          >
+            <Building2 size={16} />
+            <span>{selectedClient ? selectedClient.name : "Select a client..."}</span>
+            <ChevronDown size={14} className={dropdownOpen ? "cg-chevron-flip" : ""} />
+          </button>
+
+          {dropdownOpen && (
+            <div className="cg-client-dropdown">
+              {clients.length === 0 && (
+                <div className="cg-client-dropdown-empty">
+                  No clients yet. Create your first one below.
+                </div>
+              )}
+              {clients.map((client) => (
+                <button
+                  key={client.id}
+                  className={`cg-client-dropdown-item${selectedClient?.id === client.id ? " cg-client-dropdown-item-active" : ""}`}
+                  onClick={() => {
+                    onSelect(client.id);
+                    setDropdownOpen(false);
+                  }}
+                >
+                  <div className="cg-client-dropdown-item-info">
+                    <span className="cg-client-dropdown-item-name">{client.name}</span>
+                    {client.industry && (
+                      <span className="cg-client-dropdown-item-industry">{client.industry}</span>
+                    )}
+                  </div>
+                  {selectedClient?.id === client.id && <CheckCircle2 size={14} />}
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
+
+        {/* New client button */}
+        <button
+          className="cg-new-client-btn"
+          onClick={() => {
+            setShowNewForm(!showNewForm);
+            setDropdownOpen(false);
+          }}
+        >
+          <UserPlus size={16} />
+          New Client
+        </button>
+      </div>
+
+      {/* New client form (expandable) */}
+      {showNewForm && (
+        <div className="cg-new-client-form">
+          <div className="cg-new-client-form-header">
+            <h3>Create New Client Profile</h3>
+            <button className="cg-icon-btn" onClick={() => setShowNewForm(false)}>
+              <X size={16} />
+            </button>
+          </div>
+          <div className="cg-new-client-fields">
+            <div className="cg-new-client-field">
+              <label>Client / Brand Name *</label>
+              <input
+                type="text"
+                className="cg-input"
+                value={newClientName}
+                onChange={(e) => setNewClientName(e.target.value)}
+                placeholder="e.g. Acme Fitness Co."
+              />
+            </div>
+            <div className="cg-new-client-field">
+              <label>Industry</label>
+              <input
+                type="text"
+                className="cg-input"
+                value={newClientIndustry}
+                onChange={(e) => setNewClientIndustry(e.target.value)}
+                placeholder="e.g. Health & Fitness, SaaS, E-commerce..."
+              />
+            </div>
+            <div className="cg-new-client-field">
+              <label>Website</label>
+              <input
+                type="text"
+                className="cg-input"
+                value={newClientWebsite}
+                onChange={(e) => setNewClientWebsite(e.target.value)}
+                placeholder="https://example.com"
+              />
+            </div>
+          </div>
+          <button
+            className="cg-save-btn"
+            onClick={onCreateNew}
+            disabled={!newClientName.trim()}
+            style={{ marginTop: "12px" }}
+          >
+            <Plus size={16} /> Create Client
+          </button>
+        </div>
+      )}
+    </div>
+  );
+}
 
 /* ── Section content renderers ───────────────────────────────── */
 
@@ -557,7 +732,7 @@ function AssetsSection({ data, set }: { data: FormData; set: (d: Partial<FormDat
             <span className="cg-pair-label">SECONDARY</span>
             <div className="cg-color-input-wrap">
               <input type="color" className="cg-color-picker" value={data.secondaryColor} onChange={(e) => set({ secondaryColor: e.target.value })} />
-              <TextInput small value={data.secondaryColor} onChange={(v) => set({ secondaryColor: y })} placeholder="#1e293b" />
+              <TextInput small value={data.secondaryColor} onChange={(v) => set({ secondaryColor: v })} placeholder="#1e293b" />
             </div>
           </div>
           <div className="cg-color-field">
@@ -588,9 +763,157 @@ function AssetsSection({ data, set }: { data: FormData; set: (d: Partial<FormDat
   );
 }
 
+/* ── Brand Documents Upload Section ──────────────────────────── */
+
+function BrandDocsSection({
+  docs,
+  onUpload,
+  onRemove,
+  dragActive,
+  setDragActive,
+  fileInputRef,
+}: {
+  docs: BrandDoc[];
+  onUpload: (files: FileList) => void;
+  onRemove: (id: string) => void;
+  dragActive: boolean;
+  setDragActive: (v: boolean) => void;
+  fileInputRef: React.RefObject<HTMLInputElement | null>;
+}) {
+  const handleDrag = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (e.type === "dragenter" || e.type === "dragover") setDragActive(true);
+    else if (e.type === "dragleave") setDragActive(false);
+  };
+
+  const handleDrop = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setDragActive(false);
+    if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
+      onUpload(e.dataTransfer.files);
+    }
+  };
+
+  return (
+    <div className="cg-section-content">
+      <h2 className="cg-section-title"><FileText size={20} /> Brand Documents</h2>
+      <FieldHint>
+        Upload brand guides, style sheets, past ad reports, product catalogs, or any reference documents.
+        These help the AI generate content that is perfectly aligned with your brand.
+      </FieldHint>
+
+      {/* Drop zone */}
+      <div
+        className={`cg-dropzone${dragActive ? " cg-dropzone-active" : ""}`}
+        onDragEnter={handleDrag}
+        onDragLeave={handleDrag}
+        onDragOver={handleDrag}
+        onDrop={handleDrop}
+        onClick={() => fileInputRef.current?.click()}
+      >
+        <input
+          ref={fileInputRef}
+          type="file"
+          multiple
+          accept=".pdf,.doc,.docx,.txt,.csv,.xlsx,.png,.jpg,.jpeg,.svg,.pptx"
+          style={{ display: "none" }}
+          onChange={(e) => {
+            if (e.target.files && e.target.files.length > 0) {
+              onUpload(e.target.files);
+              e.target.value = "";
+            }
+          }}
+        />
+        <div className="cg-dropzone-content">
+          <FolderOpen size={32} className="cg-dropzone-icon" />
+          <p className="cg-dropzone-title">
+            {dragActive ? "Drop files here..." : "Drag & drop files here, or click to browse"}
+          </p>
+          <p className="cg-dropzone-subtitle">
+            PDF, Word, Excel, PowerPoint, images, and text files accepted
+          </p>
+        </div>
+      </div>
+
+      {/* Uploaded files list */}
+      {docs.length > 0 && (
+        <div className="cg-docs-list">
+          <FieldLabel>UPLOADED DOCUMENTS ({docs.length})</FieldLabel>
+          {docs.map((doc) => (
+            <div key={doc.id} className="cg-doc-card">
+              <div className="cg-doc-info">
+                <FileText size={18} className="cg-doc-icon" />
+                <div>
+                  <div className="cg-doc-name">{doc.name}</div>
+                  <div className="cg-doc-meta">{doc.type.toUpperCase()} &middot; {doc.size} &middot; {doc.uploadedAt}</div>
+                </div>
+              </div>
+              <button className="cg-icon-btn cg-doc-remove" onClick={() => onRemove(doc.id)}>
+                <Trash2 size={14} />
+              </button>
+            </div>
+          ))}
+        </div>
+      )}
+
+      <div className="cg-field-group" style={{ marginTop: "24px" }}>
+        <FieldLabel>SUGGESTED UPLOADS</FieldLabel>
+        <div className="cg-suggested-uploads">
+          <div className="cg-suggested-item">
+            <CheckCircle2 size={14} className="cg-suggested-icon" />
+            <span>Brand style guide / brand book</span>
+          </div>
+          <div className="cg-suggested-item">
+            <CheckCircle2 size={14} className="cg-suggested-icon" />
+            <span>Product catalog or line sheet</span>
+          </div>
+          <div className="cg-suggested-item">
+            <CheckCircle2 size={14} className="cg-suggested-icon" />
+            <span>Past ad performance reports</span>
+          </div>
+          <div className="cg-suggested-item">
+            <CheckCircle2 size={14} className="cg-suggested-icon" />
+            <span>Competitor analysis documents</span>
+          </div>
+          <div className="cg-suggested-item">
+            <CheckCircle2 size={14} className="cg-suggested-icon" />
+            <span>Customer research / survey results</span>
+          </div>
+          <div className="cg-suggested-item">
+            <CheckCircle2 size={14} className="cg-suggested-icon" />
+            <span>Logo files and brand assets (PNG, SVG)</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 /* ── Content router ──────────────────────────────────────────── */
 
-function SectionContent({ activeItem, data, set }: { activeItem: string; data: FormData; set: (d: Partial<FormData>) => void }) {
+function SectionContent({
+  activeItem,
+  data,
+  set,
+  docs,
+  onUpload,
+  onRemoveDoc,
+  dragActive,
+  setDragActive,
+  fileInputRef,
+}: {
+  activeItem: string;
+  data: FormData;
+  set: (d: Partial<FormData>) => void;
+  docs: BrandDoc[];
+  onUpload: (files: FileList) => void;
+  onRemoveDoc: (id: string) => void;
+  dragActive: boolean;
+  setDragActive: (v: boolean) => void;
+  fileInputRef: React.RefObject<HTMLInputElement | null>;
+}) {
   switch (activeItem) {
     case "voice": return <VoiceSection data={data} set={set} />;
     case "products": return <ProductsSection data={data} set={set} />;
@@ -605,13 +928,23 @@ function SectionContent({ activeItem, data, set }: { activeItem: string; data: F
     case "ad-accounts": return <AdAccountsSection data={data} set={set} />;
     case "strategy-goals": return <StrategyGoalsSection data={data} set={set} />;
     case "assets": return <AssetsSection data={data} set={set} />;
+    case "documents": return (
+      <BrandDocsSection
+        docs={docs}
+        onUpload={onUpload}
+        onRemove={onRemoveDoc}
+        dragActive={dragActive}
+        setDragActive={setDragActive}
+        fileInputRef={fileInputRef}
+      />
+    );
     default: return null;
   }
 }
 
 /* ── Helper: check if a sub-item has data ────────────────────── */
 
-function itemHasData(id: string, data: FormData): boolean {
+function itemHasData(id: string, data: FormData, docs: BrandDoc[]): boolean {
   switch (id) {
     case "voice": return !!(data.toneOfVoice || data.brandPersonality || data.voiceMoreOf || data.voiceLessOf);
     case "products": return !!(data.productDescription || data.usp || data.differentiators);
@@ -626,6 +959,7 @@ function itemHasData(id: string, data: FormData): boolean {
     case "ad-accounts": return !!(data.platforms || data.pixelIds || data.spendTargets);
     case "strategy-goals": return !!(data.campaignObjectives || data.funnelStages || data.ctaPreferences);
     case "assets": return !!(data.fontPrimary || data.fontSecondary);
+    case "documents": return docs.length > 0;
     default: return false;
   }
 }
@@ -633,16 +967,81 @@ function itemHasData(id: string, data: FormData): boolean {
 /* ── Main component ──────────────────────────────────────────── */
 
 export function ClientGeneratorPage() {
+  /* Client management */
+  const [clients, setClients] = useState<ClientProfile[]>([]);
+  const [selectedClient, setSelectedClient] = useState<ClientProfile | null>(null);
+  const [showNewForm, setShowNewForm] = useState(false);
+  const [newClientName, setNewClientName] = useState("");
+  const [newClientIndustry, setNewClientIndustry] = useState("");
+  const [newClientWebsite, setNewClientWebsite] = useState("");
+
+  /* Active section + form state */
   const [activeItem, setActiveItem] = useState("voice");
   const [data, setData] = useState<FormData>(INITIAL_DATA);
   const [saving, setSaving] = useState(false);
+
+  /* Brand documents */
+  const [docs, setDocs] = useState<BrandDoc[]>([]);
+  const [dragActive, setDragActive] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement | null>(null);
 
   const set = useCallback((partial: Partial<FormData>) => {
     setData((prev) => ({ ...prev, ...partial }));
   }, []);
 
+  /* Client actions */
+  const handleSelectClient = (id: string) => {
+    const client = clients.find((c) => c.id === id);
+    if (client) {
+      setSelectedClient(client);
+      // TODO: load client data from Supabase
+      setData(INITIAL_DATA);
+      setDocs([]);
+    }
+  };
+
+  const handleCreateClient = () => {
+    if (!newClientName.trim()) return;
+    const newClient: ClientProfile = {
+      id: `client-${Date.now()}`,
+      name: newClientName.trim(),
+      industry: newClientIndustry.trim(),
+      website: newClientWebsite.trim(),
+      createdAt: new Date().toLocaleDateString(),
+    };
+    setClients((prev) => [...prev, newClient]);
+    setSelectedClient(newClient);
+    setNewClientName("");
+    setNewClientIndustry("");
+    setNewClientWebsite("");
+    setShowNewForm(false);
+    setData(INITIAL_DATA);
+    setDocs([]);
+    // TODO: save client to Supabase
+  };
+
+  /* File upload handler */
+  const handleUploadFiles = (files: FileList) => {
+    const newDocs: BrandDoc[] = Array.from(files).map((file) => ({
+      id: `doc-${Date.now()}-${Math.random().toString(36).substr(2, 6)}`,
+      name: file.name,
+      size: file.size < 1024 * 1024
+        ? `${(file.size / 1024).toFixed(1)} KB`
+        : `${(file.size / (1024 * 1024)).toFixed(1)} MB`,
+      type: file.name.split(".").pop() || "unknown",
+      uploadedAt: new Date().toLocaleDateString(),
+    }));
+    setDocs((prev) => [...prev, ...newDocs]);
+    // TODO: upload to Supabase Storage
+  };
+
+  const handleRemoveDoc = (id: string) => {
+    setDocs((prev) => prev.filter((d) => d.id !== id));
+    // TODO: remove from Supabase Storage
+  };
+
   /* Progress calculation */
-  const filledCount = ALL_ITEMS.filter((id) => itemHasData(id, data)).length;
+  const filledCount = ALL_ITEMS.filter((id) => itemHasData(id, data, docs)).length;
   const progressPct = Math.round((filledCount / ALL_ITEMS.length) * 100);
 
   const handleSave = async () => {
@@ -658,63 +1057,111 @@ export function ClientGeneratorPage() {
       <div className="cg-header">
         <div>
           <h1 className="cg-title">Client Generator</h1>
-          <p className="cg-subtitle">Help AdGen understand your brand</p>
+          <p className="cg-subtitle">Build a complete client profile to help the AI generate better content</p>
         </div>
-        <button className="cg-save-btn" onClick={handleSave} disabled={saving}>
+        <button className="cg-save-btn" onClick={handleSave} disabled={saving || !selectedClient}>
           <Save size={16} />
-          {saving ? " Saving..." : " Save Context"}
+          {saving ? " Saving..." : " Save Profile"}
         </button>
       </div>
 
-      {/* Progress bar */}
-      <div className="cg-progress-wrap">
-        <div className="cg-progress-bar">
-          <div className="cg-progress-fill" style={{ width: `${progressPct}%` }} />
-        </div>
-        <span className="cg-progress-pct">{progressPct}%</span>
-      </div>
+      {/* Client selector bar */}
+      <ClientSelectorBar
+        clients={clients}
+        selectedClient={selectedClient}
+        onSelect={handleSelectClient}
+        onCreateNew={handleCreateClient}
+        newClientName={newClientName}
+        setNewClientName={setNewClientName}
+        newClientIndustry={newClientIndustry}
+        setNewClientIndustry={setNewClientIndustry}
+        newClientWebsite={newClientWebsite}
+        setNewClientWebsite={setNewClientWebsite}
+        showNewForm={showNewForm}
+        setShowNewForm={setShowNewForm}
+      />
 
-      {/* Main layout */}
-      <div className="cg-layout">
-        {/* Left nav */}
-        <nav className="cg-nav">
-          {SECTIONS.map((section) => (
-            <div key={section.id} className="cg-nav-section">
-              <div className="cg-nav-section-header">
-                <div className="cg-nav-number">{section.number}</div>
-                <div>
-                  <div className="cg-nav-title">{section.title}</div>
-                  <div className="cg-nav-subtitle">{section.subtitle}</div>
-                </div>
-              </div>
-              {section.items.map((item) => (
-                <button
-                  key={item.id}
-                  className={`cg-nav-item${activeItem === item.id ? " cg-nav-item-active" : ""}`}
-                  onClick={() => setActiveItem(item.id)}
-                >
-                  <span className={`cg-nav-dot${itemHasData(item.id, data) ? " cg-nav-dot-done" : ""}`}>
-                    {itemHasData(item.id, data) ? <CheckCircle2 size={12} /> : <Circle size={12} />}
-                  </span>
-                  <span>{item.label}</span>
-                </button>
-              ))}
+      {/* Show workflow only when a client is selected */}
+      {selectedClient ? (
+        <>
+          {/* Progress bar */}
+          <div className="cg-progress-wrap">
+            <div className="cg-progress-info">
+              <span className="cg-progress-label">Profile completion for <strong>{selectedClient.name}</strong></span>
+              <span className="cg-progress-pct">{progressPct}%</span>
             </div>
-          ))}
-        </nav>
-
-        {/* Content panel */}
-        <div className="cg-content">
-          <SectionContent activeItem={activeItem} data={data} set={set} />
-
-          <div style={{ display: "flex", justifyContent: "flex-end", marginTop: "24px", paddingTop: "16px", borderTop: "1px solid var(--border, #2d3748)" }}>
-            <button className="cg-save-btn" onClick={handleSave} disabled={saving}>
-              <Save size={16} />
-              {saving ? " Saving..." : " Save Answers"}
-            </button>
+            <div className="cg-progress-bar">
+              <div className="cg-progress-fill" style={{ width: `${progressPct}%` }} />
+            </div>
           </div>
+
+          {/* Main layout */}
+          <div className="cg-layout">
+            {/* Left nav */}
+            <nav className="cg-nav">
+              {SECTIONS.map((section) => (
+                <div key={section.id} className="cg-nav-section">
+                  <div className="cg-nav-section-header">
+                    <div className="cg-nav-number">{section.number}</div>
+                    <div>
+                      <div className="cg-nav-title">{section.title}</div>
+                      <div className="cg-nav-subtitle">{section.subtitle}</div>
+                    </div>
+                  </div>
+                  {section.items.map((item) => (
+                    <button
+                      key={item.id}
+                      className={`cg-nav-item${activeItem === item.id ? " cg-nav-item-active" : ""}`}
+                      onClick={() => setActiveItem(item.id)}
+                    >
+                      <span className={`cg-nav-dot${itemHasData(item.id, data, docs) ? " cg-nav-dot-done" : ""}`}>
+                        {itemHasData(item.id, data, docs) ? <CheckCircle2 size={12} /> : <Circle size={12} />}
+                      </span>
+                      <span>{item.label}</span>
+                    </button>
+                  ))}
+                </div>
+              ))}
+            </nav>
+
+            {/* Content panel */}
+            <div className="cg-content">
+              <SectionContent
+                activeItem={activeItem}
+                data={data}
+                set={set}
+                docs={docs}
+                onUpload={handleUploadFiles}
+                onRemoveDoc={handleRemoveDoc}
+                dragActive={dragActive}
+                setDragActive={setDragActive}
+                fileInputRef={fileInputRef}
+              />
+
+              <div style={{ display: "flex", justifyContent: "flex-end", marginTop: "24px", paddingTop: "16px", borderTop: "1px solid var(--border, #2d3748)" }}>
+                <button className="cg-save-btn" onClick={handleSave} disabled={saving}>
+                  <Save size={16} />
+                  {saving ? " Saving..." : " Save Answers"}
+                </button>
+              </div>
+            </div>
+          </div>
+        </>
+      ) : (
+        /* Empty state when no client selected */
+        <div className="cg-empty-state">
+          <Building2 size={48} className="cg-empty-icon" />
+          <h2 className="cg-empty-title">Select or create a client to get started</h2>
+          <p className="cg-empty-subtitle">
+            Each client profile helps the AI understand the brand deeply — from voice and audience
+            to creative strategy and assets. Upload brand docs and fill out the profile to unlock
+            smarter, on-brand content generation.
+          </p>
+          <button className="cg-save-btn" onClick={() => setShowNewForm(true)} style={{ marginTop: "8px" }}>
+            <UserPlus size={16} /> Create Your First Client
+          </button>
         </div>
-      </div>
+      )}
     </div>
   );
 }
