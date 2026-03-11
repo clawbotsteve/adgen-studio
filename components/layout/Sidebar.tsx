@@ -27,97 +27,23 @@ export function Sidebar() {
           <span className="sidebar-icon">⌂</span>
           <span>Dashboard</span>
         </Link>
-      </nav>
 
-      <div className="sidebar-section">
-        <div className="sidebar-section-header">Manage</div>
         <Link
-          href="/clients"
-          className={`sidebar-link ${isActive("/clients") ? "active" : ""}`}
+          href="/client-generator"
+          className={`sidebar-link ${isActive("/client-generator") ? "active" : ""}`}
         >
-          <span className="sidebar-icon">👥</span>
-          <span>Clients</span>
+          <span className="sidebar-icon">👤</span>
+          <span>Client Generator</span>
         </Link>
-<Link
-          href="/profiles"
-          className={`sidebar-link ${isActive("/profiles") ? "active" : ""}`}
-        >
-          <span className="sidebar-icon">⚙</span>
-          <span>Profiles</span>
-        </Link>
-        <Link
-          href="/prompt-packs"
-          className={`sidebar-link ${isActive("/prompt-packs") ? "active" : ""}`}
-        >
-          <span className="sidebar-icon">📦</span>
-          <span>Prompt Packs</span>
-        </Link>
-      </div>
 
-      <div className="sidebar-section">
-        <div className="sidebar-section-header">Context</div>
         <Link
-          href="/brand-context"
-          className={`sidebar-link ${isActive("/brand-context") ? "active" : ""}`}
-        >
-          <span className="sidebar-icon">🧠</span>
-          <span>Brand Context</span>
-        </Link>
-      </div>
-
-      <div className="sidebar-section">
-        <div className="sidebar-section-header">Create</div>
-        <Link
-          href="/ugc-studio"
-          className={`sidebar-link ${isActive("/ugc-studio") ? "active" : ""}`}
-        >
-          <span className="sidebar-icon">🎬</span>
-          <span>UGC Studio</span>
-        </Link>
-      </div>
-
-      <div className="sidebar-section">
-        <div className="sidebar-section-header">Generate</div>
-        <Link
-          href="/batch/create"
-          className={`sidebar-link ${isActive("/batch/create") ? "active" : ""}`}
-        >
-          <span className="sidebar-icon">▶</span>
-          <span>Generate</span>
-        </Link>
-        <Link
-          href="/smart-batch"
-          className={`sidebar-link ${isActive("/smart-batch") ? "active" : ""}`}
-        >
-          <span className="sidebar-icon">🚀</span>
-          <span>Smart Batch</span>
-        </Link>
-        <Link
-          href="/batch/generate"
-          className={`sidebar-link ${isActive("/batch/generate") ? "active" : ""}`}
+          href="/brief-generator"
+          className={`sidebar-link ${isActive("/brief-generator") ? "active" : ""}`}
         >
           <span className="sidebar-icon">⚡</span>
-          <span>Batch Generate</span>
+          <span>Brief Generator</span>
         </Link>
-        <Link
-          href="/history"
-          className={`sidebar-link ${isActive("/history") ? "active" : ""}`}
-        >
-          <span className="sidebar-icon">📋</span>
-          <span>Run History</span>
-        </Link>
-      </div>
-
-      <div className="sidebar-section">
-        <div className="sidebar-section-header">Admin</div>
-        <Link
-          href="/admin/billing"
-          className={`sidebar-link ${isActive("/admin/billing") ? "active" : ""}`}
-        >
-          <span className="sidebar-icon">💰</span>
-          <span>Billing</span>
-        </Link>
-      </div>
+      </nav>
     </aside>
   );
 }
