@@ -2,6 +2,21 @@
 
 import { usePathname } from "next/navigation";
 import Link from "next/link";
+import {
+  LayoutDashboard,
+  Users,
+  UserCircle,
+  Package,
+  Palette,
+  UserPlus,
+  Video,
+  Zap,
+  Layers,
+  Play,
+  Clock,
+  CreditCard,
+  FileText,
+} from "lucide-react";
 
 export function Sidebar() {
   const pathname = usePathname();
@@ -17,14 +32,17 @@ export function Sidebar() {
 
   return (
     <aside className="sidebar">
-      <div className="sidebar-logo">â AdGen Studio</div>
+      <div className="sidebar-logo">
+        <span className="sidebar-logo-icon">◆</span>
+        <span className="sidebar-logo-text">AdGen Studio</span>
+      </div>
 
       <nav className="sidebar-section">
         <Link
           href="/dashboard"
           className={`sidebar-link ${isActive("/dashboard") ? "active" : ""}`}
         >
-          <span className="sidebar-icon">â</span>
+          <LayoutDashboard size={18} />
           <span>Dashboard</span>
         </Link>
       </nav>
@@ -35,21 +53,21 @@ export function Sidebar() {
           href="/clients"
           className={`sidebar-link ${isActive("/clients") ? "active" : ""}`}
         >
-          <span className="sidebar-icon">ð¥</span>
+          <Users size={18} />
           <span>Clients</span>
         </Link>
-<Link
+        <Link
           href="/profiles"
           className={`sidebar-link ${isActive("/profiles") ? "active" : ""}`}
         >
-          <span className="sidebar-icon">â</span>
+          <UserCircle size={18} />
           <span>Profiles</span>
         </Link>
         <Link
           href="/prompt-packs"
           className={`sidebar-link ${isActive("/prompt-packs") ? "active" : ""}`}
         >
-          <span className="sidebar-icon">ð¦</span>
+          <Package size={18} />
           <span>Prompt Packs</span>
         </Link>
       </div>
@@ -60,14 +78,14 @@ export function Sidebar() {
           href="/brand-context"
           className={`sidebar-link ${isActive("/brand-context") ? "active" : ""}`}
         >
-          <span className="sidebar-icon">ð§ </span>
+          <Palette size={18} />
           <span>Brand Context</span>
         </Link>
         <Link
           href="/client-generator"
           className={`sidebar-link ${isActive("/client-generator") ? "active" : ""}`}
         >
-          <span className="sidebar-icon">👤</span>
+          <UserPlus size={18} />
           <span>Client Generator</span>
         </Link>
       </div>
@@ -78,7 +96,7 @@ export function Sidebar() {
           href="/ugc-studio"
           className={`sidebar-link ${isActive("/ugc-studio") ? "active" : ""}`}
         >
-          <span className="sidebar-icon">ð¬</span>
+          <Video size={18} />
           <span>UGC Studio</span>
         </Link>
       </div>
@@ -89,35 +107,35 @@ export function Sidebar() {
           href="/brief-generator"
           className={`sidebar-link ${isActive("/brief-generator") ? "active" : ""}`}
         >
-          <span className="sidebar-icon">⚡</span>
+          <FileText size={18} />
           <span>Brief Generator</span>
         </Link>
         <Link
           href="/batch/create"
           className={`sidebar-link ${isActive("/batch/create") ? "active" : ""}`}
         >
-          <span className="sidebar-icon">â¶</span>
+          <Play size={18} />
           <span>Generate</span>
         </Link>
         <Link
           href="/smart-batch"
           className={`sidebar-link ${isActive("/smart-batch") ? "active" : ""}`}
         >
-          <span className="sidebar-icon">ð</span>
+          <Layers size={18} />
           <span>Smart Batch</span>
         </Link>
         <Link
           href="/batch/generate"
           className={`sidebar-link ${isActive("/batch/generate") ? "active" : ""}`}
         >
-          <span className="sidebar-icon">â¡</span>
+          <Zap size={18} />
           <span>Batch Generate</span>
         </Link>
         <Link
           href="/history"
           className={`sidebar-link ${isActive("/history") ? "active" : ""}`}
         >
-          <span className="sidebar-icon">ð</span>
+          <Clock size={18} />
           <span>Run History</span>
         </Link>
       </div>
@@ -128,7 +146,7 @@ export function Sidebar() {
           href="/admin/billing"
           className={`sidebar-link ${isActive("/admin/billing") ? "active" : ""}`}
         >
-          <span className="sidebar-icon">ð°</span>
+          <CreditCard size={18} />
           <span>Billing</span>
         </Link>
       </div>
