@@ -6,7 +6,6 @@ import {
   LayoutDashboard,
   Users,
   UserCircle,
-  Package,
   Palette,
   UserPlus,
   Video,
@@ -33,7 +32,7 @@ export function Sidebar() {
   return (
     <aside className="sidebar">
       <div className="sidebar-logo">
-        <span className="sidebar-logo-icon">◆</span>
+        <span className="sidebar-logo-icon">â</span>
         <span className="sidebar-logo-text">AdGen Studio</span>
       </div>
 
@@ -55,13 +54,6 @@ export function Sidebar() {
         >
           <UserCircle size={18} />
           <span>Profiles</span>
-        </Link>
-        <Link
-          href="/prompt-packs"
-          className={`sidebar-link ${isActive("/prompt-packs") ? "active" : ""}`}
-        >
-          <Package size={18} />
-          <span>Prompt Packs</span>
         </Link>
       </div>
 
