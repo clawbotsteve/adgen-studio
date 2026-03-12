@@ -28,9 +28,12 @@ import {
   X,
   UserPlus,
   Building2,
+  Camera,
+  Sparkles,
+  Image,
 } from "lucide-react";
 
-/* ── Section / sub-item definitions ──────────────────────────── */
+/* ââ Section / sub-item definitions ââââââââââââââââââââââââââââ */
 
 interface SubItem {
   id: string;
@@ -92,11 +95,22 @@ const SECTIONS: Section[] = [
       { id: "documents", label: "Upload Brand Docs", icon: <FileText size={15} /> },
     ],
   },
+  {
+    id: "content-gen",
+    number: 5,
+    title: "Content Generation",
+    subtitle: "AI Image Preferences",
+    items: [
+      { id: "content-types", label: "Content Types & Styles", icon: <Camera size={15} /> },
+      { id: "scenes", label: "Scenes & Settings", icon: <Image size={15} /> },
+      { id: "generation-notes", label: "Generation Notes", icon: <Sparkles size={15} /> },
+    ],
+  },
 ];
 
 const ALL_ITEMS = SECTIONS.flatMap((s) => s.items.map((i) => i.id));
 
-/* ── Client types ──────────────────────────────────────────────── */
+/* ââ Client types ââââââââââââââââââââââââââââââââââââââââââââââââ */
 
 interface ClientProfile {
   id: string;
@@ -114,7 +128,7 @@ interface BrandDoc {
   uploadedAt: string;
 }
 
-/* ── Reusable form components ────────────────────────────────── */
+/* ââ Reusable form components ââââââââââââââââââââââââââââââââââ */
 
 function FieldLabel({ children }: { children: React.ReactNode }) {
   return <label className="cg-field-label">{children}</label>;
@@ -170,7 +184,7 @@ function TextInput({
   );
 }
 
-/* ── Form data types ─────────────────────────────────────────── */
+/* ââ Form data types âââââââââââââââââââââââââââââââââââââââââââ */
 
 interface Competitor {
   website: string;
@@ -217,6 +231,15 @@ interface FormData {
   accentColor: string;
   fontPrimary: string;
   fontSecondary: string;
+  /* Content Generation */
+  contentTypes: string;
+  imageStyle: string;
+  scenesAndSettings: string;
+  modelPreferences: string;
+  propsAndProducts: string;
+  moodAndLighting: string;
+  compositionNotes: string;
+  referenceExamples: string;
 }
 
 const INITIAL_DATA: FormData = {
@@ -256,9 +279,18 @@ const INITIAL_DATA: FormData = {
   accentColor: "#f59e0b",
   fontPrimary: "",
   fontSecondary: "",
+  /* Content Generation */
+  contentTypes: "",
+  imageStyle: "",
+  scenesAndSettings: "",
+  modelPreferences: "",
+  propsAndProducts: "",
+  moodAndLighting: "",
+  compositionNotes: "",
+  referenceExamples: "",
 };
 
-/* ── Client Selector Bar ─────────────────────────────────────── */
+/* ââ Client Selector Bar âââââââââââââââââââââââââââââââââââââââ */
 
 function ClientSelectorBar({
   clients,
@@ -413,7 +445,7 @@ function ClientSelectorBar({
   );
 }
 
-/* ── Section content renderers ───────────────────────────────── */
+/* ââ Section content renderers âââââââââââââââââââââââââââââââââ */
 
 function VoiceSection({ data, set }: { data: FormData; set: (d: Partial<FormData>) => void }) {
   return (
@@ -422,7 +454,7 @@ function VoiceSection({ data, set }: { data: FormData; set: (d: Partial<FormData
 
       <div className="cg-field-group">
         <FieldLabel>TONE OF VOICE</FieldLabel>
-        <FieldHint>Describe how your brand speaks — formal, casual, witty, authoritative, etc.</FieldHint>
+        <FieldHint>Describe how your brand speaks â formal, casual, witty, authoritative, etc.</FieldHint>
         <TextArea value={data.toneOfVoice} onChange={(v) => set({ toneOfVoice: v })} placeholder="e.g. Friendly and approachable, but knowledgeable. We avoid jargon and speak like a trusted advisor..." rows={4} />
       </div>
 
@@ -719,7 +751,7 @@ function StrategyGoalsSection({ data, set }: { data: FormData; set: (d: Partial<
       <div className="cg-field-group">
         <FieldLabel>CTA PREFERENCES</FieldLabel>
         <FieldHint>What calls-to-action work best for your brand?</FieldHint>
-        <TextArea value={data.ctaPreferences} onChange={(v) => set({ ctaPreferences: v })} placeholder='e.g. "Shop Now" for BOFU, "Learn More" for TOFU, avoid "Buy Now" — feels too pushy for our audience...' rows={3} />
+        <TextArea value={data.ctaPreferences} onChange={(v) => set({ ctaPreferences: v })} placeholder='e.g. "Shop Now" for BOFU, "Learn More" for TOFU, avoid "Buy Now" â feels too pushy for our audience...' rows={3} />
       </div>
     </div>
   );
@@ -776,7 +808,7 @@ function AssetsSection({ data, set }: { data: FormData; set: (d: Partial<FormDat
   );
 }
 
-/* ── Brand Documents Upload Section ──────────────────────────── */
+/* ââ Brand Documents Upload Section ââââââââââââââââââââââââââââ */
 
 function BrandDocsSection({
   docs,
@@ -904,7 +936,83 @@ function BrandDocsSection({
   );
 }
 
-/* ── Content router ──────────────────────────────────────────── */
+
+/* Content Types & Styles section */
+function ContentTypesSection({ data, set }: { data: FormData; set: (d: Partial<FormData>) => void }) {
+  return (
+    <div className="cg-section-content">
+      <h2 className="cg-section-title"><Camera size={20} /> Content Types & Styles</h2>
+      <FieldHint>
+        Describe the types of AI-generated images you want. What categories of content does this brand need?
+      </FieldHint>
+      <div className="cg-field-group">
+        <label className="cg-label">Content Types</label>
+        <textarea className="cg-textarea" rows={3} placeholder="e.g., Product hero shots, lifestyle scenes, flat lays, social media posts, banner ads..."
+          value={data.contentTypes} onChange={(e) => set({ contentTypes: e.target.value })} />
+      </div>
+      <div className="cg-field-group">
+        <label className="cg-label">Image Style & Aesthetic</label>
+        <textarea className="cg-textarea" rows={3} placeholder="e.g., Clean minimalist, warm and cozy, bold and vibrant, editorial, cinematic..."
+          value={data.imageStyle} onChange={(e) => set({ imageStyle: e.target.value })} />
+      </div>
+      <div className="cg-field-group">
+        <label className="cg-label">Model / Subject Preferences</label>
+        <textarea className="cg-textarea" rows={3} placeholder="e.g., Diverse models ages 25-35, no models (product only), hands holding product..."
+          value={data.modelPreferences} onChange={(e) => set({ modelPreferences: e.target.value })} />
+      </div>
+    </div>
+  );
+}
+
+/* Scenes & Settings section */
+function ScenesSection({ data, set }: { data: FormData; set: (d: Partial<FormData>) => void }) {
+  return (
+    <div className="cg-section-content">
+      <h2 className="cg-section-title"><Image size={20} /> Scenes & Settings</h2>
+      <FieldHint>
+        Describe the environments, backgrounds, and physical settings for your AI images.
+      </FieldHint>
+      <div className="cg-field-group">
+        <label className="cg-label">Scenes & Settings</label>
+        <textarea className="cg-textarea" rows={3} placeholder="e.g., Modern kitchen, outdoor patio, studio with white backdrop, urban street corner..."
+          value={data.scenesAndSettings} onChange={(e) => set({ scenesAndSettings: e.target.value })} />
+      </div>
+      <div className="cg-field-group">
+        <label className="cg-label">Props & Product Placement</label>
+        <textarea className="cg-textarea" rows={3} placeholder="e.g., Coffee mug nearby, flowers in background, product centered on marble surface..."
+          value={data.propsAndProducts} onChange={(e) => set({ propsAndProducts: e.target.value })} />
+      </div>
+      <div className="cg-field-group">
+        <label className="cg-label">Mood & Lighting</label>
+        <textarea className="cg-textarea" rows={3} placeholder="e.g., Warm golden hour, soft diffused, dramatic shadows, bright and airy..."
+          value={data.moodAndLighting} onChange={(e) => set({ moodAndLighting: e.target.value })} />
+      </div>
+    </div>
+  );
+}
+
+/* Generation Notes section */
+function GenerationNotesSection({ data, set }: { data: FormData; set: (d: Partial<FormData>) => void }) {
+  return (
+    <div className="cg-section-content">
+      <h2 className="cg-section-title"><Sparkles size={20} /> Generation Notes</h2>
+      <FieldHint>
+        Any additional instructions, composition preferences, or reference examples for AI image generation.
+      </FieldHint>
+      <div className="cg-field-group">
+        <label className="cg-label">Composition & Framing Notes</label>
+        <textarea className="cg-textarea" rows={3} placeholder="e.g., Rule of thirds, centered product, close-up details, wide angle establishing shots..."
+          value={data.compositionNotes} onChange={(e) => set({ compositionNotes: e.target.value })} />
+      </div>
+      <div className="cg-field-group">
+        <label className="cg-label">Reference Examples & Inspiration</label>
+        <textarea className="cg-textarea" rows={4} placeholder="Describe or paste links to reference images, competitor examples, mood boards, or inspiration..."
+          value={data.referenceExamples} onChange={(e) => set({ referenceExamples: e.target.value })} />
+      </div>
+    </div>
+  );
+}
+/* ââ Content router ââââââââââââââââââââââââââââââââââââââââââââ */
 
 function SectionContent({
   activeItem,
@@ -942,6 +1050,9 @@ function SectionContent({
     case "strategy-goals": return <StrategyGoalsSection data={data} set={set} />;
     case "assets": return <AssetsSection data={data} set={set} />;
     case "documents": return (
+    case "content-types": return <ContentTypesSection data={data} set={set} />;
+    case "scenes": return <ScenesSection data={data} set={set} />;
+    case "generation-notes": return <GenerationNotesSection data={data} set={set} />;
       <BrandDocsSection
         docs={docs}
         onUpload={onUpload}
@@ -955,7 +1066,7 @@ function SectionContent({
   }
 }
 
-/* ── Helper: check if a sub-item has data ────────────────────── */
+/* ââ Helper: check if a sub-item has data ââââââââââââââââââââââ */
 
 function itemHasData(id: string, data: FormData, docs: BrandDoc[]): boolean {
   switch (id) {
@@ -973,11 +1084,17 @@ function itemHasData(id: string, data: FormData, docs: BrandDoc[]): boolean {
     case "strategy-goals": return !!(data.campaignObjectives || data.funnelStages || data.ctaPreferences);
     case "assets": return !!(data.fontPrimary || data.fontSecondary);
     case "documents": return docs.length > 0;
+    case "content-types": return <ContentTypesSection data={data} set={set} />;
+    case "scenes": return <ScenesSection data={data} set={set} />;
+    case "generation-notes": return <GenerationNotesSection data={data} set={set} />;
+    case "content-types": return !!(data.contentTypes || data.imageStyle || data.modelPreferences);
+    case "scenes": return !!(data.scenesAndSettings || data.propsAndProducts || data.moodAndLighting);
+    case "generation-notes": return !!(data.compositionNotes || data.referenceExamples);
     default: return false;
   }
 }
 
-/* ── Main component ──────────────────────────────────────────── */
+/* ââ Main component ââââââââââââââââââââââââââââââââââââââââââââ */
 
 export function ClientGeneratorPage({ initialClients = [] }: { initialClients?: Array<{ id: string; name: string; defaults?: Record<string, unknown> | null; created_at?: string }> }) {
   /* Client management */
@@ -1229,7 +1346,7 @@ export function ClientGeneratorPage({ initialClients = [] }: { initialClients?: 
           <Building2 size={48} className="cg-empty-icon" />
           <h2 className="cg-empty-title">Select or create a client to get started</h2>
           <p className="cg-empty-subtitle">
-            Each client profile helps the AI understand the brand deeply — from voice and audience
+            Each client profile helps the AI understand the brand deeply â from voice and audience
             to creative strategy and assets. Upload brand docs and fill out the profile to unlock
             smarter, on-brand content generation.
           </p>
