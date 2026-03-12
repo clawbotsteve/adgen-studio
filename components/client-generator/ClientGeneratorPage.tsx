@@ -273,6 +273,7 @@ function ClientSelectorBar({
   setNewClientWebsite,
   showNewForm,
   setShowNewForm,
+  onDeleteClient,
 }: {
   clients: ClientProfile[];
   selectedClient: ClientProfile | null;
@@ -325,7 +326,19 @@ function ClientSelectorBar({
                       <span className="cg-client-dropdown-item-industry">{client.industry}</span>
                     )}
                   </div>
-                  {selectedClient?.id === client.id && <CheckCircle2 size={14} />}
+                  <div className="cg-client-dropdown-item-actions">
+                    {selectedClient?.id === client.id && <CheckCircle2 size={14} />}
+                    <button
+                      className="cg-client-delete-btn"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        onDeleteClient(client.id);
+                      }}
+                      title="Remove client"
+                    >
+                      <Trash2 size={14} />
+                    </button>
+                  </div>
                 </button>
               ))}
             </div>
@@ -1020,6 +1033,15 @@ export function ClientGeneratorPage() {
     // TODO: save client to Supabase
   };
 
+  const handleDeleteClient = (clientId: string) => {
+    setClients((prev) => prev.filter((c) => c.id !== clientId));
+    if (selectedClient?.id === clientId) {
+      setSelectedClient(null);
+      setData(INITIAL_DATA);
+      setDocs([]);
+    }
+  };
+
   /* File upload handler */
   const handleUploadFiles = (files: FileList) => {
     const newDocs: BrandDoc[] = Array.from(files).map((file) => ({
@@ -1079,6 +1101,7 @@ export function ClientGeneratorPage() {
         setNewClientWebsite={setNewClientWebsite}
         showNewForm={showNewForm}
         setShowNewForm={setShowNewForm}
+        onDeleteClient={handleDeleteClient}
       />
 
       {/* Show workflow only when a client is selected */}
