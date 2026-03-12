@@ -50,13 +50,6 @@ export function Sidebar() {
       <div className="sidebar-section">
         <div className="sidebar-section-header">Manage</div>
         <Link
-          href="/clients"
-          className={`sidebar-link ${isActive("/clients") ? "active" : ""}`}
-        >
-          <Users size={18} />
-          <span>Clients</span>
-        </Link>
-        <Link
           href="/profiles"
           className={`sidebar-link ${isActive("/profiles") ? "active" : ""}`}
         >
@@ -75,29 +68,11 @@ export function Sidebar() {
       <div className="sidebar-section">
         <div className="sidebar-section-header">Context</div>
         <Link
-          href="/brand-context"
-          className={`sidebar-link ${isActive("/brand-context") ? "active" : ""}`}
-        >
-          <Palette size={18} />
-          <span>Brand Context</span>
-        </Link>
-        <Link
           href="/client-generator"
           className={`sidebar-link ${isActive("/client-generator") ? "active" : ""}`}
         >
           <UserPlus size={18} />
           <span>Client Generator</span>
-        </Link>
-      </div>
-
-      <div className="sidebar-section">
-        <div className="sidebar-section-header">Create</div>
-        <Link
-          href="/ugc-studio"
-          className={`sidebar-link ${isActive("/ugc-studio") ? "active" : ""}`}
-        >
-          <Video size={18} />
-          <span>UGC Studio</span>
         </Link>
       </div>
 
@@ -123,13 +98,6 @@ export function Sidebar() {
         >
           <Layers size={18} />
           <span>Smart Batch</span>
-        </Link>
-        <Link
-          href="/batch/generate"
-          className={`sidebar-link ${isActive("/batch/generate") ? "active" : ""}`}
-        >
-          <Zap size={18} />
-          <span>Batch Generate</span>
         </Link>
         <Link
           href="/history"
