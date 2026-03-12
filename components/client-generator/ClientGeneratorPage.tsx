@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback, useRef } from "react";
+import { useState, useCallback, useRef, useEffect } from "react";
 import {
   Fingerprint,
   Mic,
@@ -979,9 +979,17 @@ function itemHasData(id: string, data: FormData, docs: BrandDoc[]): boolean {
 
 /* ── Main component ──────────────────────────────────────────── */
 
-export function ClientGeneratorPage() {
+export function ClientGeneratorPage({ initialClients = [] }: { initialClients?: Array<{ id: string; name: string; defaults?: Record<string, unknown> | null; created_at?: string }> }) {
   /* Client management */
-  const [clients, setClients] = useState<ClientProfile[]>([]);
+  const [clients, setClients] = useState<ClientProfile[]>(() =>
+    initialClients.map((c) => ({
+      id: c.id,
+      name: c.name,
+      industry: (c.defaults as Record<string, string>)?.industry || "",
+      website: (c.defaults as Record<string, string>)?.website || "",
+      createdAt: c.created_at || new Date().toISOString(),
+    }))
+  );
   const [selectedClient, setSelectedClient] = useState<ClientProfile | null>(null);
   const [showNewForm, setShowNewForm] = useState(false);
   const [newClientName, setNewClientName] = useState("");
@@ -1003,42 +1011,77 @@ export function ClientGeneratorPage() {
   }, []);
 
   /* Client actions */
-  const handleSelectClient = (id: string) => {
+  const handleSelectClient = async (id: string) => {
     const client = clients.find((c) => c.id === id);
     if (client) {
       setSelectedClient(client);
-      // TODO: load client data from Supabase
-      setData(INITIAL_DATA);
       setDocs([]);
+      try {
+        const resp = await fetch(`/api/clients/${id}`);
+        if (resp.ok) {
+          const { client: full } = await resp.json();
+          if (full?.defaults?.formData) {
+            setData(full.defaults.formData);
+          } else {
+            setData(INITIAL_DATA);
+          }
+        } else {
+          setData(INITIAL_DATA);
+        }
+      } catch {
+        setData(INITIAL_DATA);
+      }
     }
   };
 
-  const handleCreateClient = () => {
+  const handleCreateClient = async () => {
     if (!newClientName.trim()) return;
-    const newClient: ClientProfile = {
-      id: `client-${Date.now()}`,
-      name: newClientName.trim(),
-      industry: newClientIndustry.trim(),
-      website: newClientWebsite.trim(),
-      createdAt: new Date().toLocaleDateString(),
-    };
-    setClients((prev) => [...prev, newClient]);
-    setSelectedClient(newClient);
-    setNewClientName("");
-    setNewClientIndustry("");
-    setNewClientWebsite("");
-    setShowNewForm(false);
-    setData(INITIAL_DATA);
-    setDocs([]);
-    // TODO: save client to Supabase
+    try {
+      const resp = await fetch("/api/clients", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          name: newClientName.trim(),
+          defaults: {
+            industry: newClientIndustry.trim(),
+            website: newClientWebsite.trim(),
+          },
+        }),
+      });
+      if (resp.ok) {
+        const { client } = await resp.json();
+        const newProfile: ClientProfile = {
+          id: client.id,
+          name: client.name,
+          industry: client.defaults?.industry || "",
+          website: client.defaults?.website || "",
+          createdAt: client.created_at,
+        };
+        setClients((prev) => [newProfile, ...prev]);
+        setSelectedClient(newProfile);
+        setNewClientName("");
+        setNewClientIndustry("");
+        setNewClientWebsite("");
+        setShowNewForm(false);
+        setData(INITIAL_DATA);
+        setDocs([]);
+      }
+    } catch (err) {
+      console.error("Failed to create client:", err);
+    }
   };
 
-  const handleDeleteClient = (clientId: string) => {
-    setClients((prev) => prev.filter((c) => c.id !== clientId));
-    if (selectedClient?.id === clientId) {
-      setSelectedClient(null);
-      setData(INITIAL_DATA);
-      setDocs([]);
+  const handleDeleteClient = async (clientId: string) => {
+    try {
+      await fetch(`/api/clients/${clientId}`, { method: "DELETE" });
+      setClients((prev) => prev.filter((c) => c.id !== clientId));
+      if (selectedClient?.id === clientId) {
+        setSelectedClient(null);
+        setData(INITIAL_DATA);
+        setDocs([]);
+      }
+    } catch (err) {
+      console.error("Failed to delete client:", err);
     }
   };
 
@@ -1067,9 +1110,19 @@ export function ClientGeneratorPage() {
   const progressPct = Math.round((filledCount / ALL_ITEMS.length) * 100);
 
   const handleSave = async () => {
+    if (!selectedClient) return;
     setSaving(true);
-    // TODO: wire up to Supabase
-    await new Promise((r) => setTimeout(r, 800));
+    try {
+      await fetch(`/api/clients/${selectedClient.id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          defaults: { formData: data, docs: docs.map((d) => ({ name: d.name, type: d.type })) },
+        }),
+      });
+    } catch (err) {
+      console.error("Failed to save profile:", err);
+    }
     setSaving(false);
   };
 
