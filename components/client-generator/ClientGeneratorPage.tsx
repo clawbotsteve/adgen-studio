@@ -33,7 +33,7 @@ import {
   Image,
 } from "lucide-react";
 
-/* ââ Section / sub-item definitions ââââââââââââââââââââââââââââ */
+/* Ã¢ÂÂÃ¢ÂÂ Section / sub-item definitions Ã¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂ */
 
 interface SubItem {
   id: string;
@@ -110,7 +110,7 @@ const SECTIONS: Section[] = [
 
 const ALL_ITEMS = SECTIONS.flatMap((s) => s.items.map((i) => i.id));
 
-/* ââ Client types ââââââââââââââââââââââââââââââââââââââââââââââââ */
+/* Ã¢ÂÂÃ¢ÂÂ Client types Ã¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂ */
 
 interface ClientProfile {
   id: string;
@@ -128,7 +128,7 @@ interface BrandDoc {
   uploadedAt: string;
 }
 
-/* ââ Reusable form components ââââââââââââââââââââââââââââââââââ */
+/* Ã¢ÂÂÃ¢ÂÂ Reusable form components Ã¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂ */
 
 function FieldLabel({ children }: { children: React.ReactNode }) {
   return <label className="cg-field-label">{children}</label>;
@@ -184,7 +184,7 @@ function TextInput({
   );
 }
 
-/* ââ Form data types âââââââââââââââââââââââââââââââââââââââââââ */
+/* Ã¢ÂÂÃ¢ÂÂ Form data types Ã¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂ */
 
 interface Competitor {
   website: string;
@@ -290,7 +290,7 @@ const INITIAL_DATA: FormData = {
   referenceExamples: "",
 };
 
-/* ââ Client Selector Bar âââââââââââââââââââââââââââââââââââââââ */
+/* Ã¢ÂÂÃ¢ÂÂ Client Selector Bar Ã¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂ */
 
 function ClientSelectorBar({
   clients,
@@ -445,7 +445,7 @@ function ClientSelectorBar({
   );
 }
 
-/* ââ Section content renderers âââââââââââââââââââââââââââââââââ */
+/* Ã¢ÂÂÃ¢ÂÂ Section content renderers Ã¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂ */
 
 function VoiceSection({ data, set }: { data: FormData; set: (d: Partial<FormData>) => void }) {
   return (
@@ -454,7 +454,7 @@ function VoiceSection({ data, set }: { data: FormData; set: (d: Partial<FormData
 
       <div className="cg-field-group">
         <FieldLabel>TONE OF VOICE</FieldLabel>
-        <FieldHint>Describe how your brand speaks â formal, casual, witty, authoritative, etc.</FieldHint>
+        <FieldHint>Describe how your brand speaks Ã¢ÂÂ formal, casual, witty, authoritative, etc.</FieldHint>
         <TextArea value={data.toneOfVoice} onChange={(v) => set({ toneOfVoice: v })} placeholder="e.g. Friendly and approachable, but knowledgeable. We avoid jargon and speak like a trusted advisor..." rows={4} />
       </div>
 
@@ -751,7 +751,7 @@ function StrategyGoalsSection({ data, set }: { data: FormData; set: (d: Partial<
       <div className="cg-field-group">
         <FieldLabel>CTA PREFERENCES</FieldLabel>
         <FieldHint>What calls-to-action work best for your brand?</FieldHint>
-        <TextArea value={data.ctaPreferences} onChange={(v) => set({ ctaPreferences: v })} placeholder='e.g. "Shop Now" for BOFU, "Learn More" for TOFU, avoid "Buy Now" â feels too pushy for our audience...' rows={3} />
+        <TextArea value={data.ctaPreferences} onChange={(v) => set({ ctaPreferences: v })} placeholder='e.g. "Shop Now" for BOFU, "Learn More" for TOFU, avoid "Buy Now" Ã¢ÂÂ feels too pushy for our audience...' rows={3} />
       </div>
     </div>
   );
@@ -808,7 +808,7 @@ function AssetsSection({ data, set }: { data: FormData; set: (d: Partial<FormDat
   );
 }
 
-/* ââ Brand Documents Upload Section ââââââââââââââââââââââââââââ */
+/* Ã¢ÂÂÃ¢ÂÂ Brand Documents Upload Section Ã¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂ */
 
 function BrandDocsSection({
   docs,
@@ -1012,7 +1012,7 @@ function GenerationNotesSection({ data, set }: { data: FormData; set: (d: Partia
     </div>
   );
 }
-/* ââ Content router ââââââââââââââââââââââââââââââââââââââââââââ */
+/* Ã¢ÂÂÃ¢ÂÂ Content router Ã¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂ */
 
 function SectionContent({
   activeItem,
@@ -1050,9 +1050,6 @@ function SectionContent({
     case "strategy-goals": return <StrategyGoalsSection data={data} set={set} />;
     case "assets": return <AssetsSection data={data} set={set} />;
     case "documents": return (
-    case "content-types": return <ContentTypesSection data={data} set={set} />;
-    case "scenes": return <ScenesSection data={data} set={set} />;
-    case "generation-notes": return <GenerationNotesSection data={data} set={set} />;
       <BrandDocsSection
         docs={docs}
         onUpload={onUpload}
@@ -1062,11 +1059,14 @@ function SectionContent({
         fileInputRef={fileInputRef}
       />
     );
+    case "content-types": return <ContentTypesSection data={data} set={set} />;
+    case "scenes": return <ScenesSection data={data} set={set} />;
+    case "generation-notes": return <GenerationNotesSection data={data} set={set} />;
     default: return null;
   }
 }
 
-/* ââ Helper: check if a sub-item has data ââââââââââââââââââââââ */
+/* Ã¢ÂÂÃ¢ÂÂ Helper: check if a sub-item has data Ã¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂ */
 
 function itemHasData(id: string, data: FormData, docs: BrandDoc[]): boolean {
   switch (id) {
@@ -1084,9 +1084,6 @@ function itemHasData(id: string, data: FormData, docs: BrandDoc[]): boolean {
     case "strategy-goals": return !!(data.campaignObjectives || data.funnelStages || data.ctaPreferences);
     case "assets": return !!(data.fontPrimary || data.fontSecondary);
     case "documents": return docs.length > 0;
-    case "content-types": return <ContentTypesSection data={data} set={set} />;
-    case "scenes": return <ScenesSection data={data} set={set} />;
-    case "generation-notes": return <GenerationNotesSection data={data} set={set} />;
     case "content-types": return !!(data.contentTypes || data.imageStyle || data.modelPreferences);
     case "scenes": return !!(data.scenesAndSettings || data.propsAndProducts || data.moodAndLighting);
     case "generation-notes": return !!(data.compositionNotes || data.referenceExamples);
@@ -1094,7 +1091,7 @@ function itemHasData(id: string, data: FormData, docs: BrandDoc[]): boolean {
   }
 }
 
-/* ââ Main component ââââââââââââââââââââââââââââââââââââââââââââ */
+/* Ã¢ÂÂÃ¢ÂÂ Main component Ã¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂ */
 
 export function ClientGeneratorPage({ initialClients = [] }: { initialClients?: Array<{ id: string; name: string; defaults?: Record<string, unknown> | null; created_at?: string }> }) {
   /* Client management */
@@ -1346,7 +1343,7 @@ export function ClientGeneratorPage({ initialClients = [] }: { initialClients?: 
           <Building2 size={48} className="cg-empty-icon" />
           <h2 className="cg-empty-title">Select or create a client to get started</h2>
           <p className="cg-empty-subtitle">
-            Each client profile helps the AI understand the brand deeply â from voice and audience
+            Each client profile helps the AI understand the brand deeply Ã¢ÂÂ from voice and audience
             to creative strategy and assets. Upload brand docs and fill out the profile to unlock
             smarter, on-brand content generation.
           </p>
