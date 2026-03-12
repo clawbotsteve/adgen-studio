@@ -12,10 +12,7 @@ export async function listClients(tenantId: string): Promise<Client[]> {
   return (data ?? []) as Client[];
 }
 
-export async function getClient(
-  tenantId: string,
-  clientId: string
-): Promise<Client | null> {
+export async function getClient(tenantId: string, clientId: string): Promise<Client | null> {
   const svc = createSupabaseService();
   const { data } = await svc
     .from("clients")
@@ -28,16 +25,18 @@ export async function getClient(
 
 export async function createClient(
   tenantId: string,
-  data: { name: string; description?: string }
+  name: string,
+  description?: string,
+  defaults?: Record<string, unknown>
 ): Promise<Client> {
   const svc = createSupabaseService();
   const { data: result, error } = await svc
     .from("clients")
     .insert({
       tenant_id: tenantId,
-      name: data.name,
-      description: data.description ?? null,
-      defaults: null,
+      name,
+      description: description ?? null,
+      defaults: defaults ?? null,
       archived_at: null,
     })
     .select("id,tenant_id,name,description,defaults,archived_at,created_at,updated_at")
@@ -51,9 +50,9 @@ export async function updateClient(
   tenantId: string,
   clientId: string,
   data: Partial<Pick<Client, "name" | "description" | "defaults">>
-): Promise<Client | null> {
+): Promise<Client> {
   const svc = createSupabaseService();
-  const { data: result } = await svc
+  const { data: result, error } = await svc
     .from("clients")
     .update({
       ...(data.name !== undefined && { name: data.name }),
@@ -65,18 +64,18 @@ export async function updateClient(
     .eq("id", clientId)
     .select("id,tenant_id,name,description,defaults,archived_at,created_at,updated_at")
     .single();
-  return (result ?? null) as Client | null;
+
+  if (error) throw new Error(`Failed to update client: ${error.message}`);
+  return result as Client;
 }
 
-export async function archiveClient(tenantId: string, clientId: string): Promise<boolean> {
+export async function deleteClient(tenantId: string, clientId: string): Promise<void> {
   const svc = createSupabaseService();
   const { error } = await svc
     .from("clients")
-    .update({
-      archived_at: new Date().toISOString(),
-      updated_at: new Date().toISOString(),
-    })
+    .update({ archived_at: new Date().toISOString() })
     .eq("tenant_id", tenantId)
     .eq("id", clientId);
-  return !error;
+
+  if (error) throw new Error(`Failed to delete client: ${error.message}`);
 }
