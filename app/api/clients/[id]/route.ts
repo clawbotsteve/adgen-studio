@@ -1,62 +1,62 @@
 import { NextResponse } from "next/server";
 import { requireUserTenantApi } from "@/lib/auth";
 import { assertTenantUser } from "@/lib/access";
-import { updateClient, archiveClient, getClient } from "@/lib/data/clients";
+import { getClient, updateClient, deleteClient } from "@/lib/data/clients";
 
-export async function PATCH(
-  request: Request,
-  { params }: { params: Promise<{ id: string }> }
-) {
-  const { id } = await params;
+type Ctx = { params: Promise<{ id: string }> };
+
+export async function GET(_req: Request, ctx: Ctx) {
   const auth = await requireUserTenantApi();
-  if ("error" in auth) return NextResponse.json({ error: auth.error }, { status: auth.status });
-
   const allowed = await assertTenantUser(auth.tenant.id, auth.user.id);
   if (!allowed) return NextResponse.json({ error: "Unauthorized" }, { status: 403 });
 
-  const clientId = id;
-  const body = (await request.json()) as Partial<{ name: string; description: string }>;
-
+  const { id } = await ctx.params;
   try {
-    const client = await updateClient(auth.tenant.id, clientId, body);
-    if (!client) {
-      return NextResponse.json({ error: "Client not found" }, { status: 404 });
-    }
+    const client = await getClient(auth.tenant.id, id);
+    if (!client) return NextResponse.json({ error: "Not found" }, { status: 404 });
     return NextResponse.json({ client });
   } catch (error) {
-    console.error("[clients PATCH]", error);
+    console.error("[client GET]", error);
+    return NextResponse.json({ error: "Failed to fetch client" }, { status: 500 });
+  }
+}
+
+export async function PATCH(request: Request, ctx: Ctx) {
+  const auth = await requireUserTenantApi();
+  const allowed = await assertTenantUser(auth.tenant.id, auth.user.id);
+  if (!allowed) return NextResponse.json({ error: "Unauthorized" }, { status: 403 });
+
+  const { id } = await ctx.params;
+  const body = (await request.json()) as {
+    name?: string;
+    description?: string;
+    defaults?: Record<string, unknown>;
+  };
+
+  try {
+    const client = await updateClient(auth.tenant.id, id, {
+      ...(body.name !== undefined && { name: body.name }),
+      ...(body.description !== undefined && { description: body.description }),
+      ...(body.defaults !== undefined && { defaults: body.defaults }),
+    });
+    return NextResponse.json({ client });
+  } catch (error) {
+    console.error("[client PATCH]", error);
     return NextResponse.json({ error: "Failed to update client" }, { status: 500 });
   }
 }
 
-export async function DELETE(
-  request: Request,
-  { params }: { params: Promise<{ id: string }> }
-) {
-  const { id } = await params;
+export async function DELETE(_req: Request, ctx: Ctx) {
   const auth = await requireUserTenantApi();
-  if ("error" in auth) return NextResponse.json({ error: auth.error }, { status: auth.status });
-
   const allowed = await assertTenantUser(auth.tenant.id, auth.user.id);
   if (!allowed) return NextResponse.json({ error: "Unauthorized" }, { status: 403 });
 
-  const clientId = id;
-
+  const { id } = await ctx.params;
   try {
-    // Verify client exists and belongs to tenant
-    const client = await getClient(auth.tenant.id, clientId);
-    if (!client) {
-      return NextResponse.json({ error: "Client not found" }, { status: 404 });
-    }
-
-    const success = await archiveClient(auth.tenant.id, clientId);
-    if (!success) {
-      return NextResponse.json({ error: "Failed to archive client" }, { status: 500 });
-    }
-
-    return NextResponse.json({ success: true });
+    await deleteClient(auth.tenant.id, id);
+    return NextResponse.json({ ok: true });
   } catch (error) {
-    console.error("[clients DELETE]", error);
-    return NextResponse.json({ error: "Failed to archive client" }, { status: 500 });
+    console.error("[client DELETE]", error);
+    return NextResponse.json({ error: "Failed to delete client" }, { status: 500 });
   }
 }
