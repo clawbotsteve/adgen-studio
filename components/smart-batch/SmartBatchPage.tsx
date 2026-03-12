@@ -23,6 +23,7 @@ export function SmartBatchPage({
   const [aspectRatio, setAspectRatio] = useState("1:1");
   const [resolution, setResolution] = useState("2K");
   const [brandContext, setBrandContext] = useState<BrandContext | null>(null);
+  const [contentGenData, setContentGenData] = useState<Record<string, string> | null>(null);
   const [contextLoading, setContextLoading] = useState(false);
   const [showContextPreview, setShowContextPreview] = useState(false);
   const [launching, setLaunching] = useState(false);
@@ -50,6 +51,24 @@ export function SmartBatchPage({
   useEffect(() => {
     if (clientId) fetchBrandContext(clientId);
   }, [clientId, fetchBrandContext]);
+
+  // Fetch client content generation preferences
+  useEffect(() => {
+    if (!clientId) { setContentGenData(null); return; }
+    (async () => {
+      try {
+        const resp = await fetch(`/api/clients/${clientId}`);
+        if (!resp.ok) return;
+        const { client } = await resp.json();
+        const fd = client?.defaults?.formData;
+        if (fd) {
+          const gf: Record<string, string> = {};
+          ["contentTypes","imageStyle","scenesAndSettings","modelPreferences","propsAndProducts","moodAndLighting","compositionNotes","referenceExamples"].forEach(k => { if (fd[k]) gf[k] = fd[k]; });
+          setContentGenData(Object.keys(gf).length > 0 ? gf : null);
+        } else { setContentGenData(null); }
+      } catch { setContentGenData(null); }
+    })();
+  }, [clientId]);
 
   const filledFields = brandContext
     ? [
@@ -80,6 +99,7 @@ export function SmartBatchPage({
           promptPackId,
           briefText: briefText.trim() || undefined,
           additionalContext: additionalContext.trim() || undefined,
+          contentGeneration: contentGenData || undefined,
           useBrandContext,
           aspectRatio,
           resolution,
@@ -161,6 +181,23 @@ export function SmartBatchPage({
         )}
       </div>
 
+
+        {/* Content Generation Preferences */}
+        <div className="sb-section">
+          <h3 className="sb-section-title">Content Generation Preferences</h3>
+          {contentGenData ? (
+            <div className="sb-context-preview">
+              {Object.entries(contentGenData).map(([key, val]) => (
+                <div key={key} className="sb-context-field">
+                  <span className="sb-context-key">{key.replace(/([A-Z])/g, " $1").trim()}</span>
+                  <span className="sb-context-val">{String(val).slice(0, 80)}{String(val).length > 80 ? "..." : ""}</span>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <p className="sb-empty-note">No content generation preferences set. Configure them in Client Generator.</p>
+          )}
+        </div>
       {/* Generation Settings */}
       <div className="card">
         <h3 style={{ marginTop: 0, marginBottom: 16 }}>Generation Settings</h3>
@@ -174,7 +211,7 @@ export function SmartBatchPage({
             >
               {profiles.map((p) => (
                 <option key={p.id} value={p.id}>
-                  {p.name} ({p.mode} Â· {p.aspect_ratio})
+                  {p.name} ({p.mode} ÃÂ· {p.aspect_ratio})
                 </option>
               ))}
             </select>
