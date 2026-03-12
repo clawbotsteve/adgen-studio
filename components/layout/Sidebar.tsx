@@ -79,13 +79,6 @@ export function Sidebar() {
       <div className="sidebar-section">
         <div className="sidebar-section-header">Generate</div>
         <Link
-          href="/brief-generator"
-          className={`sidebar-link ${isActive("/brief-generator") ? "active" : ""}`}
-        >
-          <FileText size={18} />
-          <span>Brief Generator</span>
-        </Link>
-        <Link
           href="/batch/create"
           className={`sidebar-link ${isActive("/batch/create") ? "active" : ""}`}
         >
