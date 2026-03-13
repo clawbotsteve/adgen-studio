@@ -31,12 +31,30 @@ export function SmartBatchPage({
   }, [profiles]);
 
   // Fetch brand context when client changes
+  // Check both brand_context table and clients.defaults.formData
   const fetchBrandContext = useCallback(async (cid: string) => {
     setContextLoading(true);
     try {
       const res = await fetch(`/api/brand-context?clientId=${cid}`);
       const data = await res.json();
-      setBrandContext(data.context ?? null);
+      if (data.context) {
+        setBrandContext(data.context);
+      } else {
+        // Fallback: check if client has formData in defaults
+        const clientRes = await fetch(`/api/clients`);
+        const clientsData = await clientRes.json();
+        const client = Array.isArray(clientsData)
+          ? clientsData.find((c: { id: string }) => c.id === cid)
+          : null;
+        const hasFormData =
+          client?.defaults?.formData &&
+          typeof client.defaults.formData === "object" &&
+          Object.values(client.defaults.formData).some(
+            (v: unknown) => typeof v === "string" && v.trim().length > 0
+          );
+        // Set a minimal truthy object so context indicator shows green
+        setBrandContext(hasFormData ? ({ id: "formData" } as BrandContext) : null);
+      }
     } catch {
       setBrandContext(null);
     } finally {
