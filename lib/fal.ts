@@ -5,6 +5,25 @@ if (env.falApiKey) {
   fal.config({ credentials: env.falApiKey });
 }
 
+/**
+ * Map aspect ratio string to FLUX image_size format.
+ */
+function getImageSize(aspectRatio?: string): { width: number; height: number } {
+  switch (aspectRatio) {
+    case "9:16":
+      return { width: 768, height: 1344 };
+    case "16:9":
+      return { width: 1344, height: 768 };
+    case "4:3":
+      return { width: 1152, height: 896 };
+    case "3:4":
+      return { width: 896, height: 1152 };
+    case "1:1":
+    default:
+      return { width: 1024, height: 1024 };
+  }
+}
+
 export const generateImage = async (
   prompt: string,
   _referenceImageUrl?: string,
@@ -12,14 +31,15 @@ export const generateImage = async (
 ): Promise<string> => {
   if (!env.falApiKey) throw new Error("Image generation is not configured.");
 
-  // Always use text-to-image model (edit model requires separate permissions)
-  const result = await fal.subscribe("fal-ai/nano-banana-2", {
+  const imageSize = getImageSize(options?.aspectRatio);
+
+  // Use FLUX Schnell for fast, reliable image generation
+  const result = await fal.subscribe("fal-ai/flux/schnell", {
     input: {
       prompt,
+      image_size: imageSize,
       num_images: 1,
-      output_format: "png",
-      safety_tolerance: "4",
-      ...(options?.aspectRatio ? { aspect_ratio: options.aspectRatio } : {}),
+      num_inference_steps: 4,
     },
     logs: false,
   });
