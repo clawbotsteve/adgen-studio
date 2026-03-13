@@ -10,10 +10,34 @@ export const generateImage = async (
   referenceImageUrl?: string,
   options?: { aspectRatio?: string; resolution?: string }
 ): Promise<string> => {
-  if (!env.falApiKey) throw new Error("Image generation is not configured.");
+  if (!env.falApiKey) throw new Error("FAL_API_KEY not configured — cannot generate images.");
 
+  // Preflight: validate prompt
+  if (!prompt || prompt.trim().length === 0) {
+    throw new Error("VALIDATION: prompt is empty or missing.");
+  }
+
+  // Preflight: validate reference URL if provided
+  if (referenceImageUrl) {
+    try {
+      const u = new URL(referenceImageUrl);
+      if (!["http:", "https:"].includes(u.protocol)) {
+        throw new Error("VALIDATION: reference image URL has invalid protocol.");
+      }
+    } catch (e) {
+      if (e instanceof Error && e.message.startsWith("VALIDATION:")) throw e;
+      throw new Error(`VALIDATION: reference image URL is malformed — ${referenceImageUrl}`);
+    }
+  }
+
+  // Preflight: warn if no reference image (edit endpoint works best with one)
+  if (!referenceImageUrl) {
+    console.warn("[fal] No reference image provided — generation may produce lower quality results.");
+  }
+
+  // Build input for nano-banana-2/edit
   const input: Record<string, unknown> = {
-    prompt,
+    prompt: prompt.trim(),
     num_images: 1,
   };
 
@@ -25,16 +49,38 @@ export const generateImage = async (
     input.aspect_ratio = options.aspectRatio;
   }
 
-  const result = await fal.subscribe("fal-ai/nano-banana-2/edit", {
-    input,
-    logs: false,
-  });
+  try {
+    const result = await fal.subscribe("fal-ai/nano-banana-2/edit", {
+      input,
+      logs: false,
+    });
 
-  const first = (result.data as { images?: Array<{ url?: string }> })?.images?.[0]?.url;
-  if (!first) throw new Error("Image generation returned no output.");
-  return first;
+    const first = (result.data as { images?: Array<{ url?: string }> })?.images?.[0]?.url;
+    if (!first) throw new Error("FAL_EMPTY: Image generation returned no output images.");
+    return first;
+  } catch (falErr) {
+    const msg = falErr instanceof Error ? falErr.message : String(falErr);
+    // Classify the error for better observability
+    if (msg.includes("FAL_EMPTY") || msg.includes("VALIDATION:")) throw falErr;
+    if (msg.includes("422") || msg.includes("Unprocessable")) {
+      throw new Error(`FAL_INVALID_INPUT: ${msg}`);
+    }
+    if (msg.includes("401") || msg.includes("Unauthorized")) {
+      throw new Error(`FAL_AUTH: API key invalid or expired — ${msg}`);
+    }
+    if (msg.includes("429") || msg.includes("rate")) {
+      throw new Error(`FAL_RATE_LIMIT: ${msg}`);
+    }
+    if (msg.includes("timeout") || msg.includes("TIMEOUT")) {
+      throw new Error(`FAL_TIMEOUT: ${msg}`);
+    }
+    throw new Error(`FAL_ERROR: ${msg}`);
+  }
 };
 
+/**
+ * Generate video using Kling 2.6 Pro (image-to-video).
+ */
 export const generateVideo = async (params: {
   prompt: string;
   imageUrl?: string;
@@ -42,6 +88,7 @@ export const generateVideo = async (params: {
   aspectRatio: string;
 }): Promise<{ videoUrl: string; durationSec: number }> => {
   if (!env.falApiKey) throw new Error("Video generation is not configured.");
+
   const result = await fal.subscribe("fal-ai/kling-video/v2.6/pro/image-to-video", {
     input: {
       prompt: params.prompt,
@@ -51,6 +98,7 @@ export const generateVideo = async (params: {
     },
     logs: false,
   });
+
   const video = (result.data as { video?: { url?: string } })?.video?.url;
   if (!video) throw new Error("Video generation returned no output.");
   return { videoUrl: video, durationSec: params.duration };

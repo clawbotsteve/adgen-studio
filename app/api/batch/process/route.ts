@@ -115,6 +115,15 @@ export async function POST(request: Request) {
       }
     }
 
+    // Log reference image status for debugging
+    if (referenceImageUrls.length > 0) {
+      console.log(`[batch/process] Using ${referenceImageUrls.length} top creative reference(s) for client ${body.clientId}`);
+    } else if (referenceImageUrl) {
+      console.log(`[batch/process] Using fallback reference image for client ${body.clientId}`);
+    } else {
+      console.warn(`[batch/process] No reference images found for client ${body.clientId} — generation may fail or produce lower quality`);
+    }
+
     // Get all queued items for this batch
     const { data: items, error: itemsErr } = await svc
       .from("batch_item_results")
@@ -178,131 +187,3 @@ export async function POST(request: Request) {
             // Generate image via FAL
             const outputUrl = await generateImage(
               item.prompt || item.concept || "Generate creative ad",
-              refUrl,
-              {
-                aspectRatio: profileAspectRatio,
-                resolution: profileResolution,
-              }
-            );
-
-            // Mark as completed with resolution for billing
-            await svc
-              .from("batch_item_results")
-              .update({
-                status: "completed",
-                output_url: outputUrl,
-                resolution: profileResolution,
-                completed_at: new Date().toISOString(),
-              })
-              .eq("id", item.id);
-
-            return { success: true, itemId: item.id };
-          } catch (genErr) {
-            const errMsg =
-              genErr instanceof Error ? genErr.message : String(genErr);
-
-            // Mark as failed
-            await svc
-              .from("batch_item_results")
-              .update({
-                status: "failed",
-                error_message: errMsg,
-                completed_at: new Date().toISOString(),
-              })
-              .eq("id", item.id);
-
-            return { success: false, itemId: item.id, error: errMsg };
-          }
-        })
-      );
-
-      // Count results
-      for (const r of results) {
-        if (r.status === "fulfilled" && r.value.success) {
-          completedCount++;
-        } else {
-          failedCount++;
-        }
-      }
-
-      // Update counts after each chunk
-      await updateCounts(svc, body.runId!);
-    }
-
-    // Final status update
-    const finalStatus =
-      failedCount === items.length
-        ? "failed"
-        : "completed";
-
-    await svc
-      .from("batch_runs")
-      .update({
-        status: finalStatus,
-        stopped_at: new Date().toISOString(),
-      })
-      .eq("id", body.runId);
-
-    await updateCounts(svc, body.runId!);
-
-    return NextResponse.json({
-      processed: completedCount + failedCount,
-      completed: completedCount,
-      failed: failedCount,
-    });
-  } catch (error) {
-    console.error("[batch/process] Error:", error);
-
-    // Mark batch as failed
-    await svc
-      .from("batch_runs")
-      .update({ status: "failed", stopped_at: new Date().toISOString() })
-      .eq("id", body.runId);
-
-    return NextResponse.json(
-      { error: "Batch processing failed" },
-      { status: 500 }
-    );
-  }
-}
-
-/**
- * Recalculate and update the batch run counts from actual item statuses.
- */
-async function updateCounts(
-  svc: ReturnType<typeof createSupabaseService>,
-  runId: string
-) {
-  const { data: allItems } = await svc
-    .from("batch_item_results")
-    .select("status")
-    .eq("batch_run_id", runId);
-
-  if (!allItems) return;
-
-  const counts = {
-    queued_count: 0,
-    running_count: 0,
-    completed_count: 0,
-    failed_count: 0,
-  };
-
-  for (const item of allItems) {
-    switch (item.status) {
-      case "queued":
-        counts.queued_count++;
-        break;
-      case "processing":
-        counts.running_count++;
-        break;
-      case "completed":
-        counts.completed_count++;
-        break;
-      case "failed":
-        counts.failed_count++;
-        break;
-    }
-  }
-
-  await svc.from("batch_runs").update(counts).eq("id", runId);
-}
