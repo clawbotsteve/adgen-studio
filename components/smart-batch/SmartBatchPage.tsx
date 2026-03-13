@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { useRouter } from "next/navigation";
 import type { Client, Profile, BrandContext } from "@/types/domain";
 
@@ -12,6 +12,7 @@ export function SmartBatchPage({
   profiles: Profile[];
 }) {
   const router = useRouter();
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const [clientId, setClientId] = useState(clients[0]?.id ?? "");
   const [profileId, setProfileId] = useState("");
   const [aspectRatio, setAspectRatio] = useState("1:1");
@@ -20,9 +21,8 @@ export function SmartBatchPage({
   const [brandContext, setBrandContext] = useState<BrandContext | null>(null);
   const [contextLoading, setContextLoading] = useState(false);
   const [launching, setLaunching] = useState(false);
-  const [topCreativesCount, setTopCreativesCount] = useState(0);
-  const [topCreativePreviews, setTopCreativePreviews] = useState<
-    { id: string; url: string }[]
+  const [referenceImages, setReferenceImages] = useState<
+    { file: File; preview: string }[]
   >([]);
 
   // Set initial profile
@@ -62,31 +62,9 @@ export function SmartBatchPage({
     }
   }, []);
 
-  // Fetch saved top creatives count when client changes
-  const fetchTopCreatives = useCallback(async (cid: string) => {
-    try {
-      const res = await fetch(`/api/top-creatives?clientId=${cid}`);
-      if (res.ok) {
-        const data = await res.json();
-        const list = data?.creatives ?? (Array.isArray(data) ? data : []);
-        setTopCreativesCount(list.length);
-        setTopCreativePreviews(list.slice(0, 5).map((c: { id: string; url: string }) => ({ id: c.id, url: c.url })));
-      } else {
-        setTopCreativesCount(0);
-        setTopCreativePreviews([]);
-      }
-    } catch {
-      setTopCreativesCount(0);
-      setTopCreativePreviews([]);
-    }
-  }, []);
-
   useEffect(() => {
-    if (clientId) {
-      fetchBrandContext(clientId);
-      fetchTopCreatives(clientId);
-    }
-  }, [clientId, fetchBrandContext, fetchTopCreatives]);
+    if (clientId) fetchBrandContext(clientId);
+  }, [clientId, fetchBrandContext]);
 
   const selectedProfile = profiles.find((p) => p.id === profileId);
   const selectedClient = clients.find((c) => c.id === clientId);
@@ -121,6 +99,28 @@ export function SmartBatchPage({
     } finally {
       setLaunching(false);
     }
+  };
+
+  const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files;
+    if (!files) return;
+    const remaining = 5 - referenceImages.length;
+    const newFiles = Array.from(files).slice(0, remaining);
+    const newImages = newFiles.map((file) => ({
+      file,
+      preview: URL.createObjectURL(file),
+    }));
+    setReferenceImages((prev) => [...prev, ...newImages]);
+    if (fileInputRef.current) fileInputRef.current.value = "";
+  };
+
+  const removeImage = (idx: number) => {
+    setReferenceImages((prev) => {
+      const copy = [...prev];
+      URL.revokeObjectURL(copy[idx].preview);
+      copy.splice(idx, 1);
+      return copy;
+    });
   };
 
   const contextActive = brandContext && !contextLoading;
@@ -276,84 +276,116 @@ export function SmartBatchPage({
         </div>
       </div>
 
-      {/* Row 3: Reference Images (from saved Top Creatives) */}
+      {/* Row 3: Reference Images */}
       <div
         className="card"
         style={{ padding: "12px 16px" }}
       >
-        <label className="form-label" style={{ margin: 0, fontSize: 12, marginBottom: topCreativePreviews.length > 0 ? 10 : 0 }}>
-          Reference Images{" "}
-          <span style={{ color: "var(--color-text-secondary)", fontWeight: 400 }}>
-            (from Client Generator top creatives)
-          </span>
-        </label>
+        <div
+          style={{
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "space-between",
+            marginBottom: referenceImages.length > 0 ? 10 : 0,
+          }}
+        >
+          <label className="form-label" style={{ margin: 0, fontSize: 12 }}>
+            Reference Images{" "}
+            <span style={{ color: "var(--color-text-secondary)", fontWeight: 400 }}>
+              (optional, max 5)
+            </span>
+          </label>
+          {referenceImages.length < 5 && (
+            <button
+              onClick={() => fileInputRef.current?.click()}
+              style={{
+                background: "var(--color-primary, #6366f1)",
+                color: "#fff",
+                border: "none",
+                borderRadius: 6,
+                padding: "5px 12px",
+                fontSize: 12,
+                cursor: "pointer",
+                fontWeight: 500,
+              }}
+            >
+              + Add Images
+            </button>
+          )}
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept="image/*"
+            multiple
+            onChange={handleFileSelect}
+            style={{ display: "none" }}
+          />
+        </div>
 
-        {topCreativesCount > 0 ? (
-          <>
-            <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginTop: 8 }}>
-              {topCreativePreviews.map((tc) => (
-                <div
-                  key={tc.id}
+        {referenceImages.length > 0 && (
+          <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+            {referenceImages.map((img, idx) => (
+              <div
+                key={idx}
+                style={{
+                  position: "relative",
+                  width: 72,
+                  height: 72,
+                  borderRadius: 6,
+                  overflow: "hidden",
+                  border: "1px solid var(--color-border)",
+                }}
+              >
+                <img
+                  src={img.preview}
+                  alt={`ref-${idx}`}
                   style={{
-                    width: 72,
-                    height: 72,
-                    borderRadius: 6,
-                    overflow: "hidden",
-                    border: "1px solid var(--color-border)",
+                    width: "100%",
+                    height: "100%",
+                    objectFit: "cover",
                   }}
-                >
-                  <img
-                    src={tc.url}
-                    alt="Top creative"
-                    style={{
-                      width: "100%",
-                      height: "100%",
-                      objectFit: "cover",
-                    }}
-                  />
-                </div>
-              ))}
-              {topCreativesCount > 5 && (
-                <div
+                />
+                <button
+                  onClick={() => removeImage(idx)}
                   style={{
-                    width: 72,
-                    height: 72,
-                    borderRadius: 6,
-                    border: "1px solid var(--color-border)",
+                    position: "absolute",
+                    top: 2,
+                    right: 2,
+                    background: "rgba(0,0,0,0.7)",
+                    color: "#fff",
+                    border: "none",
+                    borderRadius: "50%",
+                    width: 18,
+                    height: 18,
+                    fontSize: 11,
+                    cursor: "pointer",
                     display: "flex",
                     alignItems: "center",
                     justifyContent: "center",
-                    fontSize: 12,
-                    color: "var(--color-text-secondary)",
+                    lineHeight: 1,
                   }}
                 >
-                  +{topCreativesCount - 5}
-                </div>
-              )}
-            </div>
-            <p
-              style={{
-                fontSize: 11,
-                color: "var(--color-success, #22c55e)",
-                margin: "8px 0 0",
-              }}
-            >
-              {topCreativesCount} saved reference image{topCreativesCount !== 1 ? "s" : ""} will be used during generation
-            </p>
-          </>
-        ) : (
+                  x
+                </button>
+              </div>
+            ))}
+          </div>
+        )}
+
+        {referenceImages.length === 0 && (
           <div
+            onClick={() => fileInputRef.current?.click()}
             style={{
               border: "1px dashed var(--color-border)",
               borderRadius: 6,
               padding: "14px 0",
               textAlign: "center",
+              cursor: "pointer",
               color: "var(--color-text-secondary)",
               fontSize: 12,
-              marginTop: 8,
             }}
           >
-            No reference images saved. Upload top creatives in Client Generator for best results.
+            Click to upload reference images or drag & drop
           </div>
         )}
       </div>
@@ -380,9 +412,9 @@ export function SmartBatchPage({
             }}
           >
             {contextActive ? "Brand context active" : "No brand context"}
-            {topCreativesCount > 0
-              ? ` · ${topCreativesCount} ref image${topCreativesCount > 1 ? "s" : ""}`
-              : " · No ref images"}
+            {referenceImages.length > 0
+              ? ` · ${referenceImages.length} ref image${referenceImages.length > 1 ? "s" : ""}`
+              : ""}
           </span>
         </div>
         <button

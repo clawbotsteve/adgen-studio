@@ -75,7 +75,7 @@ export async function POST(request: Request) {
     }
 
     // Get reference images for this client
-    // Priority: top_creative references → primary reference → any reference
+    // Priority: top_creative references \u2192 primary reference \u2192 any reference
     let referenceImageUrls: string[] = [];
     if (body.clientId) {
       // 1) Try top_creative references first (saved in Client Generator)
@@ -121,7 +121,7 @@ export async function POST(request: Request) {
     } else if (referenceImageUrl) {
       console.log(`[batch/process] Using fallback reference image for client ${body.clientId}`);
     } else {
-      console.warn(`[batch/process] No reference images found for client ${body.clientId} — generation WILL fail (image_urls is required by nano-banana-2/edit)`);
+      console.warn(`[batch/process] No reference images found for client ${body.clientId} \u2014 generation WILL fail (image_urls is required by nano-banana-2/edit)`);
     }
 
     // Get all queued items for this batch
@@ -177,7 +177,7 @@ export async function POST(request: Request) {
           await updateCounts(svc, body.runId!);
 
           try {
-            // Pick a reference image — rotate through top creatives if available
+            // Pick a reference image \u2014 rotate through top creatives if available
             let refUrl = referenceImageUrl;
             if (referenceImageUrls.length > 1) {
               const itemIdx = items.indexOf(item);

@@ -10,13 +10,12 @@ export const generateImage = async (
   referenceImageUrl?: string,
   options?: { aspectRatio?: string; resolution?: string }
 ): Promise<string> => {
-  if (!env.falApiKey) throw new Error("FAL_API_KEY not configured — cannot generate images.");
+  if (!env.falApiKey) throw new Error("FAL_API_KEY not configured \u2014 cannot generate images.");
 
   // Preflight: validate prompt
   if (!prompt || prompt.trim().length === 0) {
     throw new Error("VALIDATION: prompt is empty or missing.");
   }
-
   // Preflight: validate reference URL if provided
   if (referenceImageUrl) {
     try {
@@ -26,13 +25,13 @@ export const generateImage = async (
       }
     } catch (e) {
       if (e instanceof Error && e.message.startsWith("VALIDATION:")) throw e;
-      throw new Error(`VALIDATION: reference image URL is malformed — ${referenceImageUrl}`);
+      throw new Error(`VALIDATION: reference image URL is malformed \u2014 ${referenceImageUrl}`);
     }
   }
 
   // Preflight: require at least one reference image (nano-banana-2/edit requires image_urls)
   if (!referenceImageUrl) {
-    throw new Error("VALIDATION: reference image is required — the nano-banana-2/edit endpoint needs at least one image_url.");
+    throw new Error("VALIDATION: reference image is required \u2014 the nano-banana-2/edit endpoint needs at least one image_url.");
   }
 
   // Build input for nano-banana-2/edit
@@ -63,7 +62,7 @@ export const generateImage = async (
       throw new Error(`FAL_INVALID_INPUT: ${msg}`);
     }
     if (msg.includes("401") || msg.includes("Unauthorized")) {
-      throw new Error(`FAL_AUTH: API key invalid or expired — ${msg}`);
+      throw new Error(`FAL_AUTH: API key invalid or expired \u2014 ${msg}`);
     }
     if (msg.includes("429") || msg.includes("rate")) {
       throw new Error(`FAL_RATE_LIMIT: ${msg}`);
