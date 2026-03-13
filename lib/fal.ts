@@ -9,48 +9,76 @@ export const generateImage = async (
   prompt: string,
   referenceImageUrl?: string,
   options?: { aspectRatio?: string; resolution?: string }
-): Promise<{ url: string; width: number; height: number }> => {
+): Promise<string> => {
   if (!env.falApiKey) throw new Error("Image generation is not configured.");
 
-  const aspectRatio = options?.aspectRatio || "1:1";
+  // Use edit model when reference image exists, text-to-image otherwise
+  const model = referenceImageUrl
+    ? "fal-ai/nano-banana-2/edit"
+    : "fal-ai/nano-banana-2";
 
-  let model: string;
-  let input: Record<string, unknown>;
-
-  if (referenceImageUrl) {
-    model = "fal-ai/nano-banana-2/edit";
-    input = {
-      prompt,
-      image_urls: [referenceImageUrl],
-      num_images: 1,
-      output_format: "png",
-      safety_tolerance: "4",
-      aspect_ratio: aspectRatio,
-    };
-  } else {
-    model = "fal-ai/nano-banana-2";
-    input = {
-      prompt,
-      num_images: 1,
-      output_format: "png",
-      safety_tolerance: "4",
-      aspect_ratio: aspectRatio,
-    };
-  }
-
-  const result = await fal.subscribe(model, { input, logs: false });
-
-  const responseData = (result as any).data ?? result;
-  const images = (responseData as any)?.images;
-  const first = Array.isArray(images) ? images[0] : undefined;
-
-  if (!first?.url || typeof first.url !== "string") {
-    throw new Error("No image returned from fal.ai");
-  }
-
-  return {
-    url: first.url,
-    width: typeof first.width === "number" ? first.width : 1024,
-    height: typeof first.height === "number" ? first.height : 1024,
+  const input: Record<string, unknown> = {
+    prompt,
+    num_images: 1,
+    output_format: "png",
+    safety_tolerance: "4",
+    ...(options?.aspectRatio ? { aspect_ratio: options.aspectRatio } : {}),
   };
+
+  // Only add image_urls for the edit model
+  if (referenceImageUrl) {
+    input.image_urls = [referenceImageUrl];
+  }
+
+  try {
+    const result = await fal.subscribe(model, { input, logs: false });
+    const first = (result.data as { images?: Array<{ url?: string }> })?.images?.[0]?.url;
+    if (!first) throw new Error("Image generation returned no output.");
+    return first;
+  } catch (err) {
+    // If edit model fails (e.g. Forbidden), fall back to text-to-image
+    if (referenceImageUrl) {
+      console.warn(`[fal] ${model} failed, falling back to text-to-image:`, err);
+      const fallbackResult = await fal.subscribe("fal-ai/nano-banana-2", {
+        input: {
+          prompt,
+          num_images: 1,
+          output_format: "png",
+          safety_tolerance: "4",
+          ...(options?.aspectRatio ? { aspect_ratio: options.aspectRatio } : {}),
+        },
+        logs: false,
+      });
+      const fallbackFirst = (fallbackResult.data as { images?: Array<{ url?: string }> })?.images?.[0]?.url;
+      if (!fallbackFirst) throw new Error("Image generation returned no output.");
+      return fallbackFirst;
+    }
+    throw err;
+  }
+};
+
+/**
+ * Generate video using Kling 2.6 Pro (image-to-video).
+ */
+export const generateVideo = async (params: {
+  prompt: string;
+  imageUrl?: string;
+  duration: number;
+  aspectRatio: string;
+}): Promise<{ videoUrl: string; durationSec: number }> => {
+  if (!env.falApiKey) throw new Error("Video generation is not configured.");
+
+  const result = await fal.subscribe("fal-ai/kling-video/v2.6/pro/image-to-video", {
+    input: {
+      prompt: params.prompt,
+      ...(params.imageUrl ? { image_url: params.imageUrl } : {}),
+      duration: String(params.duration),
+      aspect_ratio: params.aspectRatio,
+    },
+    logs: false,
+  });
+
+  const video = (result.data as { video?: { url?: string } })?.video?.url;
+  if (!video) throw new Error("Video generation returned no output.");
+  return { videoUrl: video, durationSec: params.duration };
 };
