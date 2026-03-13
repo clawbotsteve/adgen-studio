@@ -1,8 +1,8 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import type { Client, Profile, PromptPack, BrandContext } from "@/types/domain";
+import type { Client, Profile, PromptPack } from "@/types/domain";
 
 export function SmartBatchPage({
   clients,
@@ -25,36 +25,17 @@ export function SmartBatchPage({
   const [brandContext, setBrandContext] = useState<BrandContext | null>(null);
   const [contentGenData, setContentGenData] = useState<Record<string, string> | null>(null);
   const [contextLoading, setContextLoading] = useState(false);
-  const [showContextPreview, setShowContextPreview] = useState(false);
-  const [launching, setLaunching] = useState(false);
+  const [clientProfileConfigured, setClientProfileConfigured] = useState(false);
+  const [clientFormData, setClientFormData] = useState<Record<string, string> | null>(null);
+  const [contentGenData, setContentGenData] = useState<Record<string, string> | null>(null);
+  const [error, setError] = useState<string | null>(null);
 
-  // Set initial profile and prompt pack
-  useEffect(() => {
     if (profiles.length > 0 && !profileId) setProfileId(profiles[0].id);
     if (promptPacks.length > 0 && !promptPackId) setPromptPackId(promptPacks[0].id);
-  }, [profiles, promptPacks]);
 
-  // Fetch brand context when client changes
-  const fetchBrandContext = useCallback(async (cid: string) => {
-    setContextLoading(true);
-    try {
-      const res = await fetch(`/api/brand-context?clientId=${cid}`);
-      const data = await res.json();
-      setBrandContext(data.context ?? null);
-    } catch {
-      setBrandContext(null);
-    } finally {
-      setContextLoading(false);
-    }
-  }, []);
-
+  // Fetch client data when client changes
   useEffect(() => {
-    if (clientId) fetchBrandContext(clientId);
-  }, [clientId, fetchBrandContext]);
-
-  // Fetch client content generation preferences
-  useEffect(() => {
-    if (!clientId) { setContentGenData(null); return; }
+    if (!clientId) { setContentGenData(null); setClientProfileConfigured(false); setClientFormData(null); return; }
     (async () => {
       try {
         const resp = await fetch(`/api/clients/${clientId}`);
@@ -62,26 +43,34 @@ export function SmartBatchPage({
         const { client } = await resp.json();
         const fd = client?.defaults?.formData;
         if (fd) {
+          // Check if client profile is configured
+          const allKeys = [
+            "brandName","industry","targetAudience","brandVoice","brandValues",
+            "competitivePosition","keyMessages","visualIdentity",
+            "contentTypes","imageStyle","scenesAndSettings","modelPreferences",
+            "propsAndProducts","moodAndLighting","compositionNotes","referenceExamples",
+            "creativeStrategyGoals","brandAssets"
+          ];
+          const hasAnyField = allKeys.some(k => fd[k] && String(fd[k]).trim().length > 0);
+          setClientProfileConfigured(hasAnyField);
+          setClientFormData(hasAnyField ? fd : null);
+
+          // Extract content generation preferences
           const gf: Record<string, string> = {};
           ["contentTypes","imageStyle","scenesAndSettings","modelPreferences","propsAndProducts","moodAndLighting","compositionNotes","referenceExamples"].forEach(k => { if (fd[k]) gf[k] = fd[k]; });
           setContentGenData(Object.keys(gf).length > 0 ? gf : null);
-        } else { setContentGenData(null); }
-      } catch { setContentGenData(null); }
-    })();
+        } else {
+          setContentGenData(null);
+          setClientProfileConfigured(false);
+          setClientFormData(null);
+        }
+      } catch {
+        setContentGenData(null);
+        setClientProfileConfigured(false);
+        setClientFormData(null);
+      }
   }, [clientId]);
 
-  const filledFields = brandContext
-    ? [
-        "brand_guidelines", "products", "competitive_landscape", "customer_personas",
-        "founder_story", "marketing_calendar", "compliance_legal", "testing_priorities",
-        "ad_format_preferences", "creative_ops_constraints", "naming_conventions", "goals",
-      ].filter((k) => {
-        const val = brandContext[k as keyof BrandContext];
-        return typeof val === "string" && val.trim();
-      })
-    : [];
-
-  const selectedProfile = profiles.find((p) => p.id === profileId);
   const selectedPack = promptPacks.find((p) => p.id === promptPackId);
 
   const canLaunch = clientId && profileId && promptPackId;
@@ -100,7 +89,7 @@ export function SmartBatchPage({
           briefText: briefText.trim() || undefined,
           additionalContext: additionalContext.trim() || undefined,
           contentGeneration: contentGenData || undefined,
-          useBrandContext,
+          brandContext: clientFormData ?? undefined,
           aspectRatio,
           resolution,
         }),
@@ -126,7 +115,7 @@ export function SmartBatchPage({
     <div style={{ display: "grid", gap: 20 }}>
       {/* Client + Brand Context Status */}
       <div className="card">
-        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 }}>
+      {/* Client + Profile Status */}
           <div>
             <label className="form-label">Client</label>
             <select
@@ -142,55 +131,27 @@ export function SmartBatchPage({
           <div style={{ display: "flex", alignItems: "flex-end" }}>
             <div className="bc-status-badge" style={{ marginBottom: 4 }}>
               {contextLoading ? (
-                <span style={{ color: "var(--color-text-secondary)", fontSize: 13 }}>Loading context...</span>
-              ) : brandContext ? (
-                <>
-                  <span className="bc-status-dot bc-status-active" />
-                  {filledFields.length} context fields active
-                  <button
-                    className="sb-preview-toggle"
-                    onClick={() => setShowContextPreview(!showContextPreview)}
-                  >
-                    {showContextPreview ? "Hide" : "Preview"}
-                  </button>
-                </>
-              ) : (
-                <>
-                  <span className="bc-status-dot" />
-                  No brand context set up
-                  <a href="/brand-context" className="sb-setup-link">Set up</a>
-                </>
-              )}
-            </div>
+          {/* Client profile status */}
+          <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+            {clientProfileConfigured ? (
+              <>
+                <span style={{ display: "inline-block", width: 8, height: 8, borderRadius: "50%", background: "#4ade80" }} />
+                <span style={{ fontSize: 13 }}>
+                  Client profile configured
+                </span>
+                <a href="/client-generator" className="sb-setup-link">Edit</a>
+              </>
+            ) : (
+              <>
+                <span style={{ display: "inline-block", width: 8, height: 8, borderRadius: "50%", background: "#ffa026" }} />
+                <span style={{ fontSize: 13 }}>No client profile set up</span>
+                <a href="/client-generator" className="sb-setup-link">Set up</a>
+              </>
+            )}
           </div>
         </div>
-
-        {/* Brand Context Preview */}
-        {showContextPreview && brandContext && (
-          <div className="sb-context-preview">
-            {filledFields.map((key) => {
-              const val = brandContext[key as keyof BrandContext] as string;
-              const label = key.replace(/_/g, " ").replace(/\b\w/g, (l) => l.toUpperCase());
-              return (
-                <div key={key} className="sb-context-field">
-                  <strong>{label}:</strong> {val.length > 150 ? val.substring(0, 150) + "..." : val}
-                </div>
-              );
-            })}
-          </div>
-        )}
       </div>
-
-
-        {/* Content Generation Preferences */}
-        <div className="sb-section">
-          <h3 className="sb-section-title">Content Generation Preferences</h3>
-          {contentGenData ? (
-            <div className="sb-context-preview">
-              {Object.entries(contentGenData).map(([key, val]) => (
-                <div key={key} className="sb-context-field">
-                  <span className="sb-context-key">{key.replace(/([A-Z])/g, " $1").trim()}</span>
-                  <span className="sb-context-val">{String(val).slice(0, 80)}{String(val).length > 80 ? "..." : ""}</span>
+              const label = key.replace(/_/g, " ").replace(/\b\w/g, (l) => l.toUpperCase());
                 </div>
               ))}
             </div>
@@ -283,9 +244,9 @@ export function SmartBatchPage({
               className="form-input"
               rows={6}
               value={briefText}
-              onChange={(e) => setBriefText(e.target.value)}
-              placeholder="Paste or type your creative brief here. This will be included in every prompt alongside brand context..."
-            />
+              {clientProfileConfigured
+                ? `Client profile for ${clientName} will be injected into every prompt`
+                : "No client profile configured — set one up in Client Generator"}
             <p style={{ fontSize: 12, color: "var(--color-text-secondary)", marginTop: 4 }}>
               The brief text will be wrapped in === BRIEF === markers and prepended to each prompt.
             </p>
