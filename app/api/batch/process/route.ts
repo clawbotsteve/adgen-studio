@@ -4,152 +4,97 @@ import { submitImage, checkImageStatus } from "@/lib/fal";
 
 export const maxDuration = 60;
 
-/**
- * POST /api/batch/process
- * Async queue: submit jobs to fal queue, poll for results.
- * Fire-and-forget recursive call (no setTimeout).
- */
 export async function POST(request: Request) {
   const svc = createSupabaseService();
-  const body = (await request.json()) as {
-    runId?: string; clientId?: string; profileId?: string;
-    promptPackId?: string; briefText?: string; additionalContext?: string;
-    useBrandContext?: boolean; aspectRatio?: string; resolution?: string;
-  };
+  const body = await request.json();
+  if (!body.runId) return NextResponse.json({ error: "Missing runId" }, { status: 400 });
 
-  if (!body.runId) {
-    return NextResponse.json({ error: "Missing runId" }, { status: 400 });
-  }
+  const log: string[] = [];
 
-  // ---- Resolve settings ----
-  let aspectRatio = body.aspectRatio || "1:1";
-  let resolution = body.resolution || "2K";
-  let referenceImageUrl: string | undefined;
-
-  if (body.profileId) {
-    const { data: profile } = await svc
-      .from("profiles").select("aspect_ratio, resolution")
-      .eq("id", body.profileId).single();
-    if (profile) {
-      aspectRatio = body.aspectRatio || profile.aspect_ratio || "1:1";
-      resolution = body.resolution || profile.resolution || "2K";
-    }
-  }
-
+  // Resolve reference image
+  let refUrl: string | undefined;
   if (body.clientId) {
-    const { data: refs } = await svc
-      .from("reference_images").select("url")
-      .eq("client_id", body.clientId).eq("is_primary", true).limit(1);
-    if (refs && refs.length > 0) {
-      referenceImageUrl = refs[0].url;
-    } else {
-      const { data: anyRef } = await svc
-        .from("reference_images").select("url")
-        .eq("client_id", body.clientId).limit(1);
-      if (anyRef && anyRef.length > 0) referenceImageUrl = anyRef[0].url;
-    }
+    const { data: refs } = await svc.from("reference_images").select("url").eq("client_id", body.clientId).limit(1);
+    if (refs && refs.length > 0) refUrl = refs[0].url;
   }
+  log.push("refUrl: " + (refUrl || "none"));
 
-  // ---- Phase 1: Submit queued items (up to 5 at once) ----
-  const { data: queued } = await svc
-    .from("batch_item_results").select("*")
-    .eq("batch_run_id", body.runId).eq("status", "queued").limit(5);
+  // Phase 1: Submit queued items
+  const { data: queued, error: qErr } = await svc
+    .from("batch_item_results").select("id, concept, prompt, status")
+    .eq("batch_run_id", body.runId).eq("status", "queued").limit(2);
+  log.push("queued found: " + (queued?.length || 0) + " err: " + (qErr?.message || "none"));
 
+  const itemResults: any[] = [];
   if (queued && queued.length > 0) {
     for (const item of queued) {
       try {
+        log.push("submitting item " + item.id.substring(0,8) + "...");
         const { requestId, model } = await submitImage(
           item.prompt || item.concept || "Generate creative ad",
-          referenceImageUrl,
-          { aspectRatio, resolution }
+          refUrl,
+          { aspectRatio: body.aspectRatio || "1:1", resolution: body.resolution || "2K" }
         );
-        await svc.from("batch_item_results").update({
+        log.push("got requestId: " + requestId.substring(0,12) + " model: " + model);
+
+        // Try update with output_meta
+        const { error: upErr } = await svc.from("batch_item_results").update({
           status: "processing",
           started_at: new Date().toISOString(),
           output_meta: { fal_request_id: requestId, fal_model: model },
         }).eq("id", item.id);
+        log.push("update result: " + (upErr ? upErr.message : "ok"));
+
+        itemResults.push({ id: item.id.substring(0,8), requestId: requestId.substring(0,12), ok: !upErr });
       } catch (err) {
-        await svc.from("batch_item_results").update({
+        const msg = err instanceof Error ? err.message : String(err);
+        log.push("ERROR: " + msg);
+        const { error: fErr } = await svc.from("batch_item_results").update({
           status: "failed",
-          error_message: err instanceof Error ? err.message : String(err),
+          error_message: msg,
           completed_at: new Date().toISOString(),
         }).eq("id", item.id);
+        log.push("fail update: " + (fErr ? fErr.message : "ok"));
+        itemResults.push({ id: item.id.substring(0,8), error: msg, failUpdateOk: !fErr });
       }
     }
   }
 
-  // ---- Phase 2: Poll processing items ----
+  // Phase 2: Check processing items
   const { data: processing } = await svc
-    .from("batch_item_results").select("*")
-    .eq("batch_run_id", body.runId).eq("status", "processing").limit(10);
+    .from("batch_item_results").select("id, output_meta")
+    .eq("batch_run_id", body.runId).eq("status", "processing").limit(5);
+  log.push("processing found: " + (processing?.length || 0));
 
   if (processing && processing.length > 0) {
     for (const item of processing) {
       const meta = item.output_meta as any;
-      if (!meta?.fal_request_id || !meta?.fal_model) continue;
-
+      if (!meta?.fal_request_id) { log.push("skip item " + item.id.substring(0,8) + " no request_id"); continue; }
       const result = await checkImageStatus(meta.fal_model, meta.fal_request_id);
-
+      log.push("check " + item.id.substring(0,8) + ": " + result.status);
       if (result.status === "completed" && result.url) {
-        await svc.from("batch_item_results").update({
-          status: "completed",
-          output_url: result.url,
-          output_meta: { width: result.width, height: result.height },
-          completed_at: new Date().toISOString(),
-        }).eq("id", item.id);
+        await svc.from("batch_item_results").update({ status: "completed", output_url: result.url, output_meta: { width: result.width, height: result.height }, completed_at: new Date().toISOString() }).eq("id", item.id);
       } else if (result.status === "failed") {
-        await svc.from("batch_item_results").update({
-          status: "failed",
-          error_message: result.error || "Generation failed",
-          completed_at: new Date().toISOString(),
-        }).eq("id", item.id);
+        await svc.from("batch_item_results").update({ status: "failed", error_message: result.error, completed_at: new Date().toISOString() }).eq("id", item.id);
       }
     }
   }
 
-  // ---- Update counts ----
-  await updateCounts(svc, body.runId);
+  // Update counts
+  const { data: all } = await svc.from("batch_item_results").select("status").eq("batch_run_id", body.runId);
+  if (all) {
+    const c2: any = { total_items: all.length, queued_count: 0, running_count: 0, completed_count: 0, failed_count: 0 };
+    all.forEach((i: any) => { if (i.status === "queued") c2.queued_count++; else if (i.status === "processing") c2.running_count++; else if (i.status === "completed") c2.completed_count++; else if (i.status === "failed") c2.failed_count++; });
+    await svc.from("batch_runs").update(c2).eq("id", body.runId);
+    log.push("counts: q=" + c2.queued_count + " r=" + c2.running_count + " c=" + c2.completed_count + " f=" + c2.failed_count);
+  }
 
-  // ---- Check if more work remains ----
-  const { data: remaining } = await svc
-    .from("batch_item_results").select("status")
-    .eq("batch_run_id", body.runId)
-    .in("status", ["queued", "processing"]);
-
-  if (remaining && remaining.length > 0) {
-    // Fire-and-forget recursive call (no setTimeout!)
+  // Recursive call if work remains
+  const hasMore = all && all.some((i: any) => i.status === "queued" || i.status === "processing");
+  if (hasMore) {
     const baseUrl = process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3000";
-    fetch(`${baseUrl}/api/batch/process`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(body),
-    }).catch(() => {});
+    fetch(baseUrl + "/api/batch/process", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) }).catch(() => {});
   }
 
-  return NextResponse.json({
-    submitted: queued?.length || 0,
-    checked: processing?.length || 0,
-    remaining: remaining?.length || 0,
-  });
-}
-
-async function updateCounts(svc: ReturnType<typeof createSupabaseService>, runId: string) {
-  const { data: allItems } = await svc
-    .from("batch_item_results").select("status").eq("batch_run_id", runId);
-  if (!allItems) return;
-  const counts: Record<string, number> = {
-    total_items: allItems.length, queued_count: 0,
-    running_count: 0, completed_count: 0, failed_count: 0,
-  };
-  for (const item of allItems) {
-    switch (item.status) {
-      case "queued": counts.queued_count++; break;
-      case "processing": counts.running_count++; break;
-      case "completed": counts.completed_count++; break;
-      case "failed": counts.failed_count++; break;
-    }
-  }
-  const done = counts.queued_count === 0 && counts.running_count === 0;
-  const status = done ? (counts.failed_count > 0 ? "completed_with_errors" : "completed") : undefined;
-  await svc.from("batch_runs").update({ ...counts, ...(status ? { status } : {}) }).eq("id", runId);
+  return NextResponse.json({ log, items: itemResults });
 }
