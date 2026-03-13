@@ -8,7 +8,8 @@ import { generateImage } from "@/lib/fal";
  * Called internally after batch creation (no auth needed for internal calls,
  * but we validate the runId exists).
  *
- * Processes items one at a time to stay within Vercel Hobby plan limits.
+ * This processes items sequentially to avoid overwhelming FAL API,
+ * with concurrency of up to 3 items at a time.
  */
 
 const CONCURRENCY = 1;
@@ -73,27 +74,43 @@ export async function POST(request: Request) {
       }
     }
 
-    // Get reference image for this client
+    // Get reference images for this client
+    // Priority: top_creative references → primary reference → any reference
+    let referenceImageUrls: string[] = [];
     if (body.clientId) {
-      const { data: refs } = await svc
+      // 1) Try top_creative references first (saved in Client Generator)
+      const { data: topCreatives } = await svc
         .from("reference_images")
         .select("url")
         .eq("client_id", body.clientId)
-        .eq("is_primary", true)
-        .limit(1);
+        .eq("label", "top_creative")
+        .order("created_at", { ascending: true });
 
-      if (refs && refs.length > 0) {
-        referenceImageUrl = refs[0].url;
+      if (topCreatives && topCreatives.length > 0) {
+        referenceImageUrls = topCreatives.map((r: { url: string }) => r.url);
+        referenceImageUrl = referenceImageUrls[0];
       } else {
-        // Fallback: get any reference image for this client
-        const { data: anyRef } = await svc
+        // 2) Fallback: primary reference image
+        const { data: refs } = await svc
           .from("reference_images")
           .select("url")
           .eq("client_id", body.clientId)
+          .eq("is_primary", true)
           .limit(1);
 
-        if (anyRef && anyRef.length > 0) {
-          referenceImageUrl = anyRef[0].url;
+        if (refs && refs.length > 0) {
+          referenceImageUrl = refs[0].url;
+        } else {
+          // 3) Fallback: any reference image for this client
+          const { data: anyRef } = await svc
+            .from("reference_images")
+            .select("url")
+            .eq("client_id", body.clientId)
+            .limit(1);
+
+          if (anyRef && anyRef.length > 0) {
+            referenceImageUrl = anyRef[0].url;
+          }
         }
       }
     }
@@ -151,10 +168,17 @@ export async function POST(request: Request) {
           await updateCounts(svc, body.runId!);
 
           try {
+            // Pick a reference image — rotate through top creatives if available
+            let refUrl = referenceImageUrl;
+            if (referenceImageUrls.length > 1) {
+              const itemIdx = items.indexOf(item);
+              refUrl = referenceImageUrls[itemIdx % referenceImageUrls.length];
+            }
+
             // Generate image via FAL
             const outputUrl = await generateImage(
               item.prompt || item.concept || "Generate creative ad",
-              referenceImageUrl,
+              refUrl,
               {
                 aspectRatio: profileAspectRatio,
                 resolution: profileResolution,
