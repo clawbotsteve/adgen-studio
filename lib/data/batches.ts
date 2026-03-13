@@ -51,26 +51,31 @@ export async function createBatchRun(params: {
   tenantId: string;
   clientId: string;
   profileId: string;
-  promptPackId: string;
+  promptPackId?: string;
   totalItems: number;
   createdBy: string;
 }): Promise<BatchRun> {
   const svc = createSupabaseService();
+  const insertData: Record<string, unknown> = {
+    tenant_id: params.tenantId,
+    client_id: params.clientId,
+    profile_id: params.profileId,
+    status: "queued",
+    total_items: params.totalItems,
+    queued_count: params.totalItems,
+    running_count: 0,
+    completed_count: 0,
+    failed_count: 0,
+    created_by: params.createdBy,
+  };
+
+  if (params.promptPackId) {
+    insertData.prompt_pack_id = params.promptPackId;
+  }
+
   const { data, error } = await svc
     .from("batch_runs")
-    .insert({
-      tenant_id: params.tenantId,
-      client_id: params.clientId,
-      profile_id: params.profileId,
-      prompt_pack_id: params.promptPackId,
-      status: "queued",
-      total_items: params.totalItems,
-      queued_count: params.totalItems,
-      running_count: 0,
-      completed_count: 0,
-      failed_count: 0,
-      created_by: params.createdBy,
-    })
+    .insert(insertData)
     .select()
     .single();
 
@@ -80,16 +85,21 @@ export async function createBatchRun(params: {
 
 export async function createBatchItems(
   batchRunId: string,
-  items: { promptItemId: string; concept: string; prompt: string }[]
+  items: { promptItemId?: string; concept: string; prompt: string }[]
 ): Promise<void> {
   const svc = createSupabaseService();
-  const rows = items.map((item) => ({
-    batch_run_id: batchRunId,
-    prompt_item_id: item.promptItemId,
-    concept: item.concept,
-    prompt: item.prompt,
-    status: "queued",
-  }));
+  const rows = items.map((item) => {
+    const row: Record<string, unknown> = {
+      batch_run_id: batchRunId,
+      concept: item.concept,
+      prompt: item.prompt,
+      status: "queued",
+    };
+    if (item.promptItemId) {
+      row.prompt_item_id = item.promptItemId;
+    }
+    return row;
+  });
 
   const { error } = await svc.from("batch_item_results").insert(rows);
   if (error) throw error;
