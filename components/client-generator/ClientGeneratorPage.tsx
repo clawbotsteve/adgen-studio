@@ -167,7 +167,8 @@ export function ClientGeneratorPage({ tenantId }: { tenantId: string }) {
     fetch("/api/clients")
       .then((r) => r.json())
       .then((data) => {
-        if (Array.isArray(data)) setClients(data);
+        const list = Array.isArray(data) ? data : data?.clients || [];
+        setClients(list);
       })
       .catch(() => {});
   }, []);
