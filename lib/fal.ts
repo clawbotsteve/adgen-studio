@@ -7,54 +7,26 @@ if (env.falApiKey) {
 
 export const generateImage = async (
   prompt: string,
-  referenceImageUrl?: string,
+  _referenceImageUrl?: string,
   options?: { aspectRatio?: string; resolution?: string }
 ): Promise<string> => {
   if (!env.falApiKey) throw new Error("Image generation is not configured.");
 
-  // Use edit model when reference image exists, text-to-image otherwise
-  const model = referenceImageUrl
-    ? "fal-ai/nano-banana-2/edit"
-    : "fal-ai/nano-banana-2";
+  // Always use text-to-image model (edit model requires separate permissions)
+  const result = await fal.subscribe("fal-ai/nano-banana-2", {
+    input: {
+      prompt,
+      num_images: 1,
+      output_format: "png",
+      safety_tolerance: "4",
+      ...(options?.aspectRatio ? { aspect_ratio: options.aspectRatio } : {}),
+    },
+    logs: false,
+  });
 
-  const input: Record<string, unknown> = {
-    prompt,
-    num_images: 1,
-    output_format: "png",
-    safety_tolerance: "4",
-    ...(options?.aspectRatio ? { aspect_ratio: options.aspectRatio } : {}),
-  };
-
-  // Only add image_urls for the edit model
-  if (referenceImageUrl) {
-    input.image_urls = [referenceImageUrl];
-  }
-
-  try {
-    const result = await fal.subscribe(model, { input, logs: false });
-    const first = (result.data as { images?: Array<{ url?: string }> })?.images?.[0]?.url;
-    if (!first) throw new Error("Image generation returned no output.");
-    return first;
-  } catch (err) {
-    // If edit model fails (e.g. Forbidden), fall back to text-to-image
-    if (referenceImageUrl) {
-      console.warn(`[fal] ${model} failed, falling back to text-to-image:`, err);
-      const fallbackResult = await fal.subscribe("fal-ai/nano-banana-2", {
-        input: {
-          prompt,
-          num_images: 1,
-          output_format: "png",
-          safety_tolerance: "4",
-          ...(options?.aspectRatio ? { aspect_ratio: options.aspectRatio } : {}),
-        },
-        logs: false,
-      });
-      const fallbackFirst = (fallbackResult.data as { images?: Array<{ url?: string }> })?.images?.[0]?.url;
-      if (!fallbackFirst) throw new Error("Image generation returned no output.");
-      return fallbackFirst;
-    }
-    throw err;
-  }
+  const first = (result.data as { images?: Array<{ url?: string }> })?.images?.[0]?.url;
+  if (!first) throw new Error("Image generation returned no output.");
+  return first;
 };
 
 /**
