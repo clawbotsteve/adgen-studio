@@ -6,24 +6,15 @@ export const maxDuration = 60;
 
 /**
  * POST /api/batch/process
- * Async queue pattern: submit jobs to fal, poll for results.
- * Each call handles one of:
- *   1. Submit a queued item to fal (fast, non-blocking)
- *   2. Check a processing item for completion
- * Then recursively calls itself to continue.
+ * Async queue: submit jobs to fal queue, poll for results.
+ * Fire-and-forget recursive call (no setTimeout).
  */
 export async function POST(request: Request) {
   const svc = createSupabaseService();
   const body = (await request.json()) as {
-    runId?: string;
-    clientId?: string;
-    profileId?: string;
-    promptPackId?: string;
-    briefText?: string;
-    additionalContext?: string;
-    useBrandContext?: boolean;
-    aspectRatio?: string;
-    resolution?: string;
+    runId?: string; clientId?: string; profileId?: string;
+    promptPackId?: string; briefText?: string; additionalContext?: string;
+    useBrandContext?: boolean; aspectRatio?: string; resolution?: string;
   };
 
   if (!body.runId) {
@@ -31,8 +22,8 @@ export async function POST(request: Request) {
   }
 
   // ---- Resolve settings ----
-  let profileAspectRatio = body.aspectRatio || "1:1";
-  let profileResolution = body.resolution || "2K";
+  let aspectRatio = body.aspectRatio || "1:1";
+  let resolution = body.resolution || "2K";
   let referenceImageUrl: string | undefined;
 
   if (body.profileId) {
@@ -40,8 +31,8 @@ export async function POST(request: Request) {
       .from("profiles").select("aspect_ratio, resolution")
       .eq("id", body.profileId).single();
     if (profile) {
-      profileAspectRatio = body.aspectRatio || profile.aspect_ratio || "1:1";
-      profileResolution = body.resolution || profile.resolution || "2K";
+      aspectRatio = body.aspectRatio || profile.aspect_ratio || "1:1";
+      resolution = body.resolution || profile.resolution || "2K";
     }
   }
 
@@ -61,9 +52,8 @@ export async function POST(request: Request) {
 
   // ---- Phase 1: Submit queued items (up to 5 at once) ----
   const { data: queued } = await svc
-    .from("batch_item_results")
-    .select("*").eq("batch_run_id", body.runId)
-    .eq("status", "queued").limit(5);
+    .from("batch_item_results").select("*")
+    .eq("batch_run_id", body.runId).eq("status", "queued").limit(5);
 
   if (queued && queued.length > 0) {
     for (const item of queued) {
@@ -71,7 +61,7 @@ export async function POST(request: Request) {
         const { requestId, model } = await submitImage(
           item.prompt || item.concept || "Generate creative ad",
           referenceImageUrl,
-          { aspectRatio: profileAspectRatio, resolution: profileResolution }
+          { aspectRatio, resolution }
         );
         await svc.from("batch_item_results").update({
           status: "processing",
@@ -90,9 +80,8 @@ export async function POST(request: Request) {
 
   // ---- Phase 2: Poll processing items ----
   const { data: processing } = await svc
-    .from("batch_item_results")
-    .select("*").eq("batch_run_id", body.runId)
-    .eq("status", "processing").limit(10);
+    .from("batch_item_results").select("*")
+    .eq("batch_run_id", body.runId).eq("status", "processing").limit(10);
 
   if (processing && processing.length > 0) {
     for (const item of processing) {
@@ -115,7 +104,6 @@ export async function POST(request: Request) {
           completed_at: new Date().toISOString(),
         }).eq("id", item.id);
       }
-      // If "pending", leave as processing — will check next cycle
     }
   }
 
@@ -124,20 +112,18 @@ export async function POST(request: Request) {
 
   // ---- Check if more work remains ----
   const { data: remaining } = await svc
-    .from("batch_item_results")
-    .select("status").eq("batch_run_id", body.runId)
+    .from("batch_item_results").select("status")
+    .eq("batch_run_id", body.runId)
     .in("status", ["queued", "processing"]);
 
   if (remaining && remaining.length > 0) {
-    // Wait 3s then continue processing
+    // Fire-and-forget recursive call (no setTimeout!)
     const baseUrl = process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3000";
-    setTimeout(() => {
-      fetch(`${baseUrl}/api/batch/process`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(body),
-      }).catch(() => {});
-    }, 3000);
+    fetch(`${baseUrl}/api/batch/process`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(body),
+    }).catch(() => {});
   }
 
   return NextResponse.json({
@@ -149,17 +135,12 @@ export async function POST(request: Request) {
 
 async function updateCounts(svc: ReturnType<typeof createSupabaseService>, runId: string) {
   const { data: allItems } = await svc
-    .from("batch_item_results").select("status")
-    .eq("batch_run_id", runId);
-
+    .from("batch_item_results").select("status").eq("batch_run_id", runId);
   if (!allItems) return;
-
   const counts: Record<string, number> = {
-    total_items: allItems.length,
-    queued_count: 0, running_count: 0,
-    completed_count: 0, failed_count: 0,
+    total_items: allItems.length, queued_count: 0,
+    running_count: 0, completed_count: 0, failed_count: 0,
   };
-
   for (const item of allItems) {
     switch (item.status) {
       case "queued": counts.queued_count++; break;
@@ -168,14 +149,7 @@ async function updateCounts(svc: ReturnType<typeof createSupabaseService>, runId
       case "failed": counts.failed_count++; break;
     }
   }
-
-  const isComplete = counts.queued_count === 0 && counts.running_count === 0;
-  const status = isComplete
-    ? (counts.failed_count > 0 ? "completed_with_errors" : "completed")
-    : undefined;
-
-  await svc.from("batch_runs").update({
-    ...counts,
-    ...(status ? { status } : {}),
-  }).eq("id", runId);
+  const done = counts.queued_count === 0 && counts.running_count === 0;
+  const status = done ? (counts.failed_count > 0 ? "completed_with_errors" : "completed") : undefined;
+  await svc.from("batch_runs").update({ ...counts, ...(status ? { status } : {}) }).eq("id", runId);
 }
