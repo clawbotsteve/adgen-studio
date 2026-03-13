@@ -1,4 +1,5 @@
 "use client";
+import { parseOutputUrl } from "@/lib/parseOutputUrl";
 
 import { useState } from "react";
 
@@ -152,10 +153,10 @@ export function ContentGrid({ items, clientNameMap }: ContentGridProps) {
               className="card cg-card"
               style={{ padding: 0, overflow: "hidden", position: "relative" }}
             >
-              {item.output_url ? (
+              {parseOutputUrl(item.output_url) ? (
                 <div className="cg-image-wrap">
                   <img
-                    src={item.output_url}
+                    src={parseOutputUrl(item.output_url) || ""}
                     alt={item.concept}
                     style={{
                       width: "100%",
@@ -222,7 +223,7 @@ export function ContentGrid({ items, clientNameMap }: ContentGridProps) {
                     marginTop: 2,
                   }}
                 >
-                  {cName} ·{" "}
+                  {cName} Â·{" "}
                   {item.completed_at
                     ? new Date(item.completed_at).toLocaleDateString()
                     : "-"}
