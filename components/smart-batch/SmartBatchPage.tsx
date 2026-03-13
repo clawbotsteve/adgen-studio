@@ -2,22 +2,19 @@
 
 import { useState, useEffect, useCallback, useRef } from "react";
 import { useRouter } from "next/navigation";
-import type { Client, Profile, PromptPack, BrandContext } from "@/types/domain";
+import type { Client, Profile, BrandContext } from "@/types/domain";
 
 export function SmartBatchPage({
   clients,
   profiles,
-  promptPacks,
 }: {
   clients: Client[];
   profiles: Profile[];
-  promptPacks: PromptPack[];
 }) {
   const router = useRouter();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [clientId, setClientId] = useState(clients[0]?.id ?? "");
   const [profileId, setProfileId] = useState("");
-  const [promptPackId, setPromptPackId] = useState("");
   const [aspectRatio, setAspectRatio] = useState("1:1");
   const [resolution, setResolution] = useState("2K");
   const [quantity, setQuantity] = useState(5);
@@ -28,12 +25,10 @@ export function SmartBatchPage({
     { file: File; preview: string }[]
   >([]);
 
-  // Set initial profile and prompt pack
+  // Set initial profile
   useEffect(() => {
     if (profiles.length > 0 && !profileId) setProfileId(profiles[0].id);
-    if (promptPacks.length > 0 && !promptPackId)
-      setPromptPackId(promptPacks[0].id);
-  }, [profiles, promptPacks]);
+  }, [profiles]);
 
   // Fetch brand context when client changes
   const fetchBrandContext = useCallback(async (cid: string) => {
@@ -54,9 +49,9 @@ export function SmartBatchPage({
   }, [clientId, fetchBrandContext]);
 
   const selectedProfile = profiles.find((p) => p.id === profileId);
-  const selectedPack = promptPacks.find((p) => p.id === promptPackId);
+  const selectedClient = clients.find((c) => c.id === clientId);
 
-  const canLaunch = clientId && profileId && promptPackId;
+  const canLaunch = clientId && profileId;
 
   const handleLaunch = async () => {
     if (!canLaunch) return;
@@ -68,7 +63,6 @@ export function SmartBatchPage({
         body: JSON.stringify({
           clientId,
           profileId,
-          promptPackId,
           aspectRatio,
           resolution,
           quantity,
@@ -115,55 +109,29 @@ export function SmartBatchPage({
 
   return (
     <div style={{ display: "grid", gap: 12, maxWidth: 900 }}>
-      {/* Row 1: Client + Prompt Pack */}
+      {/* Row 1: Client */}
       <div
         className="card"
         style={{ padding: "12px 16px" }}
       >
-        <div
-          style={{
-            display: "grid",
-            gridTemplateColumns: "1fr 1fr",
-            gap: 12,
-            alignItems: "end",
-          }}
-        >
-          <div>
-            <label className="form-label" style={{ marginBottom: 4, fontSize: 12 }}>
-              Client
-            </label>
-            <select
-              className="form-select"
-              value={clientId}
-              onChange={(e) => setClientId(e.target.value)}
-              style={{ padding: "6px 10px", fontSize: 13 }}
-            >
-              {clients.map((c) => (
-                <option key={c.id} value={c.id}>
-                  {c.name}
-                </option>
-              ))}
-            </select>
-          </div>
-          <div>
-            <label className="form-label" style={{ marginBottom: 4, fontSize: 12 }}>
-              Prompt Pack
-            </label>
-            <select
-              className="form-select"
-              value={promptPackId}
-              onChange={(e) => setPromptPackId(e.target.value)}
-              style={{ padding: "6px 10px", fontSize: 13 }}
-            >
-              {promptPacks.map((p) => (
-                <option key={p.id} value={p.id}>
-                  {p.name} ({p.item_count} items)
-                </option>
-              ))}
-            </select>
-          </div>
+        <div>
+          <label className="form-label" style={{ marginBottom: 4, fontSize: 12 }}>
+            Client
+          </label>
+          <select
+            className="form-select"
+            value={clientId}
+            onChange={(e) => setClientId(e.target.value)}
+            style={{ padding: "6px 10px", fontSize: 13 }}
+          >
+            {clients.map((c) => (
+              <option key={c.id} value={c.id}>
+                {c.name}
+              </option>
+            ))}
+          </select>
         </div>
-        {selectedPack?.description && (
+        {selectedClient?.description && (
           <p
             style={{
               fontSize: 11,
@@ -171,7 +139,29 @@ export function SmartBatchPage({
               margin: "6px 0 0",
             }}
           >
-            {selectedPack.description}
+            {selectedClient.description}
+          </p>
+        )}
+        {contextActive && (
+          <p
+            style={{
+              fontSize: 11,
+              color: "var(--color-success, #22c55e)",
+              margin: "4px 0 0",
+            }}
+          >
+            Brand context loaded — prompts will be generated from client data
+          </p>
+        )}
+        {!contextActive && !contextLoading && clientId && (
+          <p
+            style={{
+              fontSize: 11,
+              color: "var(--color-warning, #f59e0b)",
+              margin: "4px 0 0",
+            }}
+          >
+            No brand context found — complete Client Generator first for best results
           </p>
         )}
       </div>
@@ -268,7 +258,7 @@ export function SmartBatchPage({
         </div>
       </div>
 
-      {/* Row 3: Reference Images (replaces Brief & Context) */}
+      {/* Row 3: Reference Images */}
       <div
         className="card"
         style={{ padding: "12px 16px" }}
@@ -394,7 +384,7 @@ export function SmartBatchPage({
       >
         <div>
           <span style={{ fontWeight: 600, fontSize: 14 }}>
-            {Math.min(quantity, selectedPack?.item_count ?? quantity)} items
+            {quantity} images
           </span>
           <span
             style={{
@@ -415,7 +405,7 @@ export function SmartBatchPage({
           disabled={!canLaunch || launching}
           style={{ minWidth: 140, padding: "8px 20px", fontSize: 13 }}
         >
-          {launching ? "Creating..." : "Generate Batch"}
+          {launching ? "Generating..." : "Generate Batch"}
         </button>
       </div>
     </div>
