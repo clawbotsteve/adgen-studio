@@ -1,1186 +1,906 @@
 "use client";
 
-import { useState, useCallback, useRef, useEffect } from "react";
-import {
-  Fingerprint,
-  Mic,
-  ShoppingBag,
-  Crosshair,
-  Users,
-  BookOpen,
-  CalendarDays,
-  ShieldCheck,
-  FlaskConical,
-  Paintbrush,
-  Target,
-  Upload,
-  Plus,
-  Trash2,
-  CheckCircle2,
-  Circle,
-  ChevronRight,
-  ChevronDown,
-  Save,
-  FileText,
-  FolderOpen,
-  X,
-  UserPlus,
-  Building2,
-  Camera,
-  Sparkles,
-  Image,
-} from "lucide-react";
+import { useState, useEffect, useCallback } from "react";
+import { useToast } from "@/lib/hooks/useToast";
 
-/* ÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂ Section / sub-item definitions ÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂ */
+/* ── Types ───────────────────────────────────────────────── */
 
-interface SubItem {
+type ClientOption = { id: string; name: string };
+
+type BrandContext = {
+  id?: string;
+  brand_guidelines: string;
+  products: string;
+  competitive_landscape: string;
+  customer_personas: string;
+  founder_story: string;
+  marketing_calendar: string;
+  compliance_legal: string;
+  testing_priorities: string;
+  creative_background: string;
+  creative_ops_constraints: string;
+  ad_account_details: string;
+  goals: string;
+  // Parker-style fields
+  positioning_more: string;
+  positioning_less: string;
+  vocabulary_use: string;
+  vocabulary_avoid: string;
+  associations_with: string;
+  associations_not: string;
+  font_primary: string;
+  font_secondary: string;
+  color_primary: string;
+  color_secondary: string;
+  color_accent: string;
+};
+
+type DocFile = {
   id: string;
+  file_name: string;
+  file_type: string;
+  storage_url: string;
+  created_at: string;
+};
+
+const EMPTY_CONTEXT: BrandContext = {
+  brand_guidelines: "",
+  products: "",
+  competitive_landscape: "",
+  customer_personas: "",
+  founder_story: "",
+  marketing_calendar: "",
+  compliance_legal: "",
+  testing_priorities: "",
+  creative_background: "",
+  creative_ops_constraints: "",
+  ad_account_details: "",
+  goals: "",
+  positioning_more: "",
+  positioning_less: "",
+  vocabulary_use: "",
+  vocabulary_avoid: "",
+  associations_with: "",
+  associations_not: "",
+  font_primary: "",
+  font_secondary: "",
+  color_primary: "#3060ff",
+  color_secondary: "#121a2f",
+  color_accent: "#ff6b35",
+};
+
+/* ── Section definitions (Parker-style) ──────────────────── */
+
+type SectionItem = {
+  key: string;
   label: string;
-  icon: React.ReactNode;
-}
-interface Section {
-  id: string;
+  completed?: boolean;
+};
+
+type Section = {
   number: number;
   title: string;
   subtitle: string;
-  items: SubItem[];
-}
+  items: SectionItem[];
+};
 
 const SECTIONS: Section[] = [
   {
-    id: "brand-dna",
     number: 1,
     title: "Brand DNA",
     subtitle: "Identity & Core Values",
     items: [
-      { id: "voice", label: "Brand Voice & Guidelines", icon: <Mic size={15} /> },
-      { id: "products", label: "Products & USP", icon: <ShoppingBag size={15} /> },
-      { id: "competitors", label: "Competitive Landscape", icon: <Crosshair size={15} /> },
-      { id: "personas", label: "Customer Personas", icon: <Users size={15} /> },
-      { id: "founder", label: "Founder Story", icon: <BookOpen size={15} /> },
+      { key: "brand-voice", label: "Brand Voice & Guidelines" },
+      { key: "products-usp", label: "Products & USP" },
+      { key: "competitive", label: "Competitive Landscape" },
+      { key: "personas", label: "Customer Personas" },
+      { key: "founder", label: "Founder Story" },
     ],
   },
   {
-    id: "strategy",
     number: 2,
     title: "Strategy",
     subtitle: "Market Position & Testing",
     items: [
-      { id: "calendar", label: "Marketing Calendar", icon: <CalendarDays size={15} /> },
-      { id: "compliance", label: "Compliance & Legal", icon: <ShieldCheck size={15} /> },
-      { id: "testing", label: "Testing Priorities", icon: <FlaskConical size={15} /> },
-      { id: "creative-bg", label: "Creative Background", icon: <Paintbrush size={15} /> },
+      { key: "marketing-cal", label: "Marketing Calendar" },
+      { key: "compliance", label: "Compliance & Legal" },
+      { key: "testing", label: "Testing Priorities" },
+      { key: "creative-bg", label: "Creative Background" },
     ],
   },
   {
-    id: "creative-ops",
     number: 3,
     title: "Creative Ops",
     subtitle: "Execution & Logistics",
     items: [
-      { id: "strategy-goals", label: "Creative Strategy Goals", icon: <Target size={15} /> },
-      { id: "assets", label: "Brand Assets", icon: <Upload size={15} /> },
-    ],
-  },
-  {
-    id: "brand-docs",
-    number: 4,
-    title: "Brand Documents",
-    subtitle: "Upload Reference Files",
-    items: [
-      { id: "documents", label: "Upload Brand Docs", icon: <FileText size={15} /> },
-    ],
-  },
-  {
-    id: "content-gen",
-    number: 5,
-    title: "Content Generation",
-    subtitle: "AI Image Preferences",
-    items: [
-      { id: "content-types", label: "Content Types & Styles", icon: <Camera size={15} /> },
-      { id: "scenes", label: "Scenes & Settings", icon: <Image size={15} /> },
-      { id: "generation-notes", label: "Generation Notes", icon: <Sparkles size={15} /> },
+      { key: "ops-constraints", label: "Creative Ops Constraints" },
+      { key: "ad-account", label: "Ad Account Details" },
+      { key: "goals", label: "Creative Strategy Goals" },
+      { key: "fonts-colors", label: "Fonts & Colors" },
     ],
   },
 ];
 
-const ALL_ITEMS = SECTIONS.flatMap((s) => s.items.map((i) => i.id));
+/* ── Component ───────────────────────────────────────────── */
 
-/* ÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂ Client types ÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂ */
+export function ClientGeneratorPage({ tenantId }: { tenantId: string }) {
+  const { toast } = useToast();
+  const [clients, setClients] = useState<ClientOption[]>([]);
+  const [selectedClientId, setSelectedClientId] = useState<string>("");
+  const [newClientName, setNewClientName] = useState("");
+  const [creatingClient, setCreatingClient] = useState(false);
+  const [activeSection, setActiveSection] = useState("brand-voice");
+  const [context, setContext] = useState<BrandContext>(EMPTY_CONTEXT);
+  const [docs, setDocs] = useState<DocFile[]>([]);
+  const [saving, setSaving] = useState(false);
+  const [uploading, setUploading] = useState(false);
+  const [dragActive, setDragActive] = useState(false);
 
-interface ClientProfile {
-  id: string;
-  name: string;
-  industry: string;
-  website: string;
-  createdAt: string;
-}
+  // Fetch clients
+  useEffect(() => {
+    fetch("/api/clients")
+      .then((r) => r.json())
+      .then((data) => {
+        if (Array.isArray(data)) setClients(data);
+      })
+      .catch(() => {});
+  }, []);
 
-interface BrandDoc {
-  id: string;
-  name: string;
-  size: string;
-  type: string;
-  uploadedAt: string;
-}
-
-/* ÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂ Reusable form components ÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂ */
-
-function FieldLabel({ children }: { children: React.ReactNode }) {
-  return <label className="cg-field-label">{children}</label>;
-}
-
-function FieldHint({ children }: { children: React.ReactNode }) {
-  return <p className="cg-field-hint">{children}</p>;
-}
-
-function TextArea({
-  value,
-  onChange,
-  placeholder,
-  rows = 4,
-  warm = false,
-}: {
-  value: string;
-  onChange: (v: string) => void;
-  placeholder?: string;
-  rows?: number;
-  warm?: boolean;
-}) {
-  return (
-    <textarea
-      className={`cg-textarea${warm ? " cg-textarea-warm" : ""}`}
-      value={value}
-      onChange={(e) => onChange(e.target.value)}
-      placeholder={placeholder}
-      rows={rows}
-    />
+  // Fetch brand context when client changes
+  const loadContext = useCallback(
+    async (clientId: string) => {
+      if (!clientId) {
+        setContext(EMPTY_CONTEXT);
+        setDocs([]);
+        return;
+      }
+      try {
+        const r = await fetch(`/api/brand-context?clientId=${clientId}`);
+        if (r.ok) {
+          const data = await r.json();
+          const ctx = data?.context;
+          if (ctx && ctx.id) {
+            setContext({ ...EMPTY_CONTEXT, ...ctx });
+            // Load docs
+            const dr = await fetch(
+              `/api/brand-context/docs?brandContextId=${ctx.id}`
+            );
+            if (dr.ok) {
+              const docsData = await dr.json();
+              setDocs(Array.isArray(docsData) ? docsData : []);
+            }
+          } else {
+            setContext(EMPTY_CONTEXT);
+            setDocs([]);
+          }
+        }
+      } catch {
+        setContext(EMPTY_CONTEXT);
+      }
+    },
+    []
   );
-}
 
-function TextInput({
-  value,
-  onChange,
-  placeholder,
-  small = false,
-}: {
-  value: string;
-  onChange: (v: string) => void;
-  placeholder?: string;
-  small?: boolean;
-}) {
-  return (
-    <input
-      type="text"
-      className={`cg-input${small ? " cg-input-sm" : ""}`}
-      value={value}
-      onChange={(e) => onChange(e.target.value)}
-      placeholder={placeholder}
-    />
-  );
-}
+  useEffect(() => {
+    if (selectedClientId) loadContext(selectedClientId);
+  }, [selectedClientId, loadContext]);
 
-/* ÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂ Form data types ÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂ */
-
-interface Competitor {
-  website: string;
-  notes: string;
-}
-
-interface FormData {
-  /* Brand DNA */
-  toneOfVoice: string;
-  brandPersonality: string;
-  voiceMoreOf: string;
-  voiceLessOf: string;
-  productDescription: string;
-  usp: string;
-  differentiators: string;
-  competitors: Competitor[];
-  targetAudience: string;
-  demographics: string;
-  painPoints: string;
-  founderStory: string;
-  mission: string;
-  /* Strategy */
-  keyDates: string;
-  seasonalCampaigns: string;
-  regulations: string;
-  disclaimers: string;
-  restrictedClaims: string;
-  testingHypotheses: string;
-  kpis: string;
-  pastCampaigns: string;
-  stylePreferences: string;
-  /* Creative Ops */
-  budgetRange: string;
-  turnaround: string;
-  approvalWorkflow: string;
-  platforms: string;
-  pixelIds: string;
-  spendTargets: string;
-  campaignObjectives: string;
-  funnelStages: string;
-  ctaPreferences: string;
-  primaryColor: string;
-  secondaryColor: string;
-  accentColor: string;
-  fontPrimary: string;
-  fontSecondary: string;
-  /* Content Generation */
-  contentTypes: string;
-  imageStyle: string;
-  scenesAndSettings: string;
-  modelPreferences: string;
-  propsAndProducts: string;
-  moodAndLighting: string;
-  compositionNotes: string;
-  referenceExamples: string;
-}
-
-const INITIAL_DATA: FormData = {
-  toneOfVoice: "",
-  brandPersonality: "",
-  voiceMoreOf: "",
-  voiceLessOf: "",
-  productDescription: "",
-  usp: "",
-  differentiators: "",
-  competitors: [{ website: "", notes: "" }],
-  targetAudience: "",
-  demographics: "",
-  painPoints: "",
-  founderStory: "",
-  mission: "",
-  keyDates: "",
-  seasonalCampaigns: "",
-  regulations: "",
-  disclaimers: "",
-  restrictedClaims: "",
-  testingHypotheses: "",
-  kpis: "",
-  pastCampaigns: "",
-  stylePreferences: "",
-  budgetRange: "",
-  turnaround: "",
-  approvalWorkflow: "",
-  platforms: "",
-  pixelIds: "",
-  spendTargets: "",
-  campaignObjectives: "",
-  funnelStages: "",
-  ctaPreferences: "",
-  primaryColor: "#7c5cfc",
-  secondaryColor: "#1e293b",
-  accentColor: "#f59e0b",
-  fontPrimary: "",
-  fontSecondary: "",
-  /* Content Generation */
-  contentTypes: "",
-  imageStyle: "",
-  scenesAndSettings: "",
-  modelPreferences: "",
-  propsAndProducts: "",
-  moodAndLighting: "",
-  compositionNotes: "",
-  referenceExamples: "",
-};
-
-/* ÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂ Client Selector Bar ÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂ */
-
-function ClientSelectorBar({
-  clients,
-  selectedClient,
-  onSelect,
-  onCreateNew,
-  newClientName,
-  setNewClientName,
-  newClientIndustry,
-  setNewClientIndustry,
-  newClientWebsite,
-  setNewClientWebsite,
-  showNewForm,
-  setShowNewForm,
-  onDeleteClient,
-}: {
-  clients: ClientProfile[];
-  selectedClient: ClientProfile | null;
-  onSelect: (id: string) => void;
-  onCreateNew: () => void;
-  newClientName: string;
-  setNewClientName: (v: string) => void;
-  newClientIndustry: string;
-  setNewClientIndustry: (v: string) => void;
-  newClientWebsite: string;
-  setNewClientWebsite: (v: string) => void;
-  showNewForm: boolean;
-  setShowNewForm: (v: boolean) => void;
-}) {
-  const [dropdownOpen, setDropdownOpen] = useState(false);
-
-  return (
-    <div className="cg-client-bar">
-      <div className="cg-client-bar-inner">
-        {/* Client dropdown */}
-        <div className="cg-client-selector">
-          <button
-            className="cg-client-dropdown-btn"
-            onClick={() => setDropdownOpen(!dropdownOpen)}
-          >
-            <Building2 size={16} />
-            <span>{selectedClient ? selectedClient.name : "Select a client..."}</span>
-            <ChevronDown size={14} className={dropdownOpen ? "cg-chevron-flip" : ""} />
-          </button>
-
-          {dropdownOpen && (
-            <div className="cg-client-dropdown">
-              {clients.length === 0 && (
-                <div className="cg-client-dropdown-empty">
-                  No clients yet. Create your first one below.
-                </div>
-              )}
-              {clients.map((client) => (
-                <button
-                  key={client.id}
-                  className={`cg-client-dropdown-item${selectedClient?.id === client.id ? " cg-client-dropdown-item-active" : ""}`}
-                  onClick={() => {
-                    onSelect(client.id);
-                    setDropdownOpen(false);
-                  }}
-                >
-                  <div className="cg-client-dropdown-item-info">
-                    <span className="cg-client-dropdown-item-name">{client.name}</span>
-                    {client.industry && (
-                      <span className="cg-client-dropdown-item-industry">{client.industry}</span>
-                    )}
-                  </div>
-                  <div className="cg-client-dropdown-item-actions">
-                    {selectedClient?.id === client.id && <CheckCircle2 size={14} />}
-                    <button
-                      className="cg-client-delete-btn"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        onDeleteClient(client.id);
-                      }}
-                      title="Remove client"
-                    >
-                      <Trash2 size={14} />
-                    </button>
-                  </div>
-                </button>
-              ))}
-            </div>
-          )}
-        </div>
-
-        {/* New client button */}
-        <button
-          className="cg-new-client-btn"
-          onClick={() => {
-            setShowNewForm(!showNewForm);
-            setDropdownOpen(false);
-          }}
-        >
-          <UserPlus size={16} />
-          New Client
-        </button>
-      </div>
-
-      {/* New client form (expandable) */}
-      {showNewForm && (
-        <div className="cg-new-client-form">
-          <div className="cg-new-client-form-header">
-            <h3>Create New Client Profile</h3>
-            <button className="cg-icon-btn" onClick={() => setShowNewForm(false)}>
-              <X size={16} />
-            </button>
-          </div>
-          <div className="cg-new-client-fields">
-            <div className="cg-new-client-field">
-              <label>Client / Brand Name *</label>
-              <input
-                type="text"
-                className="cg-input"
-                value={newClientName}
-                onChange={(e) => setNewClientName(e.target.value)}
-                placeholder="e.g. Acme Fitness Co."
-              />
-            </div>
-            <div className="cg-new-client-field">
-              <label>Industry</label>
-              <input
-                type="text"
-                className="cg-input"
-                value={newClientIndustry}
-                onChange={(e) => setNewClientIndustry(e.target.value)}
-                placeholder="e.g. Health & Fitness, SaaS, E-commerce..."
-              />
-            </div>
-            <div className="cg-new-client-field">
-              <label>Website</label>
-              <input
-                type="text"
-                className="cg-input"
-                value={newClientWebsite}
-                onChange={(e) => setNewClientWebsite(e.target.value)}
-                placeholder="https://example.com"
-              />
-            </div>
-          </div>
-          <button
-            className="cg-save-btn"
-            onClick={onCreateNew}
-            disabled={!newClientName.trim()}
-            style={{ marginTop: "12px" }}
-          >
-            <Plus size={16} /> Create Client
-          </button>
-        </div>
-      )}
-    </div>
-  );
-}
-
-/* ÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂ Section content renderers ÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂ */
-
-function VoiceSection({ data, set }: { data: FormData; set: (d: Partial<FormData>) => void }) {
-  return (
-    <div className="cg-section-content">
-      <h2 className="cg-section-title"><Mic size={20} /> Brand Voice &amp; Guidelines</h2>
-
-      <div className="cg-field-group">
-        <FieldLabel>TONE OF VOICE</FieldLabel>
-        <FieldHint>Describe how your brand speaks ÃÂ¢ÃÂÃÂ formal, casual, witty, authoritative, etc.</FieldHint>
-        <TextArea value={data.toneOfVoice} onChange={(v) => set({ toneOfVoice: v })} placeholder="e.g. Friendly and approachable, but knowledgeable. We avoid jargon and speak like a trusted advisor..." rows={4} />
-      </div>
-
-      <div className="cg-field-group">
-        <FieldLabel>BRAND PERSONALITY</FieldLabel>
-        <FieldHint>If your brand were a person, how would you describe them?</FieldHint>
-        <TextArea value={data.brandPersonality} onChange={(v) => set({ brandPersonality: v })} placeholder="e.g. A smart, confident friend who simplifies complex topics without being condescending..." rows={3} />
-      </div>
-
-      <div className="cg-field-group">
-        <FieldLabel>VOICE GUIDELINES</FieldLabel>
-        <FieldHint>What should your content lean into vs. avoid?</FieldHint>
-        <div className="cg-pair-fields">
-          <div className="cg-pair-field">
-            <span className="cg-pair-label">MORE OF THIS</span>
-            <TextArea value={data.voiceMoreOf} onChange={(v) => set({ voiceMoreOf: v })} placeholder="e.g. Conversational tone, bold claims backed by data, humor..." rows={3} warm />
-          </div>
-          <div className="cg-pair-field">
-            <span className="cg-pair-label">LESS OF THIS</span>
-            <TextArea value={data.voiceLessOf} onChange={(v) => set({ voiceLessOf: v })} placeholder="e.g. Corporate speak, passive voice, vague promises..." rows={3} />
-          </div>
-        </div>
-      </div>
-    </div>
-  );
-}
-
-function ProductsSection({ data, set }: { data: FormData; set: (d: Partial<FormData>) => void }) {
-  return (
-    <div className="cg-section-content">
-      <h2 className="cg-section-title"><ShoppingBag size={20} /> Products &amp; USP</h2>
-
-      <div className="cg-field-group">
-        <FieldLabel>PRODUCT / SERVICE DESCRIPTION</FieldLabel>
-        <FieldHint>What do you sell? Describe your core offering in plain language.</FieldHint>
-        <TextArea value={data.productDescription} onChange={(v) => set({ productDescription: v })} placeholder="e.g. We sell premium wireless earbuds designed for athletes. Sweat-proof, 12-hour battery..." rows={4} />
-      </div>
-
-      <div className="cg-field-group">
-        <FieldLabel>UNIQUE SELLING PROPOSITION</FieldLabel>
-        <FieldHint>What makes you different from everyone else? Why should a customer choose you?</FieldHint>
-        <TextArea value={data.usp} onChange={(v) => set({ usp: v })} placeholder="e.g. Only earbuds with real-time heart rate coaching built into the audio..." rows={3} />
-      </div>
-
-      <div className="cg-field-group">
-        <FieldLabel>KEY DIFFERENTIATORS</FieldLabel>
-        <FieldHint>List the specific features, values, or qualities that set you apart.</FieldHint>
-        <TextArea value={data.differentiators} onChange={(v) => set({ differentiators: v })} placeholder="e.g. Patent-pending bone conduction, 30-day money-back guarantee, endorsed by 50+ pro athletes..." rows={3} />
-      </div>
-    </div>
-  );
-}
-
-function CompetitorsSection({ data, set }: { data: FormData; set: (d: Partial<FormData>) => void }) {
-  const addCompetitor = () => set({ competitors: [...data.competitors, { website: "", notes: "" }] });
-  const removeCompetitor = (idx: number) => set({ competitors: data.competitors.filter((_, i) => i !== idx) });
-  const updateCompetitor = (idx: number, field: keyof Competitor, val: string) => {
-    const updated = [...data.competitors];
-    updated[idx] = { ...updated[idx], [field]: val };
-    set({ competitors: updated });
+  // Create new client
+  const createClient = async () => {
+    if (!newClientName.trim()) return;
+    setCreatingClient(true);
+    try {
+      const r = await fetch("/api/clients", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ name: newClientName.trim() }),
+      });
+      if (r.ok) {
+        const client = await r.json();
+        setClients((prev) => [...prev, client]);
+        setSelectedClientId(client.id);
+        setNewClientName("");
+        toast("Client created!", "success");
+      }
+    } catch {
+      toast("Failed to create client", "error");
+    } finally {
+      setCreatingClient(false);
+    }
   };
 
-  return (
-    <div className="cg-section-content">
-      <h2 className="cg-section-title"><Crosshair size={20} /> Competitive Landscape</h2>
-      <FieldHint>We recommend adding at least 3 competitors and their websites so we can study their positioning.</FieldHint>
+  // Build the DB-safe payload (only fields that exist as columns)
+  const buildSavePayload = () => {
+    // Merge Parker-style fields into brand_guidelines for richer context
+    const parkerParts: string[] = [];
+    if (context.positioning_more?.trim())
+      parkerParts.push(`Positioning (more of): ${context.positioning_more.trim()}`);
+    if (context.positioning_less?.trim())
+      parkerParts.push(`Positioning (less of): ${context.positioning_less.trim()}`);
+    if (context.vocabulary_use?.trim())
+      parkerParts.push(`Vocabulary (use): ${context.vocabulary_use.trim()}`);
+    if (context.vocabulary_avoid?.trim())
+      parkerParts.push(`Vocabulary (avoid): ${context.vocabulary_avoid.trim()}`);
+    if (context.associations_with?.trim())
+      parkerParts.push(`Associates with: ${context.associations_with.trim()}`);
+    if (context.associations_not?.trim())
+      parkerParts.push(`Does not associate with: ${context.associations_not.trim()}`);
+    if (context.font_primary?.trim())
+      parkerParts.push(`Primary font: ${context.font_primary.trim()}`);
+    if (context.font_secondary?.trim())
+      parkerParts.push(`Secondary font: ${context.font_secondary.trim()}`);
+    if (context.color_primary?.trim())
+      parkerParts.push(`Primary color: ${context.color_primary.trim()}`);
+    if (context.color_secondary?.trim())
+      parkerParts.push(`Secondary color: ${context.color_secondary.trim()}`);
+    if (context.color_accent?.trim())
+      parkerParts.push(`Accent color: ${context.color_accent.trim()}`);
 
-      {data.competitors.map((comp, idx) => (
-        <div key={idx} className="cg-competitor-card">
-          <div className="cg-competitor-header">
-            <FieldLabel>COMPETITOR WEBSITE #{idx + 1}</FieldLabel>
-            {data.competitors.length > 1 && (
-              <button className="cg-competitor-remove" onClick={() => removeCompetitor(idx)}>
-                <Trash2 size={14} />
-              </button>
-            )}
-          </div>
-          <TextInput value={comp.website} onChange={(v) => updateCompetitor(idx, "website", v)} placeholder="https://competitor.com" />
-          <div style={{ marginTop: "12px" }}>
-            <FieldLabel>WHAT SHOULD WE KNOW ABOUT THEM?</FieldLabel>
-            <TextArea value={comp.notes} onChange={(v) => updateCompetitor(idx, "notes", v)} placeholder="e.g. They use cheap plastic, we use aerospace aluminum..." rows={3} warm />
-          </div>
-        </div>
-      ))}
+    const baseBrandGuidelines = context.brand_guidelines?.trim() || "";
+    const parkerBlock = parkerParts.length > 0 ? parkerParts.join("\n") : "";
+    const mergedBrandGuidelines = [baseBrandGuidelines, parkerBlock]
+      .filter(Boolean)
+      .join("\n\n--- Brand Identity ---\n");
 
-      <button className="cg-add-btn" onClick={addCompetitor} style={{ marginTop: "8px" }}>
-        <Plus size={16} /> Add Another Competitor
-      </button>
-    </div>
-  );
-}
+    return {
+      clientId: selectedClientId,
+      brand_guidelines: mergedBrandGuidelines,
+      products: context.products,
+      competitive_landscape: context.competitive_landscape,
+      customer_personas: context.customer_personas,
+      founder_story: context.founder_story,
+      marketing_calendar: context.marketing_calendar,
+      compliance_legal: context.compliance_legal,
+      testing_priorities: context.testing_priorities,
+      ad_format_preferences: context.creative_background || context.ad_account_details || "",
+      creative_ops_constraints: context.creative_ops_constraints,
+      naming_conventions: "",
+      goals: context.goals,
+    };
+  };
 
-function PersonasSection({ data, set }: { data: FormData; set: (d: Partial<FormData>) => void }) {
-  return (
-    <div className="cg-section-content">
-      <h2 className="cg-section-title"><Users size={20} /> Customer Personas</h2>
+  // Save context
+  const saveContext = async () => {
+    if (!selectedClientId) return;
+    setSaving(true);
+    try {
+      const payload = buildSavePayload();
+      const r = await fetch("/api/brand-context", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+      if (r.ok) {
+        const data = await r.json();
+        setContext((prev) => ({ ...prev, id: data.context?.id || data.id }));
+        toast("Context saved!", "success");
+      } else {
+        const err = await r.json().catch(() => null);
+        toast("Failed to save: " + (err?.error || "Unknown error"), "error");
+      }
+    } catch {
+      toast("Failed to save", "error");
+    } finally {
+      setSaving(false);
+    }
+  };
 
-      <div className="cg-field-group">
-        <FieldLabel>TARGET AUDIENCE</FieldLabel>
-        <FieldHint>Who are your ideal customers? Describe them in detail.</FieldHint>
-        <TextArea value={data.targetAudience} onChange={(v) => set({ targetAudience: v })} placeholder="e.g. Health-conscious millennials aged 25-35 who exercise 4+ times per week..." rows={4} />
-      </div>
+  // Upload PDF
+  const uploadFile = async (file: File) => {
+    if (!context.id && selectedClientId) {
+      // Save context first to get an ID
+      const payload = buildSavePayload();
+      const r = await fetch("/api/brand-context", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+      if (r.ok) {
+        const data = await r.json();
+        const ctxId = data.context?.id || data.id;
+        setContext((prev) => ({ ...prev, id: ctxId }));
+        await doUpload(file, ctxId);
+      }
+    } else if (context.id) {
+      await doUpload(file, context.id);
+    }
+  };
 
-      <div className="cg-field-group">
-        <FieldLabel>DEMOGRAPHICS</FieldLabel>
-        <FieldHint>Age range, gender, location, income level, education, etc.</FieldHint>
-        <TextArea value={data.demographics} onChange={(v) => set({ demographics: v })} placeholder="e.g. 25-40, mostly male, urban US cities, $60-120k household income..." rows={3} />
-      </div>
+  const doUpload = async (file: File, brandContextId: string) => {
+    setUploading(true);
+    try {
+      const fd = new FormData();
+      fd.append("file", file);
+      fd.append("brandContextId", brandContextId);
+      const r = await fetch("/api/brand-context/docs/upload", {
+        method: "POST",
+        body: fd,
+      });
+      if (r.ok) {
+        const doc = await r.json();
+        setDocs((prev) => [...prev, doc]);
+        toast("File uploaded!", "success");
+      }
+    } catch {
+      toast("Upload failed", "error");
+    } finally {
+      setUploading(false);
+    }
+  };
 
-      <div className="cg-field-group">
-        <FieldLabel>PAIN POINTS</FieldLabel>
-        <FieldHint>What problems keep your customers up at night? What frustrates them about current solutions?</FieldHint>
-        <TextArea value={data.painPoints} onChange={(v) => set({ painPoints: v })} placeholder="e.g. Earbuds fall out during workouts, batteries die mid-run, can't hear traffic while running outdoors..." rows={4} />
-      </div>
-    </div>
-  );
-}
-
-function FounderSection({ data, set }: { data: FormData; set: (d: Partial<FormData>) => void }) {
-  return (
-    <div className="cg-section-content">
-      <h2 className="cg-section-title"><BookOpen size={20} /> Founder Story</h2>
-
-      <div className="cg-field-group">
-        <FieldLabel>ORIGIN STORY</FieldLabel>
-        <FieldHint>How did the brand start? What inspired its creation?</FieldHint>
-        <TextArea value={data.founderStory} onChange={(v) => set({ founderStory: v })} placeholder="e.g. After my earbuds died mid-marathon for the third time, I quit my engineering job and spent 2 years building..." rows={5} warm />
-      </div>
-
-      <div className="cg-field-group">
-        <FieldLabel>MISSION & PURPOSE</FieldLabel>
-        <FieldHint>Why does your brand exist beyond making money?</FieldHint>
-        <TextArea value={data.mission} onChange={(v) => set({ mission: v })} placeholder="e.g. To empower athletes with technology that keeps up with their ambition..." rows={3} />
-      </div>
-    </div>
-  );
-}
-
-function CalendarSection({ data, set }: { data: FormData; set: (d: Partial<FormData>) => void }) {
-  return (
-    <div className="cg-section-content">
-      <h2 className="cg-section-title"><CalendarDays size={20} /> Marketing Calendar</h2>
-
-      <div className="cg-field-group">
-        <FieldLabel>KEY DATES & LAUNCHES</FieldLabel>
-        <FieldHint>Important dates, product launches, or events coming up.</FieldHint>
-        <TextArea value={data.keyDates} onChange={(v) => set({ keyDates: v })} placeholder="e.g. Q2 product launch April 15, Summer campaign June 1, Black Friday promo starts Nov 20..." rows={4} />
-      </div>
-
-      <div className="cg-field-group">
-        <FieldLabel>SEASONAL CAMPAIGNS</FieldLabel>
-        <FieldHint>Recurring seasonal themes or campaigns you run every year.</FieldHint>
-        <TextArea value={data.seasonalCampaigns} onChange={(v) => set({ seasonalCampaigns: v })} placeholder="e.g. New Year fitness push (Jan), Summer outdoor campaign (June-Aug), Holiday gift guide (Nov-Dec)..." rows={3} />
-      </div>
-    </div>
-  );
-}
-
-function ComplianceSection({ data, set }: { data: FormData; set: (d: Partial<FormData>) => void }) {
-  return (
-    <div className="cg-section-content">
-      <h2 className="cg-section-title"><ShieldCheck size={20} /> Compliance &amp; Legal</h2>
-
-      <div className="cg-field-group">
-        <FieldLabel>INDUSTRY REGULATIONS</FieldLabel>
-        <FieldHint>Any industry-specific regulations or advertising standards you must follow?</FieldHint>
-        <TextArea value={data.regulations} onChange={(v) => set({ regulations: v })} placeholder="e.g. FDA guidelines for health claims, FTC endorsement rules, HIPAA considerations..." rows={3} />
-      </div>
-
-      <div className="cg-field-group">
-        <FieldLabel>REQUIRED DISCLAIMERS</FieldLabel>
-        <FieldHint>Any disclaimers that must appear in your ads or content?</FieldHint>
-        <TextArea value={data.disclaimers} onChange={(v) => set({ disclaimers: v })} placeholder='e.g. "Results may vary", "Not intended to diagnose or treat any condition"...' rows={3} />
-      </div>
-
-      <div className="cg-field-group">
-        <FieldLabel>RESTRICTED CLAIMS</FieldLabel>
-        <FieldHint>Things you absolutely cannot say or imply in marketing.</FieldHint>
-        <TextArea value={data.restrictedClaims} onChange={(v) => set({ restrictedClaims: v })} placeholder='e.g. Cannot claim "FDA approved", cannot guarantee specific weight loss numbers...' rows={3} />
-      </div>
-    </div>
-  );
-}
-
-function TestingSection({ data, set }: { data: FormData; set: (d: Partial<FormData>) => void }) {
-  return (
-    <div className="cg-section-content">
-      <h2 className="cg-section-title"><FlaskConical size={20} /> Testing Priorities</h2>
-
-      <div className="cg-field-group">
-        <FieldLabel>TESTING HYPOTHESES</FieldLabel>
-        <FieldHint>What do you want to A/B test? What assumptions should we validate?</FieldHint>
-        <TextArea value={data.testingHypotheses} onChange={(v) => set({ testingHypotheses: v })} placeholder="e.g. UGC-style ads outperform polished studio ads for cold traffic. Humor hooks convert better than pain-point hooks..." rows={4} />
-      </div>
-
-      <div className="cg-field-group">
-        <FieldLabel>KEY PERFORMANCE INDICATORS</FieldLabel>
-        <FieldHint>Which metrics matter most to you?</FieldHint>
-        <TextArea value={data.kpis} onChange={(v) => set({ kpis: v })} placeholder="e.g. ROAS > 3x, CPA under $25, CTR above 2%, thumb-stop rate > 30%..." rows={3} />
-      </div>
-    </div>
-  );
-}
-
-function CreativeBgSection({ data, set }: { data: FormData; set: (d: Partial<FormData>) => void }) {
-  return (
-    <div className="cg-section-content">
-      <h2 className="cg-section-title"><Paintbrush size={20} /> Creative Background</h2>
-
-      <div className="cg-field-group">
-        <FieldLabel>PAST CAMPAIGNS</FieldLabel>
-        <FieldHint>What has worked well in the past? What flopped? Include links if possible.</FieldHint>
-        <TextArea value={data.pastCampaigns} onChange={(v) => set({ pastCampaigns: v })} placeholder="e.g. Our 'Built for Beasts' campaign on Meta did 4.2x ROAS. The lifestyle photo ads underperformed vs. UGC..." rows={4} warm />
-      </div>
-
-      <div className="cg-field-group">
-        <FieldLabel>STYLE PREFERENCES</FieldLabel>
-        <FieldHint>What visual or creative style resonates with your audience?</FieldHint>
-        <TextArea value={data.stylePreferences} onChange={(v) => set({ stylePreferences: v })} placeholder="e.g. Bold, high-contrast imagery. Dark backgrounds. Action shots preferred over product-only photos..." rows={3} />
-      </div>
-    </div>
-  );
-}
-
-
-
-function StrategyGoalsSection({ data, set }: { data: FormData; set: (d: Partial<FormData>) => void }) {
-  return (
-    <div className="cg-section-content">
-      <h2 className="cg-section-title"><Target size={20} /> Creative Strategy Goals</h2>
-
-      <div className="cg-field-group">
-        <FieldLabel>CAMPAIGN OBJECTIVES</FieldLabel>
-        <FieldHint>What are you trying to achieve with your ad creative?</FieldHint>
-        <TextArea value={data.campaignObjectives} onChange={(v) => set({ campaignObjectives: v })} placeholder="e.g. Scale cold prospecting with video ads, improve retargeting ROAS, build brand awareness with top-of-funnel content..." rows={4} />
-      </div>
-
-      <div className="cg-field-group">
-        <FieldLabel>FUNNEL STAGES</FieldLabel>
-        <FieldHint>Which funnel stages need the most creative attention?</FieldHint>
-        <TextArea value={data.funnelStages} onChange={(v) => set({ funnelStages: v })} placeholder="e.g. Top-of-funnel awareness (60% of budget), Mid-funnel consideration (25%), Bottom-funnel conversion (15%)..." rows={3} />
-      </div>
-
-      <div className="cg-field-group">
-        <FieldLabel>CTA PREFERENCES</FieldLabel>
-        <FieldHint>What calls-to-action work best for your brand?</FieldHint>
-        <TextArea value={data.ctaPreferences} onChange={(v) => set({ ctaPreferences: v })} placeholder='e.g. "Shop Now" for BOFU, "Learn More" for TOFU, avoid "Buy Now" ÃÂ¢ÃÂÃÂ feels too pushy for our audience...' rows={3} />
-      </div>
-    </div>
-  );
-}
-
-function AssetsSection({ data, set }: { data: FormData; set: (d: Partial<FormData>) => void }) {
-  return (
-    <div className="cg-section-content">
-      <h2 className="cg-section-title"><Upload size={20} /> Brand Assets</h2>
-
-      <div className="cg-field-group">
-        <FieldLabel>BRAND COLORS</FieldLabel>
-        <FieldHint>Set your primary, secondary, and accent colors.</FieldHint>
-        <div className="cg-color-grid">
-          <div className="cg-color-field">
-            <span className="cg-pair-label">PRIMARY</span>
-            <div className="cg-color-input-wrap">
-              <input type="color" className="cg-color-picker" value={data.primaryColor} onChange={(e) => set({ primaryColor: e.target.value })} />
-              <TextInput small value={data.primaryColor} onChange={(v) => set({ primaryColor: v })} placeholder="#7c5cfc" />
-            </div>
-          </div>
-          <div className="cg-color-field">
-            <span className="cg-pair-label">SECONDARY</span>
-            <div className="cg-color-input-wrap">
-              <input type="color" className="cg-color-picker" value={data.secondaryColor} onChange={(e) => set({ secondaryColor: e.target.value })} />
-              <TextInput small value={data.secondaryColor} onChange={(v) => set({ secondaryColor: v })} placeholder="#1e293b" />
-            </div>
-          </div>
-          <div className="cg-color-field">
-            <span className="cg-pair-label">ACCENT</span>
-            <div className="cg-color-input-wrap">
-              <input type="color" className="cg-color-picker" value={data.accentColor} onChange={(e) => set({ accentColor: e.target.value })} />
-              <TextInput small value={data.accentColor} onChange={(v) => set({ accentColor: v })} placeholder="#f59e0b" />
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <div className="cg-field-group">
-        <FieldLabel>FONTS</FieldLabel>
-        <FieldHint>What typefaces does your brand use?</FieldHint>
-        <div className="cg-pair-fields">
-          <div className="cg-pair-field">
-            <span className="cg-pair-label">PRIMARY FONT</span>
-            <TextInput value={data.fontPrimary} onChange={(v) => set({ fontPrimary: v })} placeholder="e.g. Inter, Montserrat" />
-          </div>
-          <div className="cg-pair-field">
-            <span className="cg-pair-label">SECONDARY FONT</span>
-            <TextInput value={data.fontSecondary} onChange={(v) => set({ fontSecondary: v })} placeholder="e.g. Georgia, Playfair Display" />
-          </div>
-        </div>
-      </div>
-    </div>
-  );
-}
-
-/* ÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂ Brand Documents Upload Section ÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂ */
-
-function BrandDocsSection({
-  docs,
-  onUpload,
-  onRemove,
-  dragActive,
-  setDragActive,
-  fileInputRef,
-}: {
-  docs: BrandDoc[];
-  onUpload: (files: FileList) => void;
-  onRemove: (id: string) => void;
-  dragActive: boolean;
-  setDragActive: (v: boolean) => void;
-  fileInputRef: React.RefObject<HTMLInputElement | null>;
-}) {
-  const handleDrag = (e: React.DragEvent) => {
-    e.preventDefault();
-    e.stopPropagation();
-    if (e.type === "dragenter" || e.type === "dragover") setDragActive(true);
-    else if (e.type === "dragleave") setDragActive(false);
+  const deleteDoc = async (docId: string) => {
+    try {
+      await fetch(`/api/brand-context/docs/${docId}`, { method: "DELETE" });
+      setDocs((prev) => prev.filter((d) => d.id !== docId));
+    } catch {
+      toast("Failed to delete", "error");
+    }
   };
 
   const handleDrop = (e: React.DragEvent) => {
     e.preventDefault();
-    e.stopPropagation();
     setDragActive(false);
-    if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
-      onUpload(e.dataTransfer.files);
-    }
+    const file = e.dataTransfer.files[0];
+    if (file) uploadFile(file);
   };
 
-  return (
-    <div className="cg-section-content">
-      <h2 className="cg-section-title"><FileText size={20} /> Brand Documents</h2>
-      <FieldHint>
-        Upload brand guides, style sheets, past ad reports, product catalogs, or any reference documents.
-        These help the AI generate content that is perfectly aligned with your brand.
-      </FieldHint>
+  const updateField = (key: keyof BrandContext, value: string) => {
+    setContext((prev) => ({ ...prev, [key]: value }));
+  };
 
-      {/* Drop zone */}
-      <div
-        className={`cg-dropzone${dragActive ? " cg-dropzone-active" : ""}`}
-        onDragEnter={handleDrag}
-        onDragLeave={handleDrag}
-        onDragOver={handleDrag}
-        onDrop={handleDrop}
-        onClick={() => fileInputRef.current?.click()}
-      >
-        <input
-          ref={fileInputRef}
-          type="file"
-          multiple
-          accept=".pdf,.doc,.docx,.txt,.csv,.xlsx,.png,.jpg,.jpeg,.svg,.pptx"
-          style={{ display: "none" }}
-          onChange={(e) => {
-            if (e.target.files && e.target.files.length > 0) {
-              onUpload(e.target.files);
-              e.target.value = "";
-            }
-          }}
-        />
-        <div className="cg-dropzone-content">
-          <FolderOpen size={32} className="cg-dropzone-icon" />
-          <p className="cg-dropzone-title">
-            {dragActive ? "Drop files here..." : "Drag & drop files here, or click to browse"}
-          </p>
-          <p className="cg-dropzone-subtitle">
-            PDF, Word, Excel, PowerPoint, images, and text files accepted
-          </p>
-        </div>
-      </div>
+  // Calculate progress
+  const totalFields = 12;
+  const filledFields = [
+    context.brand_guidelines,
+    context.products,
+    context.competitive_landscape,
+    context.customer_personas,
+    context.founder_story,
+    context.marketing_calendar,
+    context.compliance_legal,
+    context.testing_priorities,
+    context.creative_background,
+    context.creative_ops_constraints,
+    context.ad_account_details,
+    context.goals,
+  ].filter((v) => v && v.trim().length > 0).length;
+  const progress = Math.round((filledFields / totalFields) * 100);
 
-      {/* Uploaded files list */}
-      {docs.length > 0 && (
-        <div className="cg-docs-list">
-          <FieldLabel>UPLOADED DOCUMENTS ({docs.length})</FieldLabel>
-          {docs.map((doc) => (
-            <div key={doc.id} className="cg-doc-card">
-              <div className="cg-doc-info">
-                <FileText size={18} className="cg-doc-icon" />
-                <div>
-                  <div className="cg-doc-name">{doc.name}</div>
-                  <div className="cg-doc-meta">{doc.type.toUpperCase()} &middot; {doc.size} &middot; {doc.uploadedAt}</div>
+  // Check which items are completed
+  const isItemCompleted = (key: string): boolean => {
+    const map: Record<string, string[]> = {
+      "brand-voice": ["brand_guidelines"],
+      "products-usp": ["products"],
+      competitive: ["competitive_landscape"],
+      personas: ["customer_personas"],
+      founder: ["founder_story"],
+      "marketing-cal": ["marketing_calendar"],
+      compliance: ["compliance_legal"],
+      testing: ["testing_priorities"],
+      "creative-bg": ["creative_background"],
+      "ops-constraints": ["creative_ops_constraints"],
+      "ad-account": ["ad_account_details"],
+      goals: ["goals"],
+      "fonts-colors": ["font_primary", "color_primary"],
+    };
+    const fields = map[key] || [];
+    return fields.some(
+      (f) =>
+        context[f as keyof BrandContext] &&
+        String(context[f as keyof BrandContext]).trim().length > 0
+    );
+  };
+
+  /* ── Render section content ────────────────────────────── */
+
+  const renderSectionContent = () => {
+    switch (activeSection) {
+      case "brand-voice":
+        return (
+          <div className="cg-section-content">
+            <h3 className="cg-section-title">Brand Voice & Guidelines</h3>
+
+            <div className="cg-upload-area">
+              <h4 className="cg-field-label">Upload Brand Guidelines</h4>
+              <div
+                className={`cg-dropzone ${dragActive ? "cg-dropzone-active" : ""}`}
+                onDragOver={(e) => {
+                  e.preventDefault();
+                  setDragActive(true);
+                }}
+                onDragLeave={() => setDragActive(false)}
+                onDrop={handleDrop}
+                onClick={() => {
+                  const inp = document.createElement("input");
+                  inp.type = "file";
+                  inp.accept = ".pdf,.docx,.doc,.png,.jpg,.jpeg,.webp";
+                  inp.onchange = (ev) => {
+                    const f = (ev.target as HTMLInputElement).files?.[0];
+                    if (f) uploadFile(f);
+                  };
+                  inp.click();
+                }}
+              >
+                <div className="cg-dropzone-icon">📄</div>
+                <p>Drag & drop PDFs or click to select</p>
+                <p className="cg-dropzone-hint">Max 50MB per file</p>
+                {uploading && <p className="cg-uploading">Uploading...</p>}
+              </div>
+
+              {docs.length > 0 && (
+                <div className="cg-doc-list">
+                  {docs.map((d) => (
+                    <div key={d.id} className="cg-doc-item">
+                      <span className="cg-doc-icon">📎</span>
+                      <span className="cg-doc-name">{d.file_name}</span>
+                      <button
+                        className="cg-doc-delete"
+                        onClick={() => deleteDoc(d.id)}
+                      >
+                        ✕
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            <div className="cg-divider">OR</div>
+
+            <div className="cg-field-group">
+              <h4 className="cg-field-label">POSITIONING</h4>
+              <div className="cg-pair-fields">
+                <div className="cg-pair-field">
+                  <label className="cg-pair-label">MORE OF THIS</label>
+                  <textarea
+                    className="cg-textarea cg-textarea-warm"
+                    placeholder="Fitness, healthy, conversational, indulgent..."
+                    value={context.positioning_more}
+                    onChange={(e) =>
+                      updateField("positioning_more", e.target.value)
+                    }
+                    rows={3}
+                  />
+                </div>
+                <div className="cg-pair-field">
+                  <label className="cg-pair-label">LESS OF THAT</label>
+                  <textarea
+                    className="cg-textarea cg-textarea-warm"
+                    placeholder="Intense bodybuilding, basic, unintelligent, unhealthy..."
+                    value={context.positioning_less}
+                    onChange={(e) =>
+                      updateField("positioning_less", e.target.value)
+                    }
+                    rows={3}
+                  />
                 </div>
               </div>
-              <button className="cg-icon-btn cg-doc-remove" onClick={() => onRemove(doc.id)}>
-                <Trash2 size={14} />
-              </button>
             </div>
-          ))}
-        </div>
-      )}
 
-      <div className="cg-field-group" style={{ marginTop: "24px" }}>
-        <FieldLabel>SUGGESTED UPLOADS</FieldLabel>
-        <div className="cg-suggested-uploads">
-          <div className="cg-suggested-item">
-            <CheckCircle2 size={14} className="cg-suggested-icon" />
-            <span>Brand style guide / brand book</span>
+            <div className="cg-field-group">
+              <h4 className="cg-field-label">VOCABULARY</h4>
+              <div className="cg-pair-fields">
+                <div className="cg-pair-field">
+                  <label className="cg-pair-label">WORDS WE USE</label>
+                  <textarea
+                    className="cg-textarea cg-textarea-warm"
+                    placeholder="Manly, bold, premium..."
+                    value={context.vocabulary_use}
+                    onChange={(e) =>
+                      updateField("vocabulary_use", e.target.value)
+                    }
+                    rows={2}
+                  />
+                </div>
+                <div className="cg-pair-field">
+                  <label className="cg-pair-label">WORDS WE DON&apos;T USE</label>
+                  <textarea
+                    className="cg-textarea cg-textarea-warm"
+                    placeholder="Moist, cheap, discount, bae..."
+                    value={context.vocabulary_avoid}
+                    onChange={(e) =>
+                      updateField("vocabulary_avoid", e.target.value)
+                    }
+                    rows={2}
+                  />
+                </div>
+              </div>
+            </div>
+
+            <div className="cg-field-group">
+              <h4 className="cg-field-label">ASSOCIATIONS</h4>
+              <div className="cg-pair-fields">
+                <div className="cg-pair-field">
+                  <label className="cg-pair-label">
+                    THINGS WE ASSOCIATE WITH
+                  </label>
+                  <textarea
+                    className="cg-textarea cg-textarea-warm"
+                    placeholder="Premium materials, sustainability, craftsmanship..."
+                    value={context.associations_with}
+                    onChange={(e) =>
+                      updateField("associations_with", e.target.value)
+                    }
+                    rows={3}
+                  />
+                </div>
+                <div className="cg-pair-field">
+                  <label className="cg-pair-label">
+                    THINGS WE DON&apos;T ASSOCIATE WITH
+                  </label>
+                  <textarea
+                    className="cg-textarea cg-textarea-warm"
+                    placeholder="Fast fashion, plastic waste, dropshipping..."
+                    value={context.associations_not}
+                    onChange={(e) =>
+                      updateField("associations_not", e.target.value)
+                    }
+                    rows={3}
+                  />
+                </div>
+              </div>
+            </div>
+
+            <div className="cg-field-group">
+              <h4 className="cg-field-label">BRAND GUIDELINES</h4>
+              <textarea
+                className="cg-textarea"
+                placeholder="Describe your brand voice, tone, and overall guidelines..."
+                value={context.brand_guidelines}
+                onChange={(e) =>
+                  updateField("brand_guidelines", e.target.value)
+                }
+                rows={5}
+              />
+            </div>
           </div>
-          <div className="cg-suggested-item">
-            <CheckCircle2 size={14} className="cg-suggested-icon" />
-            <span>Product catalog or line sheet</span>
+        );
+
+      case "products-usp":
+        return (
+          <div className="cg-section-content">
+            <h3 className="cg-section-title">Products & USP</h3>
+            <div className="cg-field-group">
+              <h4 className="cg-field-label">FOCUS PRODUCTS</h4>
+              <p className="cg-field-hint">
+                Do you want to focus on any products for creative strategy?
+              </p>
+              <textarea
+                className="cg-textarea cg-textarea-warm"
+                placeholder="Product names (e.g. 'Wood Pizza Oven', 'Handmade Leather Wallet', 'Organic Coffee')"
+                value={context.products}
+                onChange={(e) => updateField("products", e.target.value)}
+                rows={4}
+              />
+            </div>
+            <div className="cg-field-group">
+              <h4 className="cg-field-label">UNIQUE SELLING POINTS</h4>
+              <p className="cg-field-hint">
+                What do people buy from you and not competitors?
+              </p>
+              <textarea
+                className="cg-textarea cg-textarea-warm"
+                placeholder="We use the best ingredients and craftsmanship to make the most delicious pizza in the world."
+                value={context.brand_guidelines}
+                onChange={(e) =>
+                  updateField("brand_guidelines", e.target.value)
+                }
+                rows={4}
+              />
+            </div>
           </div>
-          <div className="cg-suggested-item">
-            <CheckCircle2 size={14} className="cg-suggested-icon" />
-            <span>Past ad performance reports</span>
+        );
+
+      case "competitive":
+        return (
+          <div className="cg-section-content">
+            <h3 className="cg-section-title">Competitive Landscape</h3>
+            <div className="cg-field-group">
+              <h4 className="cg-field-label">COMPETITIVE ANALYSIS</h4>
+              <p className="cg-field-hint">
+                Who are your main competitors and how do you differentiate?
+              </p>
+              <textarea
+                className="cg-textarea"
+                placeholder="Describe competitors, market positioning, and what sets you apart..."
+                value={context.competitive_landscape}
+                onChange={(e) =>
+                  updateField("competitive_landscape", e.target.value)
+                }
+                rows={6}
+              />
+            </div>
           </div>
-          <div className="cg-suggested-item">
-            <CheckCircle2 size={14} className="cg-suggested-icon" />
-            <span>Competitor analysis documents</span>
+        );
+
+      case "personas":
+        return (
+          <div className="cg-section-content">
+            <h3 className="cg-section-title">Customer Personas</h3>
+            <div className="cg-field-group">
+              <h4 className="cg-field-label">TARGET AUDIENCE</h4>
+              <p className="cg-field-hint">
+                Describe your ideal customer profiles and demographics.
+              </p>
+              <textarea
+                className="cg-textarea"
+                placeholder="Age range, interests, pain points, buying behavior..."
+                value={context.customer_personas}
+                onChange={(e) =>
+                  updateField("customer_personas", e.target.value)
+                }
+                rows={6}
+              />
+            </div>
           </div>
-          <div className="cg-suggested-item">
-            <CheckCircle2 size={14} className="cg-suggested-icon" />
-            <span>Customer research / survey results</span>
+        );
+
+      case "founder":
+        return (
+          <div className="cg-section-content">
+            <h3 className="cg-section-title">Founder Story</h3>
+            <div className="cg-field-group">
+              <h4 className="cg-field-label">YOUR STORY</h4>
+              <p className="cg-field-hint">
+                Share the founding story — this helps generate authentic creative.
+              </p>
+              <textarea
+                className="cg-textarea"
+                placeholder="How and why was this brand started? What drives the mission?"
+                value={context.founder_story}
+                onChange={(e) => updateField("founder_story", e.target.value)}
+                rows={6}
+              />
+            </div>
           </div>
-          <div className="cg-suggested-item">
-            <CheckCircle2 size={14} className="cg-suggested-icon" />
-            <span>Logo files and brand assets (PNG, SVG)</span>
+        );
+
+      case "marketing-cal":
+        return (
+          <div className="cg-section-content">
+            <h3 className="cg-section-title">Marketing Calendar</h3>
+            <div className="cg-field-group">
+              <h4 className="cg-field-label">UPCOMING CAMPAIGNS & EVENTS</h4>
+              <textarea
+                className="cg-textarea"
+                placeholder="Key dates, product launches, seasonal campaigns, sales events..."
+                value={context.marketing_calendar}
+                onChange={(e) =>
+                  updateField("marketing_calendar", e.target.value)
+                }
+                rows={6}
+              />
+            </div>
           </div>
-        </div>
-      </div>
-    </div>
-  );
-}
+        );
 
+      case "compliance":
+        return (
+          <div className="cg-section-content">
+            <h3 className="cg-section-title">Compliance & Legal</h3>
+            <div className="cg-field-group">
+              <h4 className="cg-field-label">REGULATORY REQUIREMENTS</h4>
+              <textarea
+                className="cg-textarea"
+                placeholder="Any disclaimers, legal requirements, or compliance rules for your ads..."
+                value={context.compliance_legal}
+                onChange={(e) =>
+                  updateField("compliance_legal", e.target.value)
+                }
+                rows={6}
+              />
+            </div>
+          </div>
+        );
 
-/* Content Types & Styles section */
-function ContentTypesSection({ data, set }: { data: FormData; set: (d: Partial<FormData>) => void }) {
-  return (
-    <div className="cg-section-content">
-      <h2 className="cg-section-title"><Camera size={20} /> Content Types & Styles</h2>
-      <FieldHint>
-        Describe the types of AI-generated images you want. What categories of content does this brand need?
-      </FieldHint>
-      <div className="cg-field-group">
-        <label className="cg-label">Content Types</label>
-        <textarea className="cg-textarea" rows={3} placeholder="e.g., Product hero shots, lifestyle scenes, flat lays, social media posts, banner ads..."
-          value={data.contentTypes} onChange={(e) => set({ contentTypes: e.target.value })} />
-      </div>
-      <div className="cg-field-group">
-        <label className="cg-label">Image Style & Aesthetic</label>
-        <textarea className="cg-textarea" rows={3} placeholder="e.g., Clean minimalist, warm and cozy, bold and vibrant, editorial, cinematic..."
-          value={data.imageStyle} onChange={(e) => set({ imageStyle: e.target.value })} />
-      </div>
-      <div className="cg-field-group">
-        <label className="cg-label">Model / Subject Preferences</label>
-        <textarea className="cg-textarea" rows={3} placeholder="e.g., Diverse models ages 25-35, no models (product only), hands holding product..."
-          value={data.modelPreferences} onChange={(e) => set({ modelPreferences: e.target.value })} />
-      </div>
-    </div>
-  );
-}
+      case "testing":
+        return (
+          <div className="cg-section-content">
+            <h3 className="cg-section-title">Testing Priorities</h3>
+            <div className="cg-field-group">
+              <h4 className="cg-field-label">WHAT TO TEST</h4>
+              <textarea
+                className="cg-textarea"
+                placeholder="What creative angles, formats, or messages do you want to test?"
+                value={context.testing_priorities}
+                onChange={(e) =>
+                  updateField("testing_priorities", e.target.value)
+                }
+                rows={6}
+              />
+            </div>
+          </div>
+        );
 
-/* Scenes & Settings section */
-function ScenesSection({ data, set }: { data: FormData; set: (d: Partial<FormData>) => void }) {
-  return (
-    <div className="cg-section-content">
-      <h2 className="cg-section-title"><Image size={20} /> Scenes & Settings</h2>
-      <FieldHint>
-        Describe the environments, backgrounds, and physical settings for your AI images.
-      </FieldHint>
-      <div className="cg-field-group">
-        <label className="cg-label">Scenes & Settings</label>
-        <textarea className="cg-textarea" rows={3} placeholder="e.g., Modern kitchen, outdoor patio, studio with white backdrop, urban street corner..."
-          value={data.scenesAndSettings} onChange={(e) => set({ scenesAndSettings: e.target.value })} />
-      </div>
-      <div className="cg-field-group">
-        <label className="cg-label">Props & Product Placement</label>
-        <textarea className="cg-textarea" rows={3} placeholder="e.g., Coffee mug nearby, flowers in background, product centered on marble surface..."
-          value={data.propsAndProducts} onChange={(e) => set({ propsAndProducts: e.target.value })} />
-      </div>
-      <div className="cg-field-group">
-        <label className="cg-label">Mood & Lighting</label>
-        <textarea className="cg-textarea" rows={3} placeholder="e.g., Warm golden hour, soft diffused, dramatic shadows, bright and airy..."
-          value={data.moodAndLighting} onChange={(e) => set({ moodAndLighting: e.target.value })} />
-      </div>
-    </div>
-  );
-}
+      case "creative-bg":
+        return (
+          <div className="cg-section-content">
+            <h3 className="cg-section-title">Creative Background</h3>
+            <div className="cg-field-group">
+              <h4 className="cg-field-label">CREATIVE HISTORY</h4>
+              <p className="cg-field-hint">
+                What creative has worked well in the past? What hasn&apos;t?
+              </p>
+              <textarea
+                className="cg-textarea"
+                placeholder="Past campaigns, winning formats, styles that resonate..."
+                value={context.creative_background}
+                onChange={(e) =>
+                  updateField("creative_background", e.target.value)
+                }
+                rows={6}
+              />
+            </div>
+          </div>
+        );
 
-/* Generation Notes section */
-function GenerationNotesSection({ data, set }: { data: FormData; set: (d: Partial<FormData>) => void }) {
-  return (
-    <div className="cg-section-content">
-      <h2 className="cg-section-title"><Sparkles size={20} /> Generation Notes</h2>
-      <FieldHint>
-        Any additional instructions, composition preferences, or reference examples for AI image generation.
-      </FieldHint>
-      <div className="cg-field-group">
-        <label className="cg-label">Composition & Framing Notes</label>
-        <textarea className="cg-textarea" rows={3} placeholder="e.g., Rule of thirds, centered product, close-up details, wide angle establishing shots..."
-          value={data.compositionNotes} onChange={(e) => set({ compositionNotes: e.target.value })} />
-      </div>
-      <div className="cg-field-group">
-        <label className="cg-label">Reference Examples & Inspiration</label>
-        <textarea className="cg-textarea" rows={4} placeholder="Describe or paste links to reference images, competitor examples, mood boards, or inspiration..."
-          value={data.referenceExamples} onChange={(e) => set({ referenceExamples: e.target.value })} />
-      </div>
-    </div>
-  );
-}
-/* ÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂ Content router ÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂ */
+      case "ops-constraints":
+        return (
+          <div className="cg-section-content">
+            <h3 className="cg-section-title">Creative Ops Constraints</h3>
+            <div className="cg-field-group">
+              <h4 className="cg-field-label">OPERATIONAL LIMITS</h4>
+              <textarea
+                className="cg-textarea"
+                placeholder="Budget constraints, turnaround time, team capacity, format restrictions..."
+                value={context.creative_ops_constraints}
+                onChange={(e) =>
+                  updateField("creative_ops_constraints", e.target.value)
+                }
+                rows={6}
+              />
+            </div>
+          </div>
+        );
 
-function SectionContent({
-  activeItem,
-  data,
-  set,
-  docs,
-  onUpload,
-  onRemoveDoc,
-  dragActive,
-  setDragActive,
-  fileInputRef,
-}: {
-  activeItem: string;
-  data: FormData;
-  set: (d: Partial<FormData>) => void;
-  docs: BrandDoc[];
-  onUpload: (files: FileList) => void;
-  onRemoveDoc: (id: string) => void;
-  dragActive: boolean;
-  setDragActive: (v: boolean) => void;
-  fileInputRef: React.RefObject<HTMLInputElement | null>;
-}) {
-  switch (activeItem) {
-    case "voice": return <VoiceSection data={data} set={set} />;
-    case "products": return <ProductsSection data={data} set={set} />;
-    case "competitors": return <CompetitorsSection data={data} set={set} />;
-    case "personas": return <PersonasSection data={data} set={set} />;
-    case "founder": return <FounderSection data={data} set={set} />;
-    case "calendar": return <CalendarSection data={data} set={set} />;
-    case "compliance": return <ComplianceSection data={data} set={set} />;
-    case "testing": return <TestingSection data={data} set={set} />;
-    case "creative-bg": return <CreativeBgSection data={data} set={set} />;
-    case "strategy-goals": return <StrategyGoalsSection data={data} set={set} />;
-    case "assets": return <AssetsSection data={data} set={set} />;
-    case "documents": return (
-      <BrandDocsSection
-        docs={docs}
-        onUpload={onUpload}
-        onRemove={onRemoveDoc}
-        dragActive={dragActive}
-        setDragActive={setDragActive}
-        fileInputRef={fileInputRef}
-      />
-    );
-    case "content-types": return <ContentTypesSection data={data} set={set} />;
-    case "scenes": return <ScenesSection data={data} set={set} />;
-    case "generation-notes": return <GenerationNotesSection data={data} set={set} />;
-    default: return null;
-  }
-}
+      case "ad-account":
+        return (
+          <div className="cg-section-content">
+            <h3 className="cg-section-title">Ad Account Details</h3>
+            <div className="cg-field-group">
+              <h4 className="cg-field-label">PLATFORMS & ACCOUNTS</h4>
+              <textarea
+                className="cg-textarea"
+                placeholder="Which platforms do you advertise on? Any account-specific details..."
+                value={context.ad_account_details}
+                onChange={(e) =>
+                  updateField("ad_account_details", e.target.value)
+                }
+                rows={6}
+              />
+            </div>
+          </div>
+        );
 
-/* ÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂ Helper: check if a sub-item has data ÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂ */
+      case "goals":
+        return (
+          <div className="cg-section-content">
+            <h3 className="cg-section-title">Creative Strategy Goals</h3>
+            <div className="cg-field-group">
+              <h4 className="cg-field-label">OBJECTIVES</h4>
+              <textarea
+                className="cg-textarea"
+                placeholder="What are you trying to achieve with your creative? KPIs, goals, targets..."
+                value={context.goals}
+                onChange={(e) => updateField("goals", e.target.value)}
+                rows={6}
+              />
+            </div>
+          </div>
+        );
 
-function itemHasData(id: string, data: FormData, docs: BrandDoc[]): boolean {
-  switch (id) {
-    case "voice": return !!(data.toneOfVoice || data.brandPersonality || data.voiceMoreOf || data.voiceLessOf);
-    case "products": return !!(data.productDescription || data.usp || data.differentiators);
-    case "competitors": return data.competitors.some((c) => c.website || c.notes);
-    case "personas": return !!(data.targetAudience || data.demographics || data.painPoints);
-    case "founder": return !!(data.founderStory || data.mission);
-    case "calendar": return !!(data.keyDates || data.seasonalCampaigns);
-    case "compliance": return !!(data.regulations || data.disclaimers || data.restrictedClaims);
-    case "testing": return !!(data.testingHypotheses || data.kpis);
-    case "creative-bg": return !!(data.pastCampaigns || data.stylePreferences);
-    case "strategy-goals": return !!(data.campaignObjectives || data.funnelStages || data.ctaPreferences);
-    case "assets": return !!(data.fontPrimary || data.fontSecondary);
-    case "documents": return docs.length > 0;
-    case "content-types": return !!(data.contentTypes || data.imageStyle || data.modelPreferences);
-    case "scenes": return !!(data.scenesAndSettings || data.propsAndProducts || data.moodAndLighting);
-    case "generation-notes": return !!(data.compositionNotes || data.referenceExamples);
-    default: return false;
-  }
-}
+      case "fonts-colors":
+        return (
+          <div className="cg-section-content">
+            <h3 className="cg-section-title">Fonts & Colors</h3>
 
-/* ÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂ Main component ÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂ */
+            <div className="cg-field-group">
+              <h4 className="cg-field-label">FONTS</h4>
+              <div className="cg-pair-fields">
+                <div className="cg-pair-field">
+                  <label className="cg-pair-label">Primary Font</label>
+                  <input
+                    type="text"
+                    className="cg-input"
+                    placeholder="e.g. Inter, Helvetica, Playfair Display"
+                    value={context.font_primary}
+                    onChange={(e) =>
+                      updateField("font_primary", e.target.value)
+                    }
+                  />
+                </div>
+                <div className="cg-pair-field">
+                  <label className="cg-pair-label">Secondary Font</label>
+                  <input
+                    type="text"
+                    className="cg-input"
+                    placeholder="e.g. Georgia, Roboto, Lato"
+                    value={context.font_secondary}
+                    onChange={(e) =>
+                      updateField("font_secondary", e.target.value)
+                    }
+                  />
+                </div>
+              </div>
+            </div>
 
-export function ClientGeneratorPage({ initialClients = [] }: { initialClients?: Array<{ id: string; name: string; defaults?: Record<string, unknown> | null; created_at?: string }> }) {
-  /* Client management */
-  const [clients, setClients] = useState<ClientProfile[]>(() =>
-    initialClients.map((c) => ({
-      id: c.id,
-      name: c.name,
-      industry: (c.defaults as Record<string, string>)?.industry || "",
-      website: (c.defaults as Record<string, string>)?.website || "",
-      createdAt: c.created_at || new Date().toISOString(),
-    }))
-  );
-  const [selectedClient, setSelectedClient] = useState<ClientProfile | null>(null);
-  const [showNewForm, setShowNewForm] = useState(false);
-  const [newClientName, setNewClientName] = useState("");
-  const [newClientIndustry, setNewClientIndustry] = useState("");
-  const [newClientWebsite, setNewClientWebsite] = useState("");
+            <div className="cg-field-group">
+              <h4 className="cg-field-label">COLORS</h4>
+              <div className="cg-color-grid">
+                <div className="cg-color-field">
+                  <label className="cg-pair-label">Primary</label>
+                  <div className="cg-color-input-wrap">
+                    <input
+                      type="color"
+                      className="cg-color-picker"
+                      value={context.color_primary}
+                      onChange={(e) =>
+                        updateField("color_primary", e.target.value)
+                      }
+                    />
+                    <input
+                      type="text"
+                      className="cg-input cg-input-sm"
+                      value={context.color_primary}
+                      onChange={(e) =>
+                        updateField("color_primary", e.target.value)
+                      }
+                    />
+                  </div>
+                </div>
+                <div className="cg-color-field">
+                  <label className="cg-pair-label">Secondary</label>
+                  <div className="cg-color-input-wrap">
+                    <input
+                      type="color"
+                      className="cg-color-picker"
+                      value={context.color_secondary}
+                      onChange={(e) =>
+                        updateField("color_secondary", e.target.value)
+                      }
+                    />
+                    <input
+                      type="text"
+                      className="cg-input cg-input-sm"
+                      value={context.color_secondary}
+                      onChange={(e) =>
+                        updateField("color_secondary", e.target.value)
+                      }
+                    />
+                  </div>
+                </div>
+                <div className="cg-color-field">
+                  <label className="cg-pair-label">Accent</label>
+                  <div className="cg-color-input-wrap">
+                    <input
+                      type="color"
+                      className="cg-color-picker"
+                      value={context.color_accent}
+                      onChange={(e) =>
+                        updateField("color_accent", e.target.value)
+                      }
+                    />
+                    <input
+                      type="text"
+                      className="cg-input cg-input-sm"
+                      value={context.color_accent}
+                      onChange={(e) =>
+                        updateField("color_accent", e.target.value)
+                      }
+                    />
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        );
 
-  /* Active section + form state */
-  const [activeItem, setActiveItem] = useState("voice");
-  const [data, setData] = useState<FormData>(INITIAL_DATA);
-  const [saving, setSaving] = useState(false);
-
-  /* Brand documents */
-  const [docs, setDocs] = useState<BrandDoc[]>([]);
-  const [dragActive, setDragActive] = useState(false);
-  const fileInputRef = useRef<HTMLInputElement | null>(null);
-
-  const set = useCallback((partial: Partial<FormData>) => {
-    setData((prev) => ({ ...prev, ...partial }));
-  }, []);
-
-  /* Client actions */
-  const handleSelectClient = async (id: string) => {
-    const client = clients.find((c) => c.id === id);
-    if (client) {
-      setSelectedClient(client);
-      setDocs([]);
-      try {
-        const resp = await fetch(`/api/clients/${id}`);
-        if (resp.ok) {
-          const { client: full } = await resp.json();
-          if (full?.defaults?.formData) {
-            setData(full.defaults.formData);
-          } else {
-            setData(INITIAL_DATA);
-          }
-        } else {
-          setData(INITIAL_DATA);
-        }
-      } catch {
-        setData(INITIAL_DATA);
-      }
+      default:
+        return null;
     }
   };
 
-  const handleCreateClient = async () => {
-    if (!newClientName.trim()) return;
-    try {
-      const resp = await fetch("/api/clients", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          name: newClientName.trim(),
-          defaults: {
-            industry: newClientIndustry.trim(),
-            website: newClientWebsite.trim(),
-          },
-        }),
-      });
-      if (resp.ok) {
-        const { client } = await resp.json();
-        const newProfile: ClientProfile = {
-          id: client.id,
-          name: client.name,
-          industry: client.defaults?.industry || "",
-          website: client.defaults?.website || "",
-          createdAt: client.created_at,
-        };
-        setClients((prev) => [newProfile, ...prev]);
-        setSelectedClient(newProfile);
-        setNewClientName("");
-        setNewClientIndustry("");
-        setNewClientWebsite("");
-        setShowNewForm(false);
-        setData(INITIAL_DATA);
-        setDocs([]);
-      }
-    } catch (err) {
-      console.error("Failed to create client:", err);
-    }
-  };
-
-  const handleDeleteClient = async (clientId: string) => {
-    try {
-      await fetch(`/api/clients/${clientId}`, { method: "DELETE" });
-      setClients((prev) => prev.filter((c) => c.id !== clientId));
-      if (selectedClient?.id === clientId) {
-        setSelectedClient(null);
-        setData(INITIAL_DATA);
-        setDocs([]);
-      }
-    } catch (err) {
-      console.error("Failed to delete client:", err);
-    }
-  };
-
-  /* File upload handler */
-  const handleUploadFiles = (files: FileList) => {
-    const newDocs: BrandDoc[] = Array.from(files).map((file) => ({
-      id: `doc-${Date.now()}-${Math.random().toString(36).substr(2, 6)}`,
-      name: file.name,
-      size: file.size < 1024 * 1024
-        ? `${(file.size / 1024).toFixed(1)} KB`
-        : `${(file.size / (1024 * 1024)).toFixed(1)} MB`,
-      type: file.name.split(".").pop() || "unknown",
-      uploadedAt: new Date().toLocaleDateString(),
-    }));
-    setDocs((prev) => [...prev, ...newDocs]);
-    // TODO: upload to Supabase Storage
-  };
-
-  const handleRemoveDoc = (id: string) => {
-    setDocs((prev) => prev.filter((d) => d.id !== id));
-    // TODO: remove from Supabase Storage
-  };
-
-  /* Progress calculation */
-  const filledCount = ALL_ITEMS.filter((id) => itemHasData(id, data, docs)).length;
-  const progressPct = Math.round((filledCount / ALL_ITEMS.length) * 100);
-
-  const handleSave = async () => {
-    if (!selectedClient) return;
-    setSaving(true);
-    try {
-      await fetch(`/api/clients/${selectedClient.id}`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          defaults: { formData: data, docs: docs.map((d) => ({ name: d.name, type: d.type })) },
-        }),
-      });
-    } catch (err) {
-      console.error("Failed to save profile:", err);
-    }
-    setSaving(false);
-  };
+  /* ── Main render ───────────────────────────────────────── */
 
   return (
     <div className="cg-page">
@@ -1188,110 +908,98 @@ export function ClientGeneratorPage({ initialClients = [] }: { initialClients?: 
       <div className="cg-header">
         <div>
           <h1 className="cg-title">Client Generator</h1>
-          <p className="cg-subtitle">Build a complete client profile to help the AI generate better content</p>
+          <p className="cg-subtitle">Help AdGen understand your brand</p>
         </div>
-        <button className="cg-save-btn" onClick={handleSave} disabled={saving || !selectedClient}>
-          <Save size={16} />
-          {saving ? " Saving..." : " Save Profile"}
+        <button
+          className="cg-save-btn"
+          onClick={saveContext}
+          disabled={saving || !selectedClientId}
+        >
+          {saving ? "Saving..." : "Save Context"}
         </button>
       </div>
 
-      {/* Client selector bar */}
-      <ClientSelectorBar
-        clients={clients}
-        selectedClient={selectedClient}
-        onSelect={handleSelectClient}
-        onCreateNew={handleCreateClient}
-        newClientName={newClientName}
-        setNewClientName={setNewClientName}
-        newClientIndustry={newClientIndustry}
-        setNewClientIndustry={setNewClientIndustry}
-        newClientWebsite={newClientWebsite}
-        setNewClientWebsite={setNewClientWebsite}
-        showNewForm={showNewForm}
-        setShowNewForm={setShowNewForm}
-        onDeleteClient={handleDeleteClient}
-      />
-
-      {/* Show workflow only when a client is selected */}
-      {selectedClient ? (
-        <>
-          {/* Progress bar */}
-          <div className="cg-progress-wrap">
-            <div className="cg-progress-info">
-              <span className="cg-progress-label">Profile completion for <strong>{selectedClient.name}</strong></span>
-              <span className="cg-progress-pct">{progressPct}%</span>
-            </div>
-            <div className="cg-progress-bar">
-              <div className="cg-progress-fill" style={{ width: `${progressPct}%` }} />
-            </div>
-          </div>
-
-          {/* Main layout */}
-          <div className="cg-layout">
-            {/* Left nav */}
-            <nav className="cg-nav">
-              {SECTIONS.map((section) => (
-                <div key={section.id} className="cg-nav-section">
-                  <div className="cg-nav-section-header">
-                    <div className="cg-nav-number">{section.number}</div>
-                    <div>
-                      <div className="cg-nav-title">{section.title}</div>
-                      <div className="cg-nav-subtitle">{section.subtitle}</div>
-                    </div>
-                  </div>
-                  {section.items.map((item) => (
-                    <button
-                      key={item.id}
-                      className={`cg-nav-item${activeItem === item.id ? " cg-nav-item-active" : ""}`}
-                      onClick={() => setActiveItem(item.id)}
-                    >
-                      <span className={`cg-nav-dot${itemHasData(item.id, data, docs) ? " cg-nav-dot-done" : ""}`}>
-                        {itemHasData(item.id, data, docs) ? <CheckCircle2 size={12} /> : <Circle size={12} />}
-                      </span>
-                      <span>{item.label}</span>
-                    </button>
-                  ))}
-                </div>
-              ))}
-            </nav>
-
-            {/* Content panel */}
-            <div className="cg-content">
-              <SectionContent
-                activeItem={activeItem}
-                data={data}
-                set={set}
-                docs={docs}
-                onUpload={handleUploadFiles}
-                onRemoveDoc={handleRemoveDoc}
-                dragActive={dragActive}
-                setDragActive={setDragActive}
-                fileInputRef={fileInputRef}
-              />
-
-              <div style={{ display: "flex", justifyContent: "flex-end", marginTop: "24px", paddingTop: "16px", borderTop: "1px solid var(--border, #2d3748)" }}>
-                <button className="cg-save-btn" onClick={handleSave} disabled={saving}>
-                  <Save size={16} />
-                  {saving ? " Saving..." : " Save Answers"}
-                </button>
-              </div>
-            </div>
-          </div>
-        </>
-      ) : (
-        /* Empty state when no client selected */
-        <div className="cg-empty-state">
-          <Building2 size={48} className="cg-empty-icon" />
-          <h2 className="cg-empty-title">Select or create a client to get started</h2>
-          <p className="cg-empty-subtitle">
-            Each client profile helps the AI understand the brand deeply ÃÂ¢ÃÂÃÂ from voice and audience
-            to creative strategy and assets. Upload brand docs and fill out the profile to unlock
-            smarter, on-brand content generation.
-          </p>
-          <button className="cg-save-btn" onClick={() => setShowNewForm(true)} style={{ marginTop: "8px" }}>
-            <UserPlus size={16} /> Create Your First Client
+      {/* Client Selector */}
+      <div className="cg-client-bar">
+        <select
+          className="cg-client-select"
+          value={selectedClientId}
+          onChange={(e) => setSelectedClientId(e.target.value)}
+        >
+          <option value="">Select a client...</option>
+          {clients.map((c) => (
+            <option key={c.id} value={c.id}>
+              {c.name}
+            </option>
+          ))}
+        </select>
+        <div className="cg-new-client">
+          <input
+            className="cg-input"
+            placeholder="New client name"
+            value={newClientName}
+            onChange={(e) => setNewClientName(e.target.value)}
+            onKeyDown={(e) => e.key === "Enter" && createClient()}
+          />
+          <button
+            className="cg-add-btn"
+            onClick={createClient}
+            disabled={creatingClient || !newClientName.trim()}
+          >
+            {creatingClient ? "..." : "+ Add"}
           </button>
+        </div>
+      </div>
+
+      {/* Progress Bar */}
+      {selectedClientId && (
+        <div className="cg-progress-wrap">
+          <div className="cg-progress-bar">
+            <div
+              className="cg-progress-fill"
+              style={{ width: `${progress}%` }}
+            />
+          </div>
+          <span className="cg-progress-pct">{progress}%</span>
+        </div>
+      )}
+
+      {/* Main Layout */}
+      {selectedClientId ? (
+        <div className="cg-layout">
+          {/* Left Nav */}
+          <div className="cg-nav">
+            {SECTIONS.map((section) => (
+              <div key={section.number} className="cg-nav-section">
+                <div className="cg-nav-section-header">
+                  <span className="cg-nav-number">{section.number}</span>
+                  <div>
+                    <div className="cg-nav-title">{section.title}</div>
+                    <div className="cg-nav-subtitle">{section.subtitle}</div>
+                  </div>
+                </div>
+                {section.items.map((item) => (
+                  <button
+                    key={item.key}
+                    className={`cg-nav-item ${activeSection === item.key ? "cg-nav-item-active" : ""} ${isItemCompleted(item.key) ? "cg-nav-item-done" : ""}`}
+                    onClick={() => setActiveSection(item.key)}
+                  >
+                    <span
+                      className={`cg-nav-dot ${isItemCompleted(item.key) ? "cg-nav-dot-done" : ""}`}
+                    />
+                    {item.label}
+                  </button>
+                ))}
+              </div>
+            ))}
+          </div>
+
+          {/* Right Content */}
+          <div className="cg-content">{renderSectionContent()}</div>
+        </div>
+      ) : (
+        <div className="cg-empty">
+          <p>Select or create a client to get started.</p>
         </div>
       )}
     </div>
