@@ -5,6 +5,23 @@ if (env.falApiKey) {
   fal.config({ credentials: env.falApiKey });
 }
 
+/**
+ * Map user-facing resolution labels to fal.ai resolution values.
+ * nano-banana-2 supports specific resolution strings.
+ */
+function mapResolution(res?: string): string {
+  switch (res) {
+    case "1K":
+      return "1024x1024";
+    case "2K":
+      return "2048x2048";
+    case "4K":
+      return "4096x4096";
+    default:
+      return "1024x1024";
+  }
+}
+
 export const generateImage = async (
   prompt: string,
   referenceImageUrl?: string,
@@ -12,42 +29,33 @@ export const generateImage = async (
 ): Promise<{ url: string; width: number; height: number }> => {
   if (!env.falApiKey) throw new Error("Image generation is not configured.");
 
-  let result;
+  const aspectRatio = options?.aspectRatio || "1:1";
+  const resolution = mapResolution(options?.resolution);
 
-  if (referenceImageUrl) {
-    // Use edit endpoint when we have a reference image
-    result = await fal.subscribe("fal-ai/flux/dev/image-to-image", {
-      input: {
-        prompt,
-        image_url: referenceImageUrl,
-        num_images: 1,
-        output_format: "png",
-        safety_tolerance: "4",
-        strength: 0.75,
-        ...(options?.aspectRatio ? { aspect_ratio: options.aspectRatio } : {}),
-      },
-      logs: false,
-    });
-  } else {
-    // Use text-to-image endpoint when no reference image
-    result = await fal.subscribe("fal-ai/flux/dev", {
-      input: {
-        prompt,
-        num_images: 1,
-        output_format: "png",
-        safety_tolerance: "4",
-        ...(options?.aspectRatio ? { image_size: options.aspectRatio === "9:16" ? "portrait_16_9" : "square" } : {}),
-      },
-      logs: false,
-    });
+  const result = await fal.subscribe("fal-ai/nano-banana-2/edit", {
+    input: {
+      prompt,
+      image_urls: referenceImageUrl ? [referenceImageUrl] : [],
+      num_images: 1,
+      output_format: "png",
+      safety_tolerance: "4",
+      aspect_ratio: aspectRatio,
+    },
+    logs: false,
+  });
+
+  // Handle both wrapped { data: { images: [...] } } and direct { images: [...] } responses
+  const responseData = (result as any).data ?? result;
+  const images = (responseData as any)?.images;
+  const first = Array.isArray(images) ? images[0] : undefined;
+
+  if (!first?.url || typeof first.url !== "string") {
+    throw new Error("No image returned from fal.ai");
   }
-
-  const first = (result.data as { images?: Array<{ url?: string }> })?.images?.[0];
-  if (!first?.url) throw new Error("No image returned from fal.ai");
 
   return {
     url: first.url,
-    width: (first as any).width || 1024,
-    height: (first as any).height || 1024,
+    width: typeof first.width === "number" ? first.width : 1024,
+    height: typeof first.height === "number" ? first.height : 1024,
   };
 };
