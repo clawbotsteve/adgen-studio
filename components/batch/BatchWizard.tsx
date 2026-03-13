@@ -41,6 +41,7 @@ export function BatchWizard({
   const [referenceImageIds, setReferenceImageIds] = useState<string[]>([]);
   const [aspectRatio, setAspectRatio] = useState("1:1");
   const [resolution, setResolution] = useState("2K");
+  const [quantity, setQuantity] = useState(5);
   const [launching, setLaunching] = useState(false);
 
   const canContinue = (): boolean => {
@@ -49,7 +50,7 @@ export function BatchWizard({
       case 2: return mode !== null;
       case 3: return profileId !== null;
       case 4: return promptPackId !== null;
-      case 5: return referenceImageIds.length > 0;
+      case 5: return true;
       case 6: return true;
       default: return false;
     }
@@ -91,10 +92,18 @@ export function BatchWizard({
     if (!clientId || !profileId || !promptPackId) return;
     setLaunching(true);
     try {
-      const response = await fetch("/api/batch/create", {
+      const response = await fetch("/api/smart-batch/create", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ clientId, profileId, promptPackId, referenceImageIds }),
+        body: JSON.stringify({
+          clientId,
+          profileId,
+          promptPackId,
+          referenceImageIds,
+          aspectRatio,
+          resolution,
+          quantity,
+        }),
       });
       if (!response.ok) throw new Error("Failed to create batch run");
       const data = (await response.json()) as { run: { id: string } };
@@ -111,7 +120,6 @@ export function BatchWizard({
   const clientReferences = references.filter((r) => r.client_id === clientId);
   const selectedReferences = references.filter((r) => referenceImageIds.includes(r.id));
 
-  /* Summary chips for completed steps */
   const getStepSummary = (idx: number): string | null => {
     if (idx >= step) return null;
     switch (idx) {
@@ -119,14 +127,13 @@ export function BatchWizard({
       case 1: return mode ? mode.charAt(0).toUpperCase() + mode.slice(1) : null;
       case 2: return selectedProfile?.name || null;
       case 3: return selectedPromptPack?.name || null;
-      case 4: return referenceImageIds.length > 0 ? `${referenceImageIds.length} selected` : null;
+      case 4: return referenceImageIds.length > 0 ? `${referenceImageIds.length} selected` : "None";
       default: return null;
     }
   };
 
   return (
     <div className="bw-page">
-      {/* Header */}
       <div className="bw-header">
         <div className="bw-header-left">
           <h1 className="bw-title">Create Batch Run</h1>
@@ -137,12 +144,10 @@ export function BatchWizard({
         </div>
       </div>
 
-      {/* Progress bar */}
       <div className="bw-progress-track">
         <div className="bw-progress-fill" style={{ width: `${((step) / 6) * 100}%` }} />
       </div>
 
-      {/* Step nav */}
       <div className="bw-steps-nav">
         {STEPS.map((s, idx) => {
           const num = idx + 1;
@@ -168,7 +173,6 @@ export function BatchWizard({
         })}
       </div>
 
-      {/* Content area */}
       <div className="bw-content">
         {step === 1 && <StepClient clients={clients} selected={clientId} onSelect={setClientId} />}
         {step === 2 && <StepMode selected={mode} onSelect={setMode} />}
@@ -193,13 +197,14 @@ export function BatchWizard({
             profile={selectedProfile}
             promptPack={selectedPromptPack}
             references={selectedReferences}
+            quantity={quantity}
+            onQuantityChange={setQuantity}
             onLaunch={handleLaunch}
             launching={launching}
           />
         )}
       </div>
 
-      {/* Footer */}
       <div className="bw-footer">
         <button className="bw-btn bw-btn-secondary" onClick={handleBack} disabled={step === 1}>
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
