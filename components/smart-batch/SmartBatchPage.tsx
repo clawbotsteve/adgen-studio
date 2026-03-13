@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { useRouter } from "next/navigation";
 import type { Client, Profile, PromptPack, BrandContext } from "@/types/domain";
 
@@ -14,24 +14,25 @@ export function SmartBatchPage({
   promptPacks: PromptPack[];
 }) {
   const router = useRouter();
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const [clientId, setClientId] = useState(clients[0]?.id ?? "");
   const [profileId, setProfileId] = useState("");
   const [promptPackId, setPromptPackId] = useState("");
-  const [briefText, setBriefText] = useState("");
-  const [additionalContext, setAdditionalContext] = useState("");
-  const [useBrandContext, setUseBrandContext] = useState(true);
   const [aspectRatio, setAspectRatio] = useState("1:1");
   const [resolution, setResolution] = useState("2K");
   const [quantity, setQuantity] = useState(5);
   const [brandContext, setBrandContext] = useState<BrandContext | null>(null);
   const [contextLoading, setContextLoading] = useState(false);
-  const [showContextPreview, setShowContextPreview] = useState(false);
   const [launching, setLaunching] = useState(false);
+  const [referenceImages, setReferenceImages] = useState<
+    { file: File; preview: string }[]
+  >([]);
 
   // Set initial profile and prompt pack
   useEffect(() => {
     if (profiles.length > 0 && !profileId) setProfileId(profiles[0].id);
-    if (promptPacks.length > 0 && !promptPackId) setPromptPackId(promptPacks[0].id);
+    if (promptPacks.length > 0 && !promptPackId)
+      setPromptPackId(promptPacks[0].id);
   }, [profiles, promptPacks]);
 
   // Fetch brand context when client changes
@@ -52,17 +53,6 @@ export function SmartBatchPage({
     if (clientId) fetchBrandContext(clientId);
   }, [clientId, fetchBrandContext]);
 
-  const filledFields = brandContext
-    ? [
-        "brand_guidelines", "products", "competitive_landscape", "customer_personas",
-        "founder_story", "marketing_calendar", "compliance_legal", "testing_priorities",
-        "ad_format_preferences", "creative_ops_constraints", "naming_conventions", "goals",
-      ].filter((k) => {
-        const val = brandContext[k as keyof BrandContext];
-        return typeof val === "string" && val.trim();
-      })
-    : [];
-
   const selectedProfile = profiles.find((p) => p.id === profileId);
   const selectedPack = promptPacks.find((p) => p.id === promptPackId);
 
@@ -79,9 +69,6 @@ export function SmartBatchPage({
           clientId,
           profileId,
           promptPackId,
-          briefText: briefText.trim() || undefined,
-          additionalContext: additionalContext.trim() || undefined,
-          useBrandContext,
           aspectRatio,
           resolution,
           quantity,
@@ -102,98 +89,71 @@ export function SmartBatchPage({
     }
   };
 
-  const clientName = clients.find((c) => c.id === clientId)?.name ?? "";
+  const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files;
+    if (!files) return;
+    const remaining = 5 - referenceImages.length;
+    const newFiles = Array.from(files).slice(0, remaining);
+    const newImages = newFiles.map((file) => ({
+      file,
+      preview: URL.createObjectURL(file),
+    }));
+    setReferenceImages((prev) => [...prev, ...newImages]);
+    if (fileInputRef.current) fileInputRef.current.value = "";
+  };
+
+  const removeImage = (idx: number) => {
+    setReferenceImages((prev) => {
+      const copy = [...prev];
+      URL.revokeObjectURL(copy[idx].preview);
+      copy.splice(idx, 1);
+      return copy;
+    });
+  };
+
+  const contextActive = brandContext && !contextLoading;
 
   return (
-    <div style={{ display: "grid", gap: 20 }}>
-      {/* Client + Brand Context Status */}
-      <div className="card">
-        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 }}>
+    <div style={{ display: "grid", gap: 12, maxWidth: 900 }}>
+      {/* Row 1: Client + Prompt Pack */}
+      <div
+        className="card"
+        style={{ padding: "12px 16px" }}
+      >
+        <div
+          style={{
+            display: "grid",
+            gridTemplateColumns: "1fr 1fr",
+            gap: 12,
+            alignItems: "end",
+          }}
+        >
           <div>
-            <label className="form-label">Client</label>
+            <label className="form-label" style={{ marginBottom: 4, fontSize: 12 }}>
+              Client
+            </label>
             <select
               className="form-select"
               value={clientId}
               onChange={(e) => setClientId(e.target.value)}
+              style={{ padding: "6px 10px", fontSize: 13 }}
             >
               {clients.map((c) => (
-                <option key={c.id} value={c.id}>{c.name}</option>
-              ))}
-            </select>
-          </div>
-          <div style={{ display: "flex", alignItems: "flex-end" }}>
-            <div className="bc-status-badge" style={{ marginBottom: 4 }}>
-              {contextLoading ? (
-                <span style={{ color: "var(--color-text-secondary)", fontSize: 13 }}>Loading context...</span>
-              ) : brandContext ? (
-                <>
-                  <span className="bc-status-dot bc-status-active" />
-                  {filledFields.length} context fields active
-                  <button
-                    className="sb-preview-toggle"
-                    onClick={() => setShowContextPreview(!showContextPreview)}
-                  >
-                    {showContextPreview ? "Hide" : "Preview"}
-                  </button>
-                </>
-              ) : (
-                <>
-                  <span className="bc-status-dot" />
-                  No brand context set up
-                  <a href="/brand-context" className="sb-setup-link">Set up</a>
-                </>
-              )}
-            </div>
-          </div>
-        </div>
-
-        {/* Brand Context Preview */}
-        {showContextPreview && brandContext && (
-          <div className="sb-context-preview">
-            {filledFields.map((key) => {
-              const val = brandContext[key as keyof BrandContext] as string;
-              const label = key.replace(/_/g, " ").replace(/\b\w/g, (l) => l.toUpperCase());
-              return (
-                <div key={key} className="sb-context-field">
-                  <strong>{label}:</strong> {val.length > 150 ? val.substring(0, 150) + "..." : val}
-                </div>
-              );
-            })}
-          </div>
-        )}
-      </div>
-
-      {/* Generation Settings */}
-      <div className="card">
-        <h3 style={{ marginTop: 0, marginBottom: 16 }}>Generation Settings</h3>
-        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 }}>
-          <div>
-            <label className="form-label">Profile</label>
-            <select
-              className="form-select"
-              value={profileId}
-              onChange={(e) => setProfileId(e.target.value)}
-            >
-              {profiles.map((p) => (
-                <option key={p.id} value={p.id}>
-                  {p.name} ({p.mode} · {p.aspect_ratio})
+                <option key={c.id} value={c.id}>
+                  {c.name}
                 </option>
               ))}
             </select>
-            {selectedProfile && (
-              <p style={{ fontSize: 12, color: "var(--color-text-secondary)", marginTop: 4 }}>
-                {selectedProfile.mode === "video"
-                  ? `${selectedProfile.duration_seconds}s ${selectedProfile.resolution}`
-                  : selectedProfile.resolution}
-              </p>
-            )}
           </div>
           <div>
-            <label className="form-label">Prompt Pack</label>
+            <label className="form-label" style={{ marginBottom: 4, fontSize: 12 }}>
+              Prompt Pack
+            </label>
             <select
               className="form-select"
               value={promptPackId}
               onChange={(e) => setPromptPackId(e.target.value)}
+              style={{ padding: "6px 10px", fontSize: 13 }}
             >
               {promptPacks.map((p) => (
                 <option key={p.id} value={p.id}>
@@ -201,125 +161,261 @@ export function SmartBatchPage({
                 </option>
               ))}
             </select>
-            {selectedPack?.description && (
-              <p style={{ fontSize: 12, color: "var(--color-text-secondary)", marginTop: 4 }}>
-                {selectedPack.description}
-              </p>
-            )}
           </div>
         </div>
+        {selectedPack?.description && (
+          <p
+            style={{
+              fontSize: 11,
+              color: "var(--color-text-secondary)",
+              margin: "6px 0 0",
+            }}
+          >
+            {selectedPack.description}
+          </p>
+        )}
+      </div>
 
-        {/* Output Settings */}
-        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 16, marginTop: 16 }}>
+      {/* Row 2: Generation Settings — all in one tight row */}
+      <div
+        className="card"
+        style={{ padding: "12px 16px" }}
+      >
+        <div
+          style={{
+            display: "grid",
+            gridTemplateColumns: "1fr 1fr 1fr 1fr 1fr",
+            gap: 10,
+            alignItems: "end",
+          }}
+        >
           <div>
-            <label className="form-label">Aspect Ratio</label>
+            <label className="form-label" style={{ marginBottom: 4, fontSize: 12 }}>
+              Profile
+            </label>
+            <select
+              className="form-select"
+              value={profileId}
+              onChange={(e) => setProfileId(e.target.value)}
+              style={{ padding: "6px 10px", fontSize: 13 }}
+            >
+              {profiles.map((p) => (
+                <option key={p.id} value={p.id}>
+                  {p.name}
+                </option>
+              ))}
+            </select>
+          </div>
+          <div>
+            <label className="form-label" style={{ marginBottom: 4, fontSize: 12 }}>
+              Aspect Ratio
+            </label>
             <select
               className="form-select"
               value={aspectRatio}
               onChange={(e) => setAspectRatio(e.target.value)}
+              style={{ padding: "6px 10px", fontSize: 13 }}
             >
-              <option value="1:1">1:1 (Square)</option>
-              <option value="9:16">9:16 (Portrait)</option>
+              <option value="1:1">1:1</option>
+              <option value="9:16">9:16</option>
+              <option value="16:9">16:9</option>
             </select>
           </div>
           <div>
-            <label className="form-label">Resolution</label>
+            <label className="form-label" style={{ marginBottom: 4, fontSize: 12 }}>
+              Resolution
+            </label>
             <select
               className="form-select"
               value={resolution}
               onChange={(e) => setResolution(e.target.value)}
+              style={{ padding: "6px 10px", fontSize: 13 }}
             >
               <option value="1K">1K</option>
-              <option value="2K">2K (Recommended)</option>
+              <option value="2K">2K</option>
               <option value="4K">4K</option>
             </select>
           </div>
           <div>
-            <label className="form-label">Quantity</label>
+            <label className="form-label" style={{ marginBottom: 4, fontSize: 12 }}>
+              Quantity
+            </label>
             <select
               className="form-select"
               value={quantity}
               onChange={(e) => setQuantity(Number(e.target.value))}
+              style={{ padding: "6px 10px", fontSize: 13 }}
             >
               <option value={5}>5</option>
+              <option value={10}>10</option>
               <option value={15}>15</option>
-              <option value={30}>30</option>
-              <option value={50}>50</option>
+              <option value={20}>20</option>
             </select>
           </div>
-        </div>
-      </div>
-
-      {/* Brief + Additional Context */}
-      <div className="card">
-        <h3 style={{ marginTop: 0, marginBottom: 16 }}>Brief & Context</h3>
-
-        <div style={{ display: "grid", gap: 16 }}>
-          <div>
-            <label className="form-label">Brief (optional)</label>
-            <textarea
-              className="form-input"
-              rows={6}
-              value={briefText}
-              onChange={(e) => setBriefText(e.target.value)}
-              placeholder="Paste or type your creative brief here. This will be included in every prompt alongside brand context..."
-            />
-            <p style={{ fontSize: 12, color: "var(--color-text-secondary)", marginTop: 4 }}>
-              The brief text will be wrapped in === BRIEF === markers and prepended to each prompt.
-            </p>
-          </div>
-
-          <div>
-            <label className="form-label">Additional Context (optional)</label>
-            <textarea
-              className="form-input"
-              rows={4}
-              value={additionalContext}
-              onChange={(e) => setAdditionalContext(e.target.value)}
-              placeholder="Any extra instructions, style notes, or context for this specific batch..."
-            />
-          </div>
-
-          {/* Use Brand Context Toggle */}
-          <div className="sb-toggle-row">
-            <label className="sb-toggle-label">
-              <input
-                type="checkbox"
-                checked={useBrandContext}
-                onChange={(e) => setUseBrandContext(e.target.checked)}
-              />
-              <span>Use Brand Context</span>
-            </label>
-            <span style={{ fontSize: 12, color: "var(--color-text-secondary)" }}>
-              {useBrandContext
-                ? `Brand context for ${clientName} will be injected into every prompt`
-                : "Brand context will NOT be included in prompts"}
+          <div style={{ display: "flex", alignItems: "flex-end" }}>
+            <span
+              style={{
+                fontSize: 11,
+                color: "var(--color-text-secondary)",
+                padding: "8px 0",
+              }}
+            >
+              {selectedProfile
+                ? `${selectedProfile.mode} · ${selectedProfile.aspect_ratio} · ${selectedProfile.resolution}`
+                : ""}
             </span>
           </div>
         </div>
       </div>
 
-      {/* Launch */}
-      <div className="card" style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+      {/* Row 3: Reference Images (replaces Brief & Context) */}
+      <div
+        className="card"
+        style={{ padding: "12px 16px" }}
+      >
+        <div
+          style={{
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "space-between",
+            marginBottom: referenceImages.length > 0 ? 10 : 0,
+          }}
+        >
+          <label className="form-label" style={{ margin: 0, fontSize: 12 }}>
+            Reference Images{" "}
+            <span style={{ color: "var(--color-text-secondary)", fontWeight: 400 }}>
+              (optional, max 5)
+            </span>
+          </label>
+          {referenceImages.length < 5 && (
+            <button
+              onClick={() => fileInputRef.current?.click()}
+              style={{
+                background: "var(--color-primary, #6366f1)",
+                color: "#fff",
+                border: "none",
+                borderRadius: 6,
+                padding: "5px 12px",
+                fontSize: 12,
+                cursor: "pointer",
+                fontWeight: 500,
+              }}
+            >
+              + Add Images
+            </button>
+          )}
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept="image/*"
+            multiple
+            onChange={handleFileSelect}
+            style={{ display: "none" }}
+          />
+        </div>
+
+        {referenceImages.length > 0 && (
+          <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+            {referenceImages.map((img, idx) => (
+              <div
+                key={idx}
+                style={{
+                  position: "relative",
+                  width: 72,
+                  height: 72,
+                  borderRadius: 6,
+                  overflow: "hidden",
+                  border: "1px solid var(--color-border)",
+                }}
+              >
+                <img
+                  src={img.preview}
+                  alt={`ref-${idx}`}
+                  style={{
+                    width: "100%",
+                    height: "100%",
+                    objectFit: "cover",
+                  }}
+                />
+                <button
+                  onClick={() => removeImage(idx)}
+                  style={{
+                    position: "absolute",
+                    top: 2,
+                    right: 2,
+                    background: "rgba(0,0,0,0.7)",
+                    color: "#fff",
+                    border: "none",
+                    borderRadius: "50%",
+                    width: 18,
+                    height: 18,
+                    fontSize: 11,
+                    cursor: "pointer",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    lineHeight: 1,
+                  }}
+                >
+                  x
+                </button>
+              </div>
+            ))}
+          </div>
+        )}
+
+        {referenceImages.length === 0 && (
+          <div
+            onClick={() => fileInputRef.current?.click()}
+            style={{
+              border: "1px dashed var(--color-border)",
+              borderRadius: 6,
+              padding: "14px 0",
+              textAlign: "center",
+              cursor: "pointer",
+              color: "var(--color-text-secondary)",
+              fontSize: 12,
+            }}
+          >
+            Click to upload reference images or drag & drop
+          </div>
+        )}
+      </div>
+
+      {/* Row 4: Launch bar */}
+      <div
+        className="card"
+        style={{
+          padding: "10px 16px",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "space-between",
+        }}
+      >
         <div>
-          <p style={{ margin: 0, fontWeight: 600 }}>
-            Ready to generate {Math.min(quantity, selectedPack?.item_count ?? quantity)} items
-          </p>
-          <p style={{ margin: "4px 0 0", fontSize: 13, color: "var(--color-text-secondary)" }}>
-            {useBrandContext && filledFields.length > 0
-              ? `With ${filledFields.length} brand context fields`
-              : "Without brand context"}
-            {briefText.trim() ? " + brief" : ""}
-            {additionalContext.trim() ? " + additional context" : ""}
-          </p>
+          <span style={{ fontWeight: 600, fontSize: 14 }}>
+            {Math.min(quantity, selectedPack?.item_count ?? quantity)} items
+          </span>
+          <span
+            style={{
+              fontSize: 12,
+              color: "var(--color-text-secondary)",
+              marginLeft: 8,
+            }}
+          >
+            {contextActive ? "Brand context active" : "No brand context"}
+            {referenceImages.length > 0
+              ? ` · ${referenceImages.length} ref image${referenceImages.length > 1 ? "s" : ""}`
+              : ""}
+          </span>
         </div>
         <button
           className="button button-primary"
           onClick={handleLaunch}
           disabled={!canLaunch || launching}
-          style={{ minWidth: 160 }}
+          style={{ minWidth: 140, padding: "8px 20px", fontSize: 13 }}
         >
-          {launching ? "Creating Batch..." : "Generate Batch"}
+          {launching ? "Creating..." : "Generate Batch"}
         </button>
       </div>
     </div>
