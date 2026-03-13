@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { StatusBadge } from "@/components/ui/StatusBadge";
 import type { BatchItemResult } from "@/types/domain";
+import { parseOutputUrl } from "@/lib/parseOutputUrl";
 
 interface AssetCardProps {
   item: BatchItemResult;
@@ -19,7 +20,8 @@ export function AssetCard({
 }: AssetCardProps) {
   const [imgError, setImgError] = useState(false);
 
-  const hasOutput = item.status === "completed" && item.output_url;
+  const resolvedUrl = parseOutputUrl(item.output_url);
+  const hasOutput = item.status === "completed" && resolvedUrl;
 
   return (
     <div
@@ -38,19 +40,19 @@ export function AssetCard({
       <div className="asset-card-preview">
         {hasOutput && !imgError ? (
           <img
-            src={item.output_url!}
+            src={resolvedUrl!}
             alt={item.concept}
             loading="lazy"
             onError={() => setImgError(true)}
           />
         ) : item.status === "failed" ? (
           <div className="asset-card-error-preview">
-            <span className="asset-card-error-icon">✕</span>
+            <span className="asset-card-error-icon">â</span>
             <span className="asset-card-error-text">Failed</span>
           </div>
         ) : item.status === "processing" || item.status === "queued" ? (
           <div className="asset-card-pending-preview">
-            <span className="asset-card-pending-icon">⟳</span>
+            <span className="asset-card-pending-icon">â³</span>
             <span className="asset-card-pending-text">
               {item.status === "processing" ? "Processing..." : "Queued"}
             </span>
