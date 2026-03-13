@@ -21,7 +21,7 @@ export default async function SmartBatchRoute() {
     <div className="page-container">
       <PageHeader
         title="Smart Batch"
-        description="Configure settings, upload reference photos, and generate ad batches."
+        description="Generate batches with brand context, briefs, and additional context automatically injected into every prompt."
       />
       <SmartBatchPage
         clients={clients}
