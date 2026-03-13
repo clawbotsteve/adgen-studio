@@ -12,8 +12,6 @@ import {
   ShieldCheck,
   FlaskConical,
   Paintbrush,
-  SlidersHorizontal,
-  MonitorSmartphone,
   Target,
   Upload,
   Plus,
@@ -33,7 +31,7 @@ import {
   Image,
 } from "lucide-react";
 
-/* Ã¢ÂÂÃ¢ÂÂ Section / sub-item definitions Ã¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂ */
+/* ÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂ Section / sub-item definitions ÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂ */
 
 interface SubItem {
   id: string;
@@ -80,8 +78,6 @@ const SECTIONS: Section[] = [
     title: "Creative Ops",
     subtitle: "Execution & Logistics",
     items: [
-      { id: "constraints", label: "Creative Ops Constraints", icon: <SlidersHorizontal size={15} /> },
-      { id: "ad-accounts", label: "Ad Account Details", icon: <MonitorSmartphone size={15} /> },
       { id: "strategy-goals", label: "Creative Strategy Goals", icon: <Target size={15} /> },
       { id: "assets", label: "Brand Assets", icon: <Upload size={15} /> },
     ],
@@ -110,7 +106,7 @@ const SECTIONS: Section[] = [
 
 const ALL_ITEMS = SECTIONS.flatMap((s) => s.items.map((i) => i.id));
 
-/* Ã¢ÂÂÃ¢ÂÂ Client types Ã¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂ */
+/* ÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂ Client types ÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂ */
 
 interface ClientProfile {
   id: string;
@@ -128,7 +124,7 @@ interface BrandDoc {
   uploadedAt: string;
 }
 
-/* Ã¢ÂÂÃ¢ÂÂ Reusable form components Ã¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂ */
+/* ÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂ Reusable form components ÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂ */
 
 function FieldLabel({ children }: { children: React.ReactNode }) {
   return <label className="cg-field-label">{children}</label>;
@@ -184,7 +180,7 @@ function TextInput({
   );
 }
 
-/* Ã¢ÂÂÃ¢ÂÂ Form data types Ã¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂ */
+/* ÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂ Form data types ÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂ */
 
 interface Competitor {
   website: string;
@@ -290,7 +286,7 @@ const INITIAL_DATA: FormData = {
   referenceExamples: "",
 };
 
-/* Ã¢ÂÂÃ¢ÂÂ Client Selector Bar Ã¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂ */
+/* ÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂ Client Selector Bar ÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂ */
 
 function ClientSelectorBar({
   clients,
@@ -445,7 +441,7 @@ function ClientSelectorBar({
   );
 }
 
-/* Ã¢ÂÂÃ¢ÂÂ Section content renderers Ã¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂ */
+/* ÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂ Section content renderers ÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂ */
 
 function VoiceSection({ data, set }: { data: FormData; set: (d: Partial<FormData>) => void }) {
   return (
@@ -454,7 +450,7 @@ function VoiceSection({ data, set }: { data: FormData; set: (d: Partial<FormData
 
       <div className="cg-field-group">
         <FieldLabel>TONE OF VOICE</FieldLabel>
-        <FieldHint>Describe how your brand speaks Ã¢ÂÂ formal, casual, witty, authoritative, etc.</FieldHint>
+        <FieldHint>Describe how your brand speaks ÃÂ¢ÃÂÃÂ formal, casual, witty, authoritative, etc.</FieldHint>
         <TextArea value={data.toneOfVoice} onChange={(v) => set({ toneOfVoice: v })} placeholder="e.g. Friendly and approachable, but knowledgeable. We avoid jargon and speak like a trusted advisor..." rows={4} />
       </div>
 
@@ -679,57 +675,7 @@ function CreativeBgSection({ data, set }: { data: FormData; set: (d: Partial<For
   );
 }
 
-function ConstraintsSection({ data, set }: { data: FormData; set: (d: Partial<FormData>) => void }) {
-  return (
-    <div className="cg-section-content">
-      <h2 className="cg-section-title"><SlidersHorizontal size={20} /> Creative Ops Constraints</h2>
 
-      <div className="cg-field-group">
-        <FieldLabel>BUDGET RANGE</FieldLabel>
-        <FieldHint>What is your monthly creative budget?</FieldHint>
-        <TextInput value={data.budgetRange} onChange={(v) => set({ budgetRange: v })} placeholder="e.g. $5,000 - $15,000/month" />
-      </div>
-
-      <div className="cg-field-group">
-        <FieldLabel>TURNAROUND EXPECTATIONS</FieldLabel>
-        <FieldHint>How quickly do you need creative assets delivered?</FieldHint>
-        <TextArea value={data.turnaround} onChange={(v) => set({ turnaround: v })} placeholder="e.g. 48-hour turnaround for static ads, 1 week for video. Rush requests need 24-hour notice..." rows={3} />
-      </div>
-
-      <div className="cg-field-group">
-        <FieldLabel>APPROVAL WORKFLOW</FieldLabel>
-        <FieldHint>Who needs to sign off on creative before it goes live?</FieldHint>
-        <TextArea value={data.approvalWorkflow} onChange={(v) => set({ approvalWorkflow: v })} placeholder="e.g. Creative Director reviews first, then Brand Manager gives final approval. Legal review needed for health claims..." rows={3} />
-      </div>
-    </div>
-  );
-}
-
-function AdAccountsSection({ data, set }: { data: FormData; set: (d: Partial<FormData>) => void }) {
-  return (
-    <div className="cg-section-content">
-      <h2 className="cg-section-title"><MonitorSmartphone size={20} /> Ad Account Details</h2>
-
-      <div className="cg-field-group">
-        <FieldLabel>PLATFORMS</FieldLabel>
-        <FieldHint>Which advertising platforms are you active on?</FieldHint>
-        <TextArea value={data.platforms} onChange={(v) => set({ platforms: v })} placeholder="e.g. Meta (Facebook + Instagram), Google Ads, TikTok Ads, YouTube..." rows={3} />
-      </div>
-
-      <div className="cg-field-group">
-        <FieldLabel>PIXEL / TRACKING IDS</FieldLabel>
-        <FieldHint>Any tracking pixel IDs or account identifiers we should know about.</FieldHint>
-        <TextArea value={data.pixelIds} onChange={(v) => set({ pixelIds: v })} placeholder="e.g. Meta Pixel: 123456789, TikTok Pixel: ABCDEF123..." rows={2} />
-      </div>
-
-      <div className="cg-field-group">
-        <FieldLabel>SPEND TARGETS</FieldLabel>
-        <FieldHint>Monthly ad spend per platform or overall budget allocation.</FieldHint>
-        <TextArea value={data.spendTargets} onChange={(v) => set({ spendTargets: v })} placeholder="e.g. Meta: $20k/mo, TikTok: $8k/mo, Google: $5k/mo..." rows={2} />
-      </div>
-    </div>
-  );
-}
 
 function StrategyGoalsSection({ data, set }: { data: FormData; set: (d: Partial<FormData>) => void }) {
   return (
@@ -751,7 +697,7 @@ function StrategyGoalsSection({ data, set }: { data: FormData; set: (d: Partial<
       <div className="cg-field-group">
         <FieldLabel>CTA PREFERENCES</FieldLabel>
         <FieldHint>What calls-to-action work best for your brand?</FieldHint>
-        <TextArea value={data.ctaPreferences} onChange={(v) => set({ ctaPreferences: v })} placeholder='e.g. "Shop Now" for BOFU, "Learn More" for TOFU, avoid "Buy Now" Ã¢ÂÂ feels too pushy for our audience...' rows={3} />
+        <TextArea value={data.ctaPreferences} onChange={(v) => set({ ctaPreferences: v })} placeholder='e.g. "Shop Now" for BOFU, "Learn More" for TOFU, avoid "Buy Now" ÃÂ¢ÃÂÃÂ feels too pushy for our audience...' rows={3} />
       </div>
     </div>
   );
@@ -808,7 +754,7 @@ function AssetsSection({ data, set }: { data: FormData; set: (d: Partial<FormDat
   );
 }
 
-/* Ã¢ÂÂÃ¢ÂÂ Brand Documents Upload Section Ã¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂ */
+/* ÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂ Brand Documents Upload Section ÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂ */
 
 function BrandDocsSection({
   docs,
@@ -1012,7 +958,7 @@ function GenerationNotesSection({ data, set }: { data: FormData; set: (d: Partia
     </div>
   );
 }
-/* Ã¢ÂÂÃ¢ÂÂ Content router Ã¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂ */
+/* ÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂ Content router ÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂ */
 
 function SectionContent({
   activeItem,
@@ -1045,8 +991,6 @@ function SectionContent({
     case "compliance": return <ComplianceSection data={data} set={set} />;
     case "testing": return <TestingSection data={data} set={set} />;
     case "creative-bg": return <CreativeBgSection data={data} set={set} />;
-    case "constraints": return <ConstraintsSection data={data} set={set} />;
-    case "ad-accounts": return <AdAccountsSection data={data} set={set} />;
     case "strategy-goals": return <StrategyGoalsSection data={data} set={set} />;
     case "assets": return <AssetsSection data={data} set={set} />;
     case "documents": return (
@@ -1066,7 +1010,7 @@ function SectionContent({
   }
 }
 
-/* Ã¢ÂÂÃ¢ÂÂ Helper: check if a sub-item has data Ã¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂ */
+/* ÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂ Helper: check if a sub-item has data ÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂ */
 
 function itemHasData(id: string, data: FormData, docs: BrandDoc[]): boolean {
   switch (id) {
@@ -1079,8 +1023,6 @@ function itemHasData(id: string, data: FormData, docs: BrandDoc[]): boolean {
     case "compliance": return !!(data.regulations || data.disclaimers || data.restrictedClaims);
     case "testing": return !!(data.testingHypotheses || data.kpis);
     case "creative-bg": return !!(data.pastCampaigns || data.stylePreferences);
-    case "constraints": return !!(data.budgetRange || data.turnaround || data.approvalWorkflow);
-    case "ad-accounts": return !!(data.platforms || data.pixelIds || data.spendTargets);
     case "strategy-goals": return !!(data.campaignObjectives || data.funnelStages || data.ctaPreferences);
     case "assets": return !!(data.fontPrimary || data.fontSecondary);
     case "documents": return docs.length > 0;
@@ -1091,7 +1033,7 @@ function itemHasData(id: string, data: FormData, docs: BrandDoc[]): boolean {
   }
 }
 
-/* Ã¢ÂÂÃ¢ÂÂ Main component Ã¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂ */
+/* ÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂ Main component ÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂ */
 
 export function ClientGeneratorPage({ initialClients = [] }: { initialClients?: Array<{ id: string; name: string; defaults?: Record<string, unknown> | null; created_at?: string }> }) {
   /* Client management */
@@ -1343,7 +1285,7 @@ export function ClientGeneratorPage({ initialClients = [] }: { initialClients?: 
           <Building2 size={48} className="cg-empty-icon" />
           <h2 className="cg-empty-title">Select or create a client to get started</h2>
           <p className="cg-empty-subtitle">
-            Each client profile helps the AI understand the brand deeply Ã¢ÂÂ from voice and audience
+            Each client profile helps the AI understand the brand deeply ÃÂ¢ÃÂÃÂ from voice and audience
             to creative strategy and assets. Upload brand docs and fill out the profile to unlock
             smarter, on-brand content generation.
           </p>
