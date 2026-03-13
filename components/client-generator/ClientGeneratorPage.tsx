@@ -145,7 +145,7 @@ const SECTIONS: Section[] = [
 /* ── Component ───────────────────────────────────────────── */
 
 export function ClientGeneratorPage({ tenantId }: { tenantId: string }) {
-  const { toast } = useToast();
+  const { addToast: toast } = useToast();
   const [clients, setClients] = useState<ClientOption[]>([]);
   const [selectedClientId, setSelectedClientId] = useState<string>("");
   const [newClientName, setNewClientName] = useState("");
