@@ -30,20 +30,17 @@ export const generateImage = async (
     }
   }
 
-  // Preflight: warn if no reference image (edit endpoint works best with one)
+  // Preflight: require at least one reference image (nano-banana-2/edit requires image_urls)
   if (!referenceImageUrl) {
-    console.warn("[fal] No reference image provided — generation may produce lower quality results.");
+    throw new Error("VALIDATION: reference image is required — the nano-banana-2/edit endpoint needs at least one image_url.");
   }
 
   // Build input for nano-banana-2/edit
   const input: Record<string, unknown> = {
     prompt: prompt.trim(),
     num_images: 1,
+    image_urls: [referenceImageUrl],
   };
-
-  if (referenceImageUrl) {
-    input.image_url = referenceImageUrl;
-  }
 
   if (options?.aspectRatio) {
     input.aspect_ratio = options.aspectRatio;
