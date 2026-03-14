@@ -236,11 +236,10 @@ export function SmartBatchPage({
         </div>
         <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
           {[
-            { key: "product_hero", label: "Product Hero" },
-            { key: "ugc_testimonial", label: "UGC" },
-            { key: "problem_solution", label: "Problem/Solution" },
-            { key: "lifestyle_benefit", label: "Lifestyle" },
-            { key: "offer_urgency", label: "Offer/Urgency" },
+            { key: "us_vs_them", label: "US vs Them" },
+            { key: "key_feature", label: "Key Feature" },
+            { key: "testimonial_review", label: "Testimonial/Review" },
+            { key: "bundle_offer", label: "Bundle/Offer" },
           ].map((angle) => {
             const isSelected = selectedAngles.includes(angle.key);
             return (
@@ -270,7 +269,7 @@ export function SmartBatchPage({
         </div>
         {selectedAngles.length === 0 && (
           <p style={{ fontSize: 11, color: "rgba(255,255,255,0.4)", marginTop: 6, marginBottom: 0 }}>
-            No angles selected — auto-mix will distribute across all 5 styles for variety.
+            No angles selected — auto-mix will distribute across all 4 categories for variety.
           </p>
         )}
       </div>
