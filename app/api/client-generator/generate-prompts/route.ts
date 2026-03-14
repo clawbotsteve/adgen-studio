@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { requireUserTenantApi } from "@/lib/auth";
 import { assertTenantUser } from "@/lib/access";
 import { getClient, updateClient } from "@/lib/data/clients";
+import { listTopCreatives } from "@/lib/data/top-creatives";
 import { buildMasterContextString } from "@/lib/data/brand-context";
 
 interface GeneratedPrompt {
@@ -20,11 +21,74 @@ const ANGLES = [
 ];
 
 /**
+ * Step 1: Analyze top creative images with Grok Vision.
+ * Returns a detailed technical description of what is in the images.
+ */
+async function analyzeImages(
+  imageUrls: string[],
+  apiKey: string
+): Promise<string> {
+  if (imageUrls.length === 0) return "";
+
+  // Send up to 5 images to Grok vision
+  const imagesToAnalyze = imageUrls.slice(0, 5);
+
+  const imageContent = imagesToAnalyze.map((url) => ({
+    type: "image_url" as const,
+    image_url: { url },
+  }));
+
+  const visionResponse = await fetch("https://api.x.ai/v1/chat/completions", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${apiKey}`,
+    },
+    body: JSON.stringify({
+      model: "grok-4-latest",
+      messages: [
+        {
+          role: "user",
+          content: [
+            ...imageContent,
+            {
+              type: "text",
+              text: `Analyze these product/brand reference images. For each image, describe in precise technical detail:
+
+1. SUBJECT: What is the main product? Describe it exactly (type, color, material, logos, text, design details)
+2. MODEL/PERSON: If a person is present, describe their pose, styling, clothing, expression
+3. SETTING: Current background, environment, location
+4. LIGHTING: Current lighting setup (direction, quality, color temperature)
+5. COLOR PALETTE: Dominant colors in the image
+6. COMPOSITION: Camera angle, framing, depth of field
+7. MOOD: Overall aesthetic feel
+
+Be extremely specific and technical. This description will be used to write image editing prompts that need to preserve the exact product while changing the environment.`,
+            },
+          ],
+        },
+      ],
+      temperature: 0.3,
+    }),
+  });
+
+  if (!visionResponse.ok) {
+    console.error("[generate-prompts] Vision analysis failed:", visionResponse.status);
+    return "";
+  }
+
+  const visionData = await visionResponse.json();
+  return visionData.choices?.[0]?.message?.content?.trim() ?? "";
+}
+
+/**
  * POST /api/client-generator/generate-prompts
- * Generate 20 ad prompts (4 per angle) using Grok AI.
- * Prompts are reference-preserving: they instruct the image model
- * to keep the exact product from the reference image and only
- * change the environment, background, lighting, and mood.
+ * 
+ * Flow:
+ * 1. Load top creative images for this client
+ * 2. Analyze images with Grok Vision to get technical descriptions
+ * 3. Generate 20 editing prompts using brand data + image descriptions
+ * 4. Save prompts to client defaults
  */
 export async function POST(request: Request) {
   const auth = await requireUserTenantApi();
@@ -53,6 +117,22 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "Client not found" }, { status: 404 });
     }
 
+    // ── Step 1: Load top creatives and analyze with vision ──
+    const topCreatives = await listTopCreatives(auth.tenant.id, body.clientId);
+    const imageUrls = topCreatives.map((tc) => tc.url);
+
+    let imageAnalysis = "";
+    if (imageUrls.length > 0) {
+      console.log("[generate-prompts] Analyzing " + imageUrls.length + " top creative images with vision...");
+      try {
+        imageAnalysis = await analyzeImages(imageUrls, apiKey);
+        console.log("[generate-prompts] Vision analysis complete: " + imageAnalysis.length + " chars");
+      } catch (visionErr) {
+        console.warn("[generate-prompts] Vision analysis failed, continuing without:", visionErr);
+      }
+    }
+
+    // ── Step 2: Build brand context ──
     const fd = (client.defaults as Record<string, unknown>)?.formData as Record<string, string> | undefined;
 
     const brandInfo = [
@@ -74,52 +154,63 @@ export async function POST(request: Request) {
 
     const fullContext = [brandInfo, masterContext].filter(Boolean).join("\n\n");
 
-    if (!fullContext.trim()) {
+    if (!fullContext.trim() && !imageAnalysis) {
       return NextResponse.json(
-        { error: "No brand data found. Please fill in at least Product Info before generating." },
+        { error: "No brand data or reference images found. Please fill in Product Info and upload Top Creatives." },
         { status: 400 }
       );
     }
 
+    // ── Step 3: Generate prompts with Grok ──
     const angleDescriptions = ANGLES.map(a => a.key + " (" + a.label + "): " + a.count + " prompts").join("\n");
 
-    const systemPrompt = `You are an expert AI ad creative director specializing in IMAGE EDITING prompts.
+    const systemPrompt = `You are a senior photo retoucher writing technical editing briefs for an AI image editing model.
 
-CRITICAL RULE: Every prompt you write is for an IMAGE EDITING model, NOT an image generation model.
-The model receives a REFERENCE IMAGE of the actual product. Your prompts must:
-1. NEVER describe the product itself — the model already has the real product photo
-2. ONLY describe changes to the ENVIRONMENT, BACKGROUND, LIGHTING, and MOOD
-3. Always start with "Edit this image to..." or "Change the background to..."
-4. Explicitly state "Keep the exact product unchanged" in every prompt
+The AI model receives a REFERENCE PHOTO and your editing instructions. It keeps the subject/product from the reference photo and changes everything else based on your instructions.
 
-Think of it like Photoshop — you are changing everything AROUND the product, not the product itself.
+YOUR RULES:
+- You have seen the reference images (analysis provided below). Base your prompts on what is ACTUALLY in those photos.
+- Write like a retoucher briefing an assistant: specific, technical, no fluff.
+- NEVER describe the product/subject — the model already has the photo. Only describe what CHANGES.
+- Every prompt must specify these 4 things:
+  1. BACKGROUND: Exact new background (be specific — "weathered red brick wall" not "urban setting")
+  2. LIGHTING: Exact setup (direction, quality, color temp — "single softbox 45deg camera-left, warm 4000K" not "dramatic lighting")
+  3. COLOR GRADE: Specific treatment ("desaturate background 20%, warm shadows, cool highlights" not "moody tones")
+  4. FRAMING: Any crop or angle adjustments ("tight crop chest-up, slight low angle" or "keep original framing")
+- End every prompt with "Keep the subject exactly as-is from the reference."
+- Each prompt should be 2-3 sentences max. Dense and specific, zero filler words.`;
 
-Each prompt should specify:
-- New background/setting
-- Lighting direction and mood
-- Color grading or tonal shift
-- Camera framing adjustments (if any)
+    let userPromptParts = [
+      "Generate exactly 20 image editing prompts, distributed as follows:",
+      angleDescriptions,
+      "",
+      "Brand data:",
+      fullContext,
+    ];
 
-Make prompts 2-3 sentences. Be specific about the environment change.`;
+    if (imageAnalysis) {
+      userPromptParts.push(
+        "",
+        "=== REFERENCE IMAGE ANALYSIS ===",
+        imageAnalysis,
+        "=== END ANALYSIS ===",
+        "",
+        "IMPORTANT: Your prompts must be grounded in what is ACTUALLY shown in these reference images.",
+        "The editing model will receive one of these exact images as input.",
+        "Write prompts that make sense for what is in the photos."
+      );
+    }
 
-    const userPrompt = `Generate exactly 20 image EDITING prompts for this brand's product, distributed across 5 ad angles (4 prompts each):
-
-${angleDescriptions}
-
-Brand data:
-${fullContext}
-
-REMEMBER: These prompts edit an existing product photo. The product is already in the image.
-Only describe the NEW environment, background, lighting, and mood.
-Never describe what the product looks like — the model sees the actual product.
-
-Return ONLY a JSON array of 20 objects:
-- "angle": one of "product_hero", "ugc_testimonial", "problem_solution", "lifestyle_benefit", "offer_urgency"
-- "concept": short 2-5 word name for the vibe/setting
-- "prompt_text": the editing prompt (2-3 sentences, starts with "Edit this image to...")
-- "tags": array of 2-4 relevant tags
-
-Return ONLY the JSON array. No markdown, no explanation.`;
+    userPromptParts.push(
+      "",
+      "Return ONLY a JSON array of 20 objects:",
+      '- "angle": one of "product_hero", "ugc_testimonial", "problem_solution", "lifestyle_benefit", "offer_urgency"',
+      '- "concept": 2-5 word name for the specific vibe (e.g. "Rooftop Golden Hour", "Concrete Studio Minimal")',
+      '- "prompt_text": the technical editing brief (2-3 sentences)',
+      '- "tags": 2-4 relevant tags',
+      "",
+      "JSON array only. No markdown. No explanation."
+    );
 
     const grokResponse = await fetch("https://api.x.ai/v1/chat/completions", {
       method: "POST",
@@ -131,9 +222,9 @@ Return ONLY the JSON array. No markdown, no explanation.`;
         model: "grok-4-latest",
         messages: [
           { role: "system", content: systemPrompt },
-          { role: "user", content: userPrompt },
+          { role: "user", content: userPromptParts.join("\n") },
         ],
-        temperature: 0.8,
+        temperature: 0.7,
       }),
     });
 
@@ -169,17 +260,22 @@ Return ONLY the JSON array. No markdown, no explanation.`;
         tags: Array.isArray(p.tags) ? p.tags.map((t: unknown) => String(t)).slice(0, 10) : [],
       }));
 
-    // Save to client defaults
+    // ── Step 4: Save to client defaults ──
     const currentDefaults = (client.defaults as Record<string, unknown>) || {};
     await updateClient(auth.tenant.id, body.clientId, {
       defaults: {
         ...currentDefaults,
         generatedPrompts: prompts,
         promptsGeneratedAt: new Date().toISOString(),
+        imageAnalysis: imageAnalysis ? imageAnalysis.slice(0, 5000) : null,
       } as Record<string, unknown>,
     });
 
-    return NextResponse.json({ prompts, count: prompts.length });
+    return NextResponse.json({
+      prompts,
+      count: prompts.length,
+      imagesAnalyzed: imageUrls.length,
+    });
   } catch (error) {
     console.error("[generate-prompts] Error:", error);
     const message = error instanceof Error ? error.message : "Failed to generate prompts";
