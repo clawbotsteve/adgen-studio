@@ -14,7 +14,7 @@ import { generateImage } from "@/lib/fal";
 
 const CONCURRENCY = 1;
 
-export const maxDuration = 60; // Vercel Hobby plan limit
+export const maxDuration = 300; // Vercel Pro plan limit
 
 export async function POST(request: Request) {
   const body = (await request.json()) as {
