@@ -78,14 +78,16 @@ export async function POST(request: Request) {
         .single();
 
       if (profile) {
-        profileAspectRatio = body.aspectRatio || profile.aspect_ratio || "1:1";
+        profileAspectRatio =
+          body.aspectRatio || profile.aspect_ratio || "1:1";
         profileResolution = body.resolution || profile.resolution || "2K";
       }
     }
 
     // Get reference images for this client
-    // Priority: top_creative references \u2192 primary reference \u2192 any reference
+    // Priority: top_creative references then primary reference then any reference
     let referenceImageUrls: string[] = [];
+
     if (body.clientId) {
       // 1) Try top_creative references first (saved in Client Generator)
       const { data: topCreatives } = await svc
@@ -96,7 +98,9 @@ export async function POST(request: Request) {
         .order("created_at", { ascending: true });
 
       if (topCreatives && topCreatives.length > 0) {
-        referenceImageUrls = topCreatives.map((r: { url: string }) => r.url);
+        referenceImageUrls = topCreatives.map(
+          (r: { url: string }) => r.url
+        );
         referenceImageUrl = referenceImageUrls[0];
       } else {
         // 2) Fallback: primary reference image
@@ -126,11 +130,17 @@ export async function POST(request: Request) {
 
     // Log reference image status for debugging
     if (referenceImageUrls.length > 0) {
-      console.log(`[batch/process] Using ${referenceImageUrls.length} top creative reference(s) for client ${body.clientId}`);
+      console.log(
+        "[batch/process] Using " + referenceImageUrls.length + " top creative reference(s) for client " + body.clientId
+      );
     } else if (referenceImageUrl) {
-      console.log(`[batch/process] Using fallback reference image for client ${body.clientId}`);
+      console.log(
+        "[batch/process] Using fallback reference image for client " + body.clientId
+      );
     } else {
-      console.warn(`[batch/process] No reference images found for client ${body.clientId} \u2014 generation WILL fail (image_urls is required by nano-banana-2/edit)`);
+      console.warn(
+        "[batch/process] No reference images found for client " + body.clientId
+      );
     }
 
     // Get all queued items for this batch
@@ -150,27 +160,72 @@ export async function POST(request: Request) {
         })
         .eq("id", body.runId);
 
-      return NextResponse.json({ processed: 0, message: "No items to process" });
+      return NextResponse.json({
+        processed: 0,
+        message: "No items to process",
+      });
     }
 
     let completedCount = 0;
     let failedCount = 0;
 
-    // ── Load client brain for prompt engine ──
+    // Load client brain for prompt engine
     let clientBrain: ClientBrain | null = null;
     try {
       if (isPromptEngineEnabled() && batchRun.client_id) {
-        const { data: clientData } = await supabase
+        const { data: clientData } = await svc
           .from("clients")
-          .select("name, description, industry, brand_tone, brand_colors, visual_style, target_audience")
+          .select(
+            "name, description, industry, brand_tone, brand_colors, visual_style, target_audience"
+          )
           .eq("id", batchRun.client_id)
           .single();
+
         if (clientData) {
-          clientBrain = buildClientBrain(clientData as Record<string, unknown>);
+          clientBrain = buildClientBrain(
+            clientData as Record<string, unknown>
+          );
         }
       }
     } catch (brainErr) {
-      console.warn("[process] Failed to load client brain, using fallback:", brainErr);
+      console.warn(
+        "[process] Failed to load client brain, using fallback:",
+        brainErr
+      );
+    }
+
+    // Read angle metadata from batch run
+    let selectedAngles: AngleKey[] = [];
+    let lockAngles = false;
+    try {
+      if (batchRun.metadata) {
+        const meta =
+          typeof batchRun.metadata === "string"
+            ? JSON.parse(batchRun.metadata)
+            : batchRun.metadata;
+        if (Array.isArray(meta.selectedAngles)) {
+          selectedAngles = meta.selectedAngles as AngleKey[];
+        }
+        if (meta.lockAngles === true) {
+          lockAngles = true;
+        }
+      }
+    } catch (metaErr) {
+      console.warn("[process] Failed to parse angle metadata:", metaErr);
+    }
+
+    // Pre-compute angle distribution for all items
+    let angleDistribution: AngleKey[] = [];
+    try {
+      if (isPromptEngineEnabled()) {
+        angleDistribution = getAngleDistribution(
+          items.length,
+          selectedAngles.length > 0 ? selectedAngles : undefined,
+          lockAngles
+        );
+      }
+    } catch (distErr) {
+      console.warn("[process] Angle distribution fallback:", distErr);
     }
 
     // Process items in batches of CONCURRENCY
@@ -182,7 +237,10 @@ export async function POST(request: Request) {
         .eq("id", body.runId)
         .single();
 
-      if (currentRun?.status === "stopped" || currentRun?.status === "paused") {
+      if (
+        currentRun?.status === "stopped" ||
+        currentRun?.status === "paused"
+      ) {
         break;
       }
 
@@ -190,6 +248,8 @@ export async function POST(request: Request) {
 
       const results = await Promise.allSettled(
         chunk.map(async (item) => {
+          const itemIdx = items.indexOf(item);
+
           // Mark as processing
           await svc
             .from("batch_item_results")
@@ -203,22 +263,23 @@ export async function POST(request: Request) {
           await updateCounts(svc, body.runId!);
 
           try {
-            // Pick a reference image \u2014 rotate through top creatives if available
+            // Pick a reference image - rotate through top creatives if available
             let refUrl = referenceImageUrl;
             if (referenceImageUrls.length > 1) {
-              const itemIdx = items.indexOf(item);
-              refUrl = referenceImageUrls[itemIdx % referenceImageUrls.length];
+              refUrl =
+                referenceImageUrls[itemIdx % referenceImageUrls.length];
             }
 
-            // Generate image via FAL
-            // ── Ad-Ready Prompt Engine ──
+            // Ad-Ready Prompt Engine
             let enginePrompt = "";
             let engineNegativePrompt = "";
             let angleKey = "";
+
             try {
               if (isPromptEngineEnabled() && clientBrain) {
-                const angles = getAngleDistribution(items.length);
-                const thisAngle = angles[itemIdx % angles.length] || "product_hero";
+                const thisAngle =
+                  angleDistribution[itemIdx % angleDistribution.length] ||
+                  "product_hero";
                 const result = composePrompt(
                   thisAngle as AngleKey,
                   clientBrain,
@@ -234,15 +295,18 @@ export async function POST(request: Request) {
               engineNegativePrompt = "";
             }
 
-            const outputUrl = await generateImage(
-              item.prompt || item.concept || "Generate creative ad",
-              refUrl,
-              {
-                aspectRatio: profileAspectRatio,
-                resolution: profileResolution,
-                negative_prompt: engineNegativePrompt || undefined,
-              }
-            );
+            // Use engine prompt if available, otherwise fall back to original
+            const finalPrompt =
+              enginePrompt ||
+              item.prompt ||
+              item.concept ||
+              "Generate creative ad";
+
+            const outputUrl = await generateImage(finalPrompt, refUrl, {
+              aspectRatio: profileAspectRatio,
+              resolution: profileResolution,
+              negative_prompt: engineNegativePrompt || undefined,
+            });
 
             // Mark as completed with resolution for billing
             await svc
@@ -251,7 +315,13 @@ export async function POST(request: Request) {
                 status: "completed",
                 output_url: outputUrl,
                 resolution: profileResolution,
-                ...(angleKey ? { engine_angle: angleKey, engine_prompt: enginePrompt.slice(0, 500), engine_negative: engineNegativePrompt.slice(0, 200) } : {}),
+                ...(angleKey
+                  ? {
+                      engine_angle: angleKey,
+                      engine_prompt: enginePrompt.slice(0, 500),
+                      engine_negative: engineNegativePrompt.slice(0, 200),
+                    }
+                  : {}),
                 completed_at: new Date().toISOString(),
               })
               .eq("id", item.id);
@@ -260,8 +330,7 @@ export async function POST(request: Request) {
           } catch (genErr) {
             const errMsg =
               genErr instanceof Error ? genErr.message : String(genErr);
-
-            // Extract error code from classified error messages (e.g. "FAL_ERROR: ...")
+            // Extract error code from classified error messages
             const codeMatch = errMsg.match(/^([A-Z_]+):/);
             const errorCode = codeMatch ? codeMatch[1] : "UNKNOWN";
 
@@ -276,8 +345,10 @@ export async function POST(request: Request) {
               })
               .eq("id", item.id);
 
-            console.error(`[batch/process] Item ${item.id} failed [${errorCode}]:`, errMsg);
-
+            console.error(
+              "[batch/process] Item " + item.id + " failed [" + errorCode + "]:",
+              errMsg
+            );
             return { success: false, itemId: item.id, error: errMsg };
           }
         })
@@ -298,9 +369,7 @@ export async function POST(request: Request) {
 
     // Final status update
     const finalStatus =
-      failedCount === items.length
-        ? "failed"
-        : "completed";
+      failedCount === items.length ? "failed" : "completed";
 
     await svc
       .from("batch_runs")
