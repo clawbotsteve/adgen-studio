@@ -7,11 +7,10 @@ import { listTopCreatives } from "@/lib/data/top-creatives";
 /* ── Types ─────────────────────────────────────────────── */
 
 type AngleKey =
-  | "product_hero"
-  | "ugc"
-  | "problem_solution"
-  | "lifestyle"
-  | "offer_urgency";
+  | "us_vs_them"
+  | "key_feature"
+  | "testimonial_review"
+  | "bundle_offer";
 
 interface GeneratedPrompt {
   angle: AngleKey;
@@ -39,16 +38,16 @@ async function analyzeImages(
   const content: { type: string; text?: string; image_url?: { url: string } }[] = [
     {
       type: "text",
-      text: `You are a senior creative director analyzing reference images for an ad campaign. For each image, write a detailed 4-6 sentence analysis covering:
+      text: `Analyze each uploaded image in extreme detail. For each image describe:
+- Main product(s) visible: exact item, colours, textures, materials, visible logos/text/emblems
+- Model (if any): age range, pose, expression, clothing details, layering, accessories, hair
+- Background and setting: environment, props, colours, surfaces
+- Lighting: style, direction, mood it creates
+- Overall vibe: premium, everyday, wellness, cozy, energetic, patriotic, streetwear, etc.
+- Visible branding: any brand name, tagline, or logo text you can read
+- Colour palette: list dominant colours and how they interact
 
-1. PRODUCT DETAILS: What exact product is shown? Describe logos, text, emblems, colours, materials, and design details you can see.
-2. MODEL/STYLING: What is the person wearing? Describe layering, accessories, jewellery, hair, expression, pose direction.
-3. SETTING & BACKGROUND: What environment or backdrop is used? Describe specific elements, colours, props.
-4. LIGHTING & MOOD: What is the lighting style? What emotional energy does the image convey?
-5. BRAND AESTHETIC: What is the overall brand vibe? (luxury, streetwear, patriotic, athletic, minimal, bold, etc.)
-6. COLOUR PALETTE: List the dominant colours and how they work together.
-
-Be extremely specific — mention exact colours (gold, navy, coral-pink), exact items (laurel wreath emblem, cable-knit cardigan), and exact moods (patriotic luxury, aspirational masculine energy). This analysis will be used to generate on-brand ad campaign prompts.`,
+Be extremely specific. Say "gold laurel-wreath emblem on navy polo" not "logo on shirt". Say "warm golden hour side-lighting with long shadows" not "nice lighting". This analysis will be used to generate high-conversion ad prompts.`,
     },
     ...imageUrls.slice(0, 5).map((url) => ({
       type: "image_url" as const,
@@ -139,56 +138,45 @@ export async function POST(request: Request) {
       imageAnalysis = await analyzeImages(imageUrls, apiKey);
     }
 
-    /* ── Generate 20 rich, descriptive prompts via Grok ── */
+    /* ── Generate 20 high-conversion ad prompts via Grok ── */
 
-    const systemPrompt = `You are the creative director for a premium brand's ad campaign. You write detailed image-editing prompts for an AI photo editor. The AI takes a reference photo and edits ONLY the background, lighting, and mood — the product and person stay exactly the same.
+    const systemPrompt = `You are an expert AI prompt engineer for high-conversion social media ad visuals (Instagram, TikTok, Facebook). You have been given a detailed analysis of reference product images and brand info. Your job is to generate optimized image-editing prompts that an AI photo editor will use to transform the reference photos into scroll-stopping ads.
 
-YOUR JOB: Write prompts that read like a high-end campaign brief. Each prompt must be SPECIFIC, VIVID, and BRAND-AWARE. Use the image analysis and brand info provided to write prompts that feel tailored to THIS brand — not generic templates.
+HOW THE AI PHOTO EDITOR WORKS:
+- It takes the original reference photo and edits ONLY the background, lighting, mood, and environment
+- The product, person, clothing, and logos stay EXACTLY the same — never describe these
+- Your prompts should describe the SCENE, SETTING, LIGHTING, and VISUAL CONCEPT for the final ad image
 
-WHAT TO DESCRIBE (be extremely specific):
-- The exact background/setting with specific visual details (not just "studio" but "studio with rich black voids and a single golden spotlight cutting through from above")
-- The lighting mood and quality (golden hour rim lighting, dramatic side-lit shadows, soft diffused morning glow)
-- The emotional energy and campaign feel (patriotic luxury, aspirational masculine confidence, rebellious streetwear energy)
-- The composition style (heroic low-angle, intimate close crop, editorial wide shot)
-- Photography style references (high-end editorial, professional product photography, cinematic portrait, fashion campaign)
-- Depth of field and focus (shallow depth with bokeh, everything razor sharp, soft-focus background)
+CORE RULES:
+1. Use the image analysis provided to understand the exact product, brand aesthetic, colours, and vibe. Reference these specifics in every prompt.
+2. Use the exact brand name if provided in the brand info. Otherwise use the brand vibe naturally.
+3. Every prompt must describe a specific, vivid visual scene — not generic photography directions.
+4. Write prompts that a social media ad manager would use. Think "what would make someone stop scrolling and tap" not "what would a photographer set up."
+5. Each prompt should be 2-4 sentences. Be vivid and specific but concise.
+6. NEVER describe the product, clothing, logos, or the person — the AI already sees them in the reference photo.
+7. NEVER include Midjourney flags (--ar, --v, --q, --stylize).
+8. NEVER ask for text overlays, price tags, captions, or any graphic design elements — this is a photo editor, not a graphic design tool.
+9. NEVER ask for split-screens, before/after composites, collages, or multiple panels.
+10. NEVER use technical jargon like colour temperatures (4000K), f-stops, or softbox specs.
 
-WHAT TO NEVER DO:
-- NEVER describe the product, clothing, logos, or the person — the AI already sees them
-- NEVER include Midjourney flags (--ar, --v, --q, --stylize)
-- NEVER ask for text overlays, price tags, countdown timers, or any graphic design elements
-- NEVER ask for split-screens, before/after composites, or collages
-- NEVER use technical jargon like colour temperatures (4000K), f-stops, or softbox angles
-- NEVER write generic prompts that could apply to any brand — make them SPECIFIC to this brand's aesthetic
+PROMPT STRUCTURE: Start each prompt with "Keep the exact same product and outfit unchanged." Then describe the visual ad concept — the background, environment, lighting, mood, and the feeling the ad should evoke.
 
-PROMPT FORMAT: Each prompt should be 3-5 sentences. Start with "Keep the exact same product and outfit unchanged." then write the rest as a vivid creative brief.
+AD CATEGORIES — generate exactly 5 prompts for each:
 
-QUALITY CHECK — every prompt must pass these tests:
-1. Could a photographer read this and know EXACTLY what to shoot? If not, add more detail.
-2. Does this feel tailored to THIS specific brand? If it could apply to any brand, rewrite it.
-3. Does it have emotional energy? Words like "confident", "heroic", "rebellious", "aspirational"?
-4. Does it specify the photography STYLE? "high-end editorial", "cinematic portrait", "fashion campaign"?
+1. US VS THEM — Show visual superiority. The product/person should look elevated, premium, and dominant compared to the implied competition. Think: bold dramatic backdrops that scream quality, environments that make cheap alternatives look invisible, lighting that says "this is the real deal." The visual should communicate "why settle for less?"
 
-EXAMPLE of an excellent prompt:
-"Keep the exact same product and outfit unchanged. Premium fashion campaign photo, massive American flag waving dramatically in soft-focus background filling the entire frame, golden hour sunlight casting warm cinematic rim lighting that wraps around the subject, shallow depth of field with the flag's red and blue colours melting into creamy bokeh, patriotic luxury streetwear vibe with heroic confident composition, the subject looking off to the side with powerful aspirational energy, high-end editorial style worthy of a magazine cover, high detail skin texture and fabric detail, vertical Instagram ad format"
+2. KEY FEATURE CALLOUTS — Highlight what makes this product special through the visual environment. If it's premium materials, show luxurious settings that match. If it's durability, show rugged environments. If it's style, show fashion-forward scenes. The background and mood should REINFORCE the product's key selling point without any text needed.
 
-EXAMPLE of a BAD generic prompt (do NOT write like this):
-"Keep the exact same product and outfit unchanged. Set against a sleek urban wall under warm lighting with a confident vibe and editorial feel."
-This is bad because it's vague, generic, has no specific details, and could apply to literally any brand.
+3. TESTIMONIAL / REVIEW STYLE — Create authentic, trustworthy scenes that feel like a real customer showing off their purchase. Think: natural environments, genuine candid energy, relatable settings (home, street, gym, coffee shop). The vibe should say "I love this product and want to show it off." Real-person energy, not studio-polished.
+
+4. BUNDLE / OFFER BASED — Maximum visual impact designed to stop the scroll. Think: bold dramatic lighting, striking colour contrasts, premium spotlight-on-dark setups, cinematic frames. Every element should scream exclusive, limited, premium. The composition should create urgency and desire — make the viewer feel like they need to act now.
 
 Return a JSON array of exactly 20 objects:
-- "angle": one of "product_hero", "ugc", "problem_solution", "lifestyle", "offer_urgency"
-- "label": a short 2-4 word name
-- "prompt_text": the detailed 3-5 sentence creative brief
+- "angle": one of "us_vs_them", "key_feature", "testimonial_review", "bundle_offer"
+- "label": a short 2-5 word descriptive title for the ad concept
+- "prompt_text": the 2-4 sentence prompt
 
-Generate exactly 4 prompts per angle (4 x 5 = 20 total).
-
-ANGLE GUIDELINES:
-- product_hero: The hero shot. Premium studio or dramatic outdoor settings that make the product look like a million dollars. Think magazine covers, fashion billboards, campaign launch imagery. Dramatic lighting, powerful composition, the product commands attention.
-- ugc: Authentic real-life moments. Someone naturally wearing/using the product — gym selfie, street corner, coffee run, hanging with friends. Should feel real and relatable but still polished enough for a sponsored Instagram post. Candid energy.
-- problem_solution: Visual storytelling through contrast. Show the product in an environment that communicates uplift, transformation, or superiority — emerging from shadows into light, standing bold in a dull crowd, calm confidence in chaos. Use MOOD and ENVIRONMENT to tell the story, never text or split-screens.
-- lifestyle: Aspirational dream scenes. Rooftop sunsets overlooking city skylines, coastal cliffside golden hour, first-class travel vibes, exclusive gym sessions. The product fits naturally into an elevated, desirable lifestyle the audience aspires to.
-- offer_urgency: Maximum visual impact. Think bold dramatic lighting, striking colour contrasts, spotlight-on-black energy, neon-lit urban nights, high-contrast cinematic frames. Every element screams premium, exclusive, limited. The composition should make someone stop scrolling immediately.`;
+Generate exactly 5 prompts per category (5 x 4 = 20 total).`;
 
     const userParts: string[] = [];
     if (brandContext) {
@@ -200,7 +188,7 @@ ANGLE GUIDELINES:
       );
     }
     userParts.push(
-      "Generate 20 rich, descriptive editing prompts (4 per angle). Each prompt should be 3-5 sentences painting a vivid, brand-specific creative brief for the final image's mood, lighting, composition, and energy. Remember: never describe the product or person, only the scene and vibe. Return ONLY the JSON array, no markdown."
+      "Generate 20 high-conversion ad image prompts (5 per category: US VS THEM, KEY FEATURE CALLOUTS, TESTIMONIAL/REVIEW STYLE, BUNDLE/OFFER BASED). Each prompt should be 2-4 sentences describing the visual scene, background, lighting, and mood for the ad. Never describe the product or person — only the environment and vibe. Return ONLY the JSON array, no markdown."
     );
 
     const grokResp = await fetch("https://api.x.ai/v1/chat/completions", {
