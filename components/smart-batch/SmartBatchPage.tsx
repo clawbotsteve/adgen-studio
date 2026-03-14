@@ -1,5 +1,40 @@
 "use client";
 
+
+  // Sync local clients list with prop
+  useEffect(() => {
+    setClientsList(clients);
+  }, [clients]);
+
+  // Close dropdown on outside click
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(e.target as Node)) {
+        setClientDropdownOpen(false);
+      }
+    };
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
+
+  const handleDeleteClient = async (id: string, name: string) => {
+    if (deleteConfirm !== id) {
+      setDeleteConfirm(id);
+      return;
+    }
+    try {
+      const res = await fetch(`/api/clients/${id}`, { method: "DELETE" });
+      if (!res.ok) throw new Error("Failed to delete");
+      setClientsList((prev) => prev.filter((c) => c.id !== id));
+      if (clientId === id) setClientId("");
+      setDeleteConfirm(null);
+    } catch (err) {
+      console.error("Failed to delete client:", err);
+      setDeleteConfirm(null);
+    }
+  };
+
+
 import { useState, useEffect, useCallback, useRef } from "react";
 import { useRouter } from "next/navigation";
 import type { Client, Profile, BrandContext } from "@/types/domain";
@@ -22,6 +57,10 @@ export function SmartBatchPage({
   const [contextLoading, setContextLoading] = useState(false);
   const [launching, setLaunching] = useState(false);
   const [referenceImages, setReferenceImages] = useState<
+  const [clientsList, setClientsList] = useState(clients);
+  const [clientDropdownOpen, setClientDropdownOpen] = useState(false);
+  const [deleteConfirm, setDeleteConfirm] = useState<string | null>(null);
+  const dropdownRef = useRef<HTMLDivElement>(null);
     { file: File; preview: string }[]
   >([]);
 
@@ -67,7 +106,7 @@ export function SmartBatchPage({
   }, [clientId, fetchBrandContext]);
 
   const selectedProfile = profiles.find((p) => p.id === profileId);
-  const selectedClient = clients.find((c) => c.id === clientId);
+  const selectedClient = clientsList.find((c) => c.id === clientId);
 
   const canLaunch = clientId && profileId;
 
@@ -136,18 +175,79 @@ export function SmartBatchPage({
           <label className="form-label" style={{ marginBottom: 4, fontSize: 12 }}>
             Client
           </label>
-          <select
-            className="form-select"
-            value={clientId}
-            onChange={(e) => setClientId(e.target.value)}
-            style={{ padding: "6px 10px", fontSize: 13 }}
-          >
-            {clients.map((c) => (
-              <option key={c.id} value={c.id}>
-                {c.name}
-              </option>
-            ))}
-          </select>
+          <div ref={dropdownRef} style={{ position: "relative" }}>
+            <div
+              className="form-select"
+              onClick={() => setClientDropdownOpen(!clientDropdownOpen)}
+              style={{
+                padding: "6px 10px",
+                fontSize: 13,
+                cursor: "pointer",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "space-between",
+              }}
+            >
+              <span>{clientsList.find((c) => c.id === clientId)?.name || "Select a client"}</span>
+              <span style={{ fontSize: 10, opacity: 0.6 }}>{clientDropdownOpen ? "\u25B2" : "\u25BC"}</span>
+            </div>
+            {clientDropdownOpen && (
+              <div
+                style={{
+                  position: "absolute",
+                  top: "100%",
+                  left: 0,
+                  right: 0,
+                  zIndex: 50,
+                  background: "#1a1a2e",
+                  border: "1px solid #333",
+                  borderRadius: 6,
+                  maxHeight: 240,
+                  overflowY: "auto",
+                  marginTop: 2,
+                }}
+              >
+                {clientsList.map((c) => (
+                  <div
+                    key={c.id}
+                    style={{
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "space-between",
+                      padding: "8px 12px",
+                      cursor: "pointer",
+                      background: c.id === clientId ? "#2a2a4e" : "transparent",
+                      borderBottom: "1px solid #222",
+                    }}
+                  >
+                    <span
+                      onClick={() => { setClientId(c.id); setClientDropdownOpen(false); setDeleteConfirm(null); }}
+                      style={{ flex: 1, fontSize: 13, color: "#e0e0e0" }}
+                    >
+                      {c.id === clientId && "\u2713 "}{c.name}
+                    </span>
+                    <button
+                      onClick={(e) => { e.stopPropagation(); handleDeleteClient(c.id, c.name); }}
+                      title={deleteConfirm === c.id ? "Click again to confirm" : "Delete client"}
+                      style={{
+                        background: deleteConfirm === c.id ? "#dc2626" : "transparent",
+                        border: deleteConfirm === c.id ? "1px solid #dc2626" : "1px solid #555",
+                        color: deleteConfirm === c.id ? "#fff" : "#888",
+                        borderRadius: 4,
+                        padding: "2px 6px",
+                        fontSize: 11,
+                        cursor: "pointer",
+                        marginLeft: 8,
+                        transition: "all 0.15s",
+                      }}
+                    >
+                      {deleteConfirm === c.id ? "Confirm?" : "\u2715"}
+                    </button>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
         </div>
         {selectedClient?.description && (
           <p
@@ -168,7 +268,7 @@ export function SmartBatchPage({
               margin: "4px 0 0",
             }}
           >
-            Brand context loaded — prompts will be generated from client data
+            Brand context loaded â prompts will be generated from client data
           </p>
         )}
         {!contextActive && !contextLoading && clientId && (
@@ -179,12 +279,12 @@ export function SmartBatchPage({
               margin: "4px 0 0",
             }}
           >
-            No brand context found — complete Client Generator first for best results
+            No brand context found â complete Client Generator first for best results
           </p>
         )}
       </div>
 
-      {/* Row 2: Generation Settings — all in one tight row */}
+      {/* Row 2: Generation Settings â all in one tight row */}
       <div
         className="card"
         style={{ padding: "12px 16px" }}
@@ -269,7 +369,7 @@ export function SmartBatchPage({
               }}
             >
               {selectedProfile
-                ? `${selectedProfile.mode} · ${selectedProfile.aspect_ratio} · ${selectedProfile.resolution}`
+                ? `${selectedProfile.mode} Â· ${selectedProfile.aspect_ratio} Â· ${selectedProfile.resolution}`
                 : ""}
             </span>
           </div>
@@ -413,7 +513,7 @@ export function SmartBatchPage({
           >
             {contextActive ? "Brand context active" : "No brand context"}
             {referenceImages.length > 0
-              ? ` · ${referenceImages.length} ref image${referenceImages.length > 1 ? "s" : ""}`
+              ? ` Â· ${referenceImages.length} ref image${referenceImages.length > 1 ? "s" : ""}`
               : ""}
           </span>
         </div>
