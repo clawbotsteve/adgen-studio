@@ -2,7 +2,12 @@
 // Ad-Ready Prompt Engine for Smart Batch
 // Feature-flagged: set AD_PROMPT_ENGINE_ENABLED=false to disable
 
-export type AngleKey = "product_hero" | "ugc_testimonial" | "problem_solution" | "lifestyle_benefit" | "offer_urgency";
+export type AngleKey =
+  | "product_hero"
+  | "ugc_testimonial"
+  | "problem_solution"
+  | "lifestyle_benefit"
+  | "offer_urgency";
 
 export interface AngleTemplate {
   key: AngleKey;
@@ -32,44 +37,86 @@ export interface PromptEngineResult {
   negative_prompt: string;
   template_used: string;
 }
-export const GLOBAL_NEGATIVE_PROMPT = "low quality, blurry, overprocessed skin, deformed hands, extra fingers, bad anatomy, warped product shape, noisy background, cluttered composition, cartoon look, fake CGI look, unreadable text, watermark, logo distortion";
 
-const BASE_AD_QUALITY = "Professional high-quality advertising photography, studio lighting, commercial grade, Instagram-ready, clean composition, brand-safe";
+// ── Reference-anchoring prefix ──
+// This gets prepended to EVERY prompt to tell the model to preserve the reference image subject
+const REFERENCE_ANCHOR =
+  "Keep the exact product, subject, logos, brand details, and design from the reference image completely unchanged. " +
+  "Do not alter, redesign, or reimagine the product itself. Only modify the environment, background, lighting, and mood around it.";
+
+export const GLOBAL_NEGATIVE_PROMPT =
+  "low quality, blurry, overprocessed skin, deformed hands, extra fingers, bad anatomy, " +
+  "warped product shape, noisy background, cluttered composition, cartoon look, fake CGI look, " +
+  "unreadable text, watermark, logo distortion, " +
+  "altered product design, changed logo, modified brand details, different product shape, " +
+  "missing brand elements, redesigned product, wrong product color";
+
+const BASE_AD_QUALITY =
+  "Professional advertising photography, commercial grade, Instagram-ready, brand-safe";
 
 export const ANGLE_TEMPLATES: AngleTemplate[] = [
   {
     key: "product_hero",
     label: "Product Hero",
-    description: "Bold product-focused hero shot",
-    promptTemplate: "Hero product shot of {{product_name}} by {{brand_name}}. Premium studio lighting, clean background, product centered and prominent. Shot for {{target_audience}}. Style: {{visual_style}}. Tone: {{brand_tone}}. Colors: {{brand_colors}}.",
+    description: "Bold product-focused hero shot with the exact reference product",
+    promptTemplate:
+      "Edit this image to place the exact same product in a premium studio environment. " +
+      "Clean, minimal background in {{brand_colors}} tones. " +
+      "Bold studio lighting with soft shadows to highlight product details. " +
+      "Product is centered and prominent, shot straight-on or at a slight angle. " +
+      "Style: {{visual_style}}. The mood is {{brand_tone}}. " +
+      "Do not change the product — only the background and lighting.",
   },
   {
     key: "ugc_testimonial",
     label: "UGC",
-    description: "User-generated content style testimonial",
-    promptTemplate: "Authentic user-generated content style photo showing a {{persona_type}} naturally using {{product_name}} by {{brand_name}}. Candid, relatable feel for {{target_audience}}. Warm natural lighting, lifestyle setting. Style: {{visual_style}}.",
+    description: "User-generated content style with the exact reference product",
+    promptTemplate:
+      "Edit this image to give it an authentic, candid, user-generated content feel. " +
+      "Place the exact same product in a natural, everyday setting — someone using or wearing it casually. " +
+      "Warm natural lighting, slightly imperfect framing like a real phone photo. " +
+      "Relatable lifestyle setting for {{target_audience}}. " +
+      "Style: casual and authentic. Keep all product details, logos, and branding exactly as they are.",
   },
   {
     key: "problem_solution",
     label: "Problem/Solution",
-    description: "Before/after or problem-solving visual",
-    promptTemplate: "Visual showing {{product_name}} by {{brand_name}} as the clear solution. {{industry}} context, compelling transformation or benefit reveal. Designed for {{target_audience}}. Style: {{visual_style}}. Tone: {{brand_tone}}.",
+    description: "Transformation or problem-solving visual with the exact reference product",
+    promptTemplate:
+      "Edit this image to show the exact same product as the clear hero solution. " +
+      "Create a visual context in the {{industry}} space where the product stands out as the answer. " +
+      "Dramatic, confident lighting that draws attention to the product. " +
+      "Background suggests transformation or improvement. " +
+      "Colors: {{brand_colors}}. Style: {{visual_style}}. Tone: {{brand_tone}}. " +
+      "The product itself must remain completely unchanged.",
   },
   {
     key: "lifestyle_benefit",
     label: "Lifestyle",
-    description: "Aspirational lifestyle scene with product",
-    promptTemplate: "Aspirational lifestyle scene featuring {{product_name}} by {{brand_name}} in a {{lifestyle_theme}} setting. Shows the benefit and elevated lifestyle for {{target_audience}}. Natural lighting, editorial quality. Colors: {{brand_colors}}. Style: {{visual_style}}.",
+    description: "Aspirational lifestyle scene with the exact reference product",
+    promptTemplate:
+      "Edit this image to place the exact same product in a {{lifestyle_theme}} lifestyle scene. " +
+      "Aspirational, editorial-quality setting that appeals to {{target_audience}}. " +
+      "Golden hour or natural window lighting, cinematic depth of field. " +
+      "The product is featured naturally in the scene, not staged. " +
+      "Colors complement {{brand_colors}}. Style: {{visual_style}}. " +
+      "Keep every detail of the product identical to the reference.",
   },
   {
     key: "offer_urgency",
     label: "Offer/Urgency",
-    description: "Promotional offer or urgency-driven creative",
-    promptTemplate: "Eye-catching promotional creative for {{product_name}} by {{brand_name}}. {{offer_type}} promotion style, bold and attention-grabbing for {{target_audience}}. High contrast, dynamic composition. Colors: {{brand_colors}}. Tone: {{brand_tone}}.",
+    description: "Eye-catching promotional creative with the exact reference product",
+    promptTemplate:
+      "Edit this image to create an eye-catching, high-energy promotional feel. " +
+      "Keep the exact same product but place it against a bold, dynamic background. " +
+      "High contrast, punchy colors using {{brand_colors}}. " +
+      "Dramatic lighting with strong highlights and shadows for visual impact. " +
+      "Designed to grab attention for {{target_audience}}. Tone: {{brand_tone}}. " +
+      "The product must remain exactly as shown in the reference — only the environment changes.",
   },
 ];
+
 // ── Auto-mix distribution ──
-// Maps quantity to how many of each angle to generate
 const AUTOMIX_DISTRIBUTIONS: Record<number, Record<AngleKey, number>> = {
   5: { product_hero: 1, ugc_testimonial: 1, problem_solution: 1, lifestyle_benefit: 1, offer_urgency: 1 },
   10: { product_hero: 3, ugc_testimonial: 2, problem_solution: 2, lifestyle_benefit: 2, offer_urgency: 1 },
@@ -89,8 +136,6 @@ const DEFAULT_RATIOS: Record<AngleKey, number> = {
 
 /**
  * Get the angle distribution for a given quantity.
- * Uses predefined distributions for known quantities,
- * otherwise interpolates from ratios.
  */
 export function getAngleDistribution(
   quantity: number,
@@ -100,7 +145,7 @@ export function getAngleDistribution(
   let angles: AngleKey[];
 
   if (selectedAngles && selectedAngles.length > 0 && lockToSelected) {
-    // Lock mode: only use selected angles, distribute evenly
+    // Lock mode: only use selected angles
     angles = [];
     const perAngle = Math.floor(quantity / selectedAngles.length);
     const remainder = quantity % selectedAngles.length;
@@ -110,26 +155,31 @@ export function getAngleDistribution(
     }
   } else if (selectedAngles && selectedAngles.length > 0) {
     // Bias mode: favor selected angles but include others
-    const allAngles: AngleKey[] = ["product_hero", "ugc_testimonial", "problem_solution", "lifestyle_benefit", "offer_urgency"];
+    const allAngles: AngleKey[] = [
+      "product_hero", "ugc_testimonial", "problem_solution",
+      "lifestyle_benefit", "offer_urgency",
+    ];
     const biasedRatios: Record<AngleKey, number> = { ...DEFAULT_RATIOS };
-    // Boost selected by 1.5x, reduce others
     const selectedSet = new Set(selectedAngles);
     for (const key of allAngles) {
       if (selectedSet.has(key)) biasedRatios[key] *= 1.5;
       else biasedRatios[key] *= 0.5;
     }
-    // Normalize
     const total = Object.values(biasedRatios).reduce((a, b) => a + b, 0);
     angles = [];
     let remaining = quantity;
     const sorted = allAngles.sort((a, b) => biasedRatios[b] - biasedRatios[a]);
     for (let i = 0; i < sorted.length; i++) {
-      const count = i === sorted.length - 1 ? remaining : Math.round((biasedRatios[sorted[i]] / total) * quantity);
-      for (let j = 0; j < Math.min(count, remaining); j++) angles.push(sorted[i]);
+      const count =
+        i === sorted.length - 1
+          ? remaining
+          : Math.round((biasedRatios[sorted[i]] / total) * quantity);
+      for (let j = 0; j < Math.min(count, remaining); j++)
+        angles.push(sorted[i]);
       remaining -= Math.min(count, remaining);
     }
   } else {
-    // Auto-mix mode: use predefined or interpolate
+    // Auto-mix mode
     const predefined = AUTOMIX_DISTRIBUTIONS[quantity];
     if (predefined) {
       angles = [];
@@ -137,13 +187,19 @@ export function getAngleDistribution(
         for (let i = 0; i < count; i++) angles.push(key as AngleKey);
       }
     } else {
-      // Interpolate from ratios
-      const allAngles: AngleKey[] = ["product_hero", "ugc_testimonial", "problem_solution", "lifestyle_benefit", "offer_urgency"];
+      const allAngles: AngleKey[] = [
+        "product_hero", "ugc_testimonial", "problem_solution",
+        "lifestyle_benefit", "offer_urgency",
+      ];
       angles = [];
       let remaining = quantity;
       for (let i = 0; i < allAngles.length; i++) {
-        const count = i === allAngles.length - 1 ? remaining : Math.round(DEFAULT_RATIOS[allAngles[i]] * quantity);
-        for (let j = 0; j < Math.min(count, remaining); j++) angles.push(allAngles[i]);
+        const count =
+          i === allAngles.length - 1
+            ? remaining
+            : Math.round(DEFAULT_RATIOS[allAngles[i]] * quantity);
+        for (let j = 0; j < Math.min(count, remaining); j++)
+          angles.push(allAngles[i]);
         remaining -= Math.min(count, remaining);
       }
     }
@@ -157,17 +213,17 @@ export function getAngleDistribution(
 
   return angles;
 }
+
 /**
  * Interpolate template variables from client brain data.
- * Missing fields get safe fallbacks.
  */
 function interpolate(template: string, brain: ClientBrain): string {
   const defaults: Record<string, string> = {
     brand_name: "the brand",
     product_name: "the product",
     target_audience: "modern consumers",
-    brand_tone: "professional and engaging",
-    brand_colors: "brand colors",
+    brand_tone: "professional and confident",
+    brand_colors: "brand signature",
     visual_style: "clean modern aesthetic",
     industry: "consumer goods",
     offer_type: "limited-time",
@@ -184,6 +240,7 @@ function interpolate(template: string, brain: ClientBrain): string {
 
 /**
  * Compose the final prompt for a single generation item.
+ * Now includes reference-anchoring prefix to preserve the original product.
  */
 export function composePrompt(
   angleKey: AngleKey,
@@ -192,14 +249,16 @@ export function composePrompt(
 ): PromptEngineResult {
   const template = ANGLE_TEMPLATES.find((t) => t.key === angleKey);
   if (!template) {
-    // Fallback: use product_hero if angle not found
     return composePrompt("product_hero", brain, campaignContext);
   }
 
   const anglePrompt = interpolate(template.promptTemplate, brain);
-  const parts = [BASE_AD_QUALITY, anglePrompt];
+
+  // Build final prompt: Reference anchor first, then quality, then angle-specific
+  const parts = [REFERENCE_ANCHOR, BASE_AD_QUALITY, anglePrompt];
+
   if (campaignContext && campaignContext.trim().length > 0) {
-    parts.push("Campaign context: " + campaignContext.trim());
+    parts.push("Additional context: " + campaignContext.trim());
   }
 
   const finalPrompt = parts.join(". ");
@@ -221,27 +280,30 @@ export function composePrompt(
 
 /**
  * Check if the prompt engine is enabled.
- * Feature flag: set AD_PROMPT_ENGINE_ENABLED=false in env to disable.
  */
 export function isPromptEngineEnabled(): boolean {
   const flag = process.env.AD_PROMPT_ENGINE_ENABLED;
-  // Default to true; only disable if explicitly set to "false"
   return flag !== "false";
 }
 
 /**
  * Build client brain from brand context and profile data.
- * Extracts known fields with safe fallbacks.
  */
-export function buildClientBrain(brandContext: Record<string, unknown> | null, profile?: Record<string, unknown> | null): ClientBrain {
+export function buildClientBrain(
+  brandContext: Record<string, unknown> | null,
+  profile?: Record<string, unknown> | null
+): ClientBrain {
   if (!brandContext) return {};
+
   return {
     brand_name: String(brandContext.brand_name || brandContext.name || ""),
     product_name: String(brandContext.product_name || brandContext.product || ""),
     target_audience: String(brandContext.target_audience || brandContext.audience || ""),
     brand_tone: String(brandContext.brand_tone || brandContext.tone || ""),
     brand_colors: String(brandContext.brand_colors || brandContext.colors || ""),
-    visual_style: String(brandContext.visual_style || brandContext.style || profile?.visual_style || ""),
+    visual_style: String(
+      brandContext.visual_style || brandContext.style || profile?.visual_style || ""
+    ),
     industry: String(brandContext.industry || ""),
     offer_type: String(brandContext.offer_type || "limited-time"),
     persona_type: String(brandContext.persona_type || "everyday person"),

@@ -21,9 +21,10 @@ const ANGLES = [
 
 /**
  * POST /api/client-generator/generate-prompts
- * Generate 20 ad prompts (4 per angle) using Grok AI,
- * based on the client's brand data and saved form fields.
- * Saves the prompts to clients.defaults.generatedPrompts.
+ * Generate 20 ad prompts (4 per angle) using Grok AI.
+ * Prompts are reference-preserving: they instruct the image model
+ * to keep the exact product from the reference image and only
+ * change the environment, background, lighting, and mood.
  */
 export async function POST(request: Request) {
   const auth = await requireUserTenantApi();
@@ -47,7 +48,6 @@ export async function POST(request: Request) {
   }
 
   try {
-    // Load client and brand context
     const client = await getClient(auth.tenant.id, body.clientId);
     if (!client) {
       return NextResponse.json({ error: "Client not found" }, { status: 404 });
@@ -55,7 +55,6 @@ export async function POST(request: Request) {
 
     const fd = (client.defaults as Record<string, unknown>)?.formData as Record<string, string> | undefined;
 
-    // Build context from form data
     const brandInfo = [
       fd?.productName ? "Product: " + fd.productName : "",
       fd?.productDescription ? "Description: " + fd.productDescription : "",
@@ -68,7 +67,6 @@ export async function POST(request: Request) {
       fd?.lessOfThat ? "Creative direction (avoid): " + fd.lessOfThat : "",
     ].filter(Boolean).join("\n");
 
-    // Also try master context string for richer data
     let masterContext = "";
     try {
       masterContext = await buildMasterContextString(auth.tenant.id, body.clientId) || "";
@@ -85,25 +83,40 @@ export async function POST(request: Request) {
 
     const angleDescriptions = ANGLES.map(a => a.key + " (" + a.label + "): " + a.count + " prompts").join("\n");
 
-    const systemPrompt = `You are an expert AI ad creative director and image prompt engineer.
-You generate production-ready image generation prompts for advertising campaigns.
-Each prompt should be vivid, specific, and optimized for AI image generation models.
+    const systemPrompt = `You are an expert AI ad creative director specializing in IMAGE EDITING prompts.
 
-Include details about: camera angle, lighting, composition, setting, mood, color palette, and styling.
-Make prompts feel like a cohesive ad campaign — varied shots but unified brand feel.
-Each prompt_text should be 2-4 sentences.`;
+CRITICAL RULE: Every prompt you write is for an IMAGE EDITING model, NOT an image generation model.
+The model receives a REFERENCE IMAGE of the actual product. Your prompts must:
+1. NEVER describe the product itself — the model already has the real product photo
+2. ONLY describe changes to the ENVIRONMENT, BACKGROUND, LIGHTING, and MOOD
+3. Always start with "Edit this image to..." or "Change the background to..."
+4. Explicitly state "Keep the exact product unchanged" in every prompt
 
-    const userPrompt = `Generate exactly 20 image generation prompts for this brand, distributed across 5 ad angles (4 prompts each):
+Think of it like Photoshop — you are changing everything AROUND the product, not the product itself.
+
+Each prompt should specify:
+- New background/setting
+- Lighting direction and mood
+- Color grading or tonal shift
+- Camera framing adjustments (if any)
+
+Make prompts 2-3 sentences. Be specific about the environment change.`;
+
+    const userPrompt = `Generate exactly 20 image EDITING prompts for this brand's product, distributed across 5 ad angles (4 prompts each):
 
 ${angleDescriptions}
 
 Brand data:
 ${fullContext}
 
-IMPORTANT: Return ONLY a JSON array of 20 objects. Each object must have:
+REMEMBER: These prompts edit an existing product photo. The product is already in the image.
+Only describe the NEW environment, background, lighting, and mood.
+Never describe what the product looks like — the model sees the actual product.
+
+Return ONLY a JSON array of 20 objects:
 - "angle": one of "product_hero", "ugc_testimonial", "problem_solution", "lifestyle_benefit", "offer_urgency"
-- "concept": short 2-5 word name for the shot
-- "prompt_text": detailed 2-4 sentence image generation prompt
+- "concept": short 2-5 word name for the vibe/setting
+- "prompt_text": the editing prompt (2-3 sentences, starts with "Edit this image to...")
 - "tags": array of 2-4 relevant tags
 
 Return ONLY the JSON array. No markdown, no explanation.`;
@@ -136,7 +149,6 @@ Return ONLY the JSON array. No markdown, no explanation.`;
     const grokData = await grokResponse.json();
     let rawContent = grokData.choices?.[0]?.message?.content?.trim() ?? "";
 
-    // Strip markdown fences if present
     if (rawContent.startsWith("\`\`\`")) {
       rawContent = rawContent.replace(/^\`\`\`(?:json)?\n?/, "").replace(/\n?\`\`\`$/, "");
     }
@@ -147,7 +159,6 @@ Return ONLY the JSON array. No markdown, no explanation.`;
       return NextResponse.json({ error: "AI returned empty results" }, { status: 502 });
     }
 
-    // Clean and validate
     const validAngles = new Set(ANGLES.map(a => a.key));
     const prompts: GeneratedPrompt[] = parsed
       .filter(p => p.angle && p.concept && p.prompt_text && validAngles.has(p.angle))
