@@ -38,16 +38,16 @@ async function analyzeImages(
   const content: { type: string; text?: string; image_url?: { url: string } }[] = [
     {
       type: "text",
-      text: `Analyze each uploaded image in extreme detail. For each image describe:
-- Main product(s) visible: exact item, colours, textures, materials, visible logos/text/emblems
-- Model (if any): age range, pose, expression, clothing details, layering, accessories, hair
-- Background and setting: environment, props, colours, surfaces
-- Lighting: style, direction, mood it creates
-- Overall vibe: premium, everyday, wellness, cozy, energetic, patriotic, streetwear, etc.
-- Visible branding: any brand name, tagline, or logo text you can read
-- Colour palette: list dominant colours and how they interact
+      text: `You are an expert DTC brand analyst. Deeply analyze each uploaded reference image in extreme detail. For each image describe:
 
-Be extremely specific. Say "gold laurel-wreath emblem on navy polo" not "logo on shirt". Say "warm golden hour side-lighting with long shadows" not "nice lighting". This analysis will be used to generate high-conversion ad prompts.`,
+1. PRODUCT: Exact product type (snapback/baseball/trucker cap, polo, tee, etc.), exact colours, materials, textures. Describe any logo/embroidery in detail (e.g. "gold embroidered crest on black structured snapback" not "hat with logo").
+2. MODEL: Age range, gender, build (athletic/slim/etc), pose, expression (confident/relaxed/cool), exact outfit details including layering (open shirt over tee? chain? cardigan draped?), accessories, hair style.
+3. BACKGROUND & SETTING: Exact environment — clean studio, urban street, outdoor, etc. Describe specific elements, colours, surfaces, props visible.
+4. LIGHTING: Direction, quality, mood — soft natural, golden hour, studio flash, dramatic shadows, etc.
+5. BRAND AESTHETIC: Infer the overall brand vibe from what you see — is it clean & minimal? Bold & vibrant? Luxury streetwear? Quiet premium? Athletic? Describe the energy.
+6. COLOUR PALETTE: List the dominant colours in order of prominence and describe how they interact (e.g. "primary black and white with subtle gold accents — restrained, high-end feel").
+
+Be extremely specific with every detail. This analysis will directly inform the style, mood, and tone of 20 ad prompts, so accuracy matters enormously.`,
     },
     ...imageUrls.slice(0, 5).map((url) => ({
       type: "image_url" as const,
@@ -138,38 +138,50 @@ export async function POST(request: Request) {
       imageAnalysis = await analyzeImages(imageUrls, apiKey);
     }
 
-    /* ── Generate 20 high-conversion ad prompts via Grok ── */
+    /* ── Generate 20 rich, descriptive prompts via Grok ── */
 
-    const systemPrompt = `You are an expert AI prompt engineer for high-conversion social media ad visuals (Instagram, TikTok, Facebook). You have been given a detailed analysis of reference product images and brand info. Your job is to generate optimized image-editing prompts that an AI photo editor will use to transform the reference photos into scroll-stopping ads.
+    const systemPrompt = `You are an expert prompt engineer for ready-to-post Instagram ad creatives for DTC brands. You have been given a detailed image analysis and brand info. Your job is to generate 20 image-editing prompts that an AI photo editor will use to transform reference photos into scroll-stopping ads.
 
 HOW THE AI PHOTO EDITOR WORKS:
 - It takes the original reference photo and edits ONLY the background, lighting, mood, and environment
-- The product, person, clothing, and logos stay EXACTLY the same — never describe these
-- Your prompts should describe the SCENE, SETTING, LIGHTING, and VISUAL CONCEPT for the final ad image
+- The product, person, clothing, pose, and logos stay EXACTLY the same — never describe or change these
+- Your prompts describe the SCENE, SETTING, LIGHTING, and MOOD for the final ad image
 
-CORE RULES:
-1. Use the image analysis provided to understand the exact product, brand aesthetic, colours, and vibe. Reference these specifics in every prompt.
-2. Use the exact brand name if provided in the brand info. Otherwise use the brand vibe naturally.
-3. Every prompt must describe a specific, vivid visual scene — not generic photography directions.
-4. Write prompts that a social media ad manager would use. Think "what would make someone stop scrolling and tap" not "what would a photographer set up."
-5. Each prompt should be 2-4 sentences. Be vivid and specific but concise.
-6. NEVER describe the product, clothing, logos, or the person — the AI already sees them in the reference photo.
-7. NEVER include Midjourney flags (--ar, --v, --q, --stylize).
-8. NEVER ask for text overlays, price tags, captions, or any graphic design elements — this is a photo editor, not a graphic design tool.
-9. NEVER ask for split-screens, before/after composites, collages, or multiple panels.
-10. NEVER use technical jargon like colour temperatures (4000K), f-stops, or softbox specs.
+STEP 1 — UNDERSTAND THE BRAND:
+Read the image analysis and brand info carefully. Identify:
+- The brand's visual style (clean & minimal? bold & vibrant? luxury streetwear? quiet premium?)
+- The colour palette (what are the primary/accent colours? keep prompts within this palette)
+- The mood/tone (confident & cool? energetic? aspirational? understated swagger?)
+- The target audience (age, gender, lifestyle — what environments resonate with them?)
+- Key product features mentioned (perfect fit? limited drops? durability? premium materials?)
 
-PROMPT STRUCTURE: Start each prompt with "Keep the exact same product and outfit unchanged." Then describe the visual ad concept — the background, environment, lighting, mood, and the feeling the ad should evoke.
+STEP 2 — MATCH EVERY PROMPT TO THE BRAND:
+This is critical. Every prompt must feel on-brand:
+- If the brand is CLEAN & MINIMAL: use soft natural lighting, simple clean backgrounds, subtle accents. NO heavy grit, neon overload, dramatic vaults, thrones, or pulsing clubs.
+- If the brand is BOLD & VIBRANT: use energetic colours, dynamic environments, striking contrasts.
+- If the brand is LUXURY / QUIET PREMIUM: use restrained elegance, muted tones with subtle premium accents (gold, marble, leather), understated confidence.
+- If the brand is URBAN / STREET: use authentic urban environments, street culture references, real-world settings.
+- ALWAYS stay within the brand's colour palette. If the brand colours are black, white, and gold — the environments should echo those tones, not introduce random neon pinks or electric blues.
+
+MANDATORY RULES — NEVER BREAK THESE:
+1. Start every prompt with "Keep the exact same product and outfit unchanged."
+2. NEVER describe the product, clothing, logos, or the person — the AI already sees them.
+3. NEVER include Midjourney flags (--ar, --v, --q, --stylize) — this is not Midjourney.
+4. NEVER ask for text overlays, price tags, captions, badges, or any graphic design elements — this is a photo editor, not a design tool.
+5. NEVER ask for split-screens, side-by-side comparisons, before/after composites, collages, or multiple panels — the editor works on a single image.
+6. NEVER use technical jargon like colour temperatures (4000K), f-stops, or softbox specs.
+7. Each prompt should be 2-4 sentences. Vivid, specific, concise.
+8. The lighting style in your prompts should match the brand aesthetic — soft natural for clean brands, dramatic for bold brands, warm subtle for premium brands.
 
 AD CATEGORIES — generate exactly 5 prompts for each:
 
-1. US VS THEM — Show visual superiority. The product/person should look elevated, premium, and dominant compared to the implied competition. Think: bold dramatic backdrops that scream quality, environments that make cheap alternatives look invisible, lighting that says "this is the real deal." The visual should communicate "why settle for less?"
+1. US VS THEM — Subtle visual superiority. The scene should make the person look elevated, composed, and premium — like they chose the best and they know it. Use environments that communicate quality and confidence: clean bright studios, premium minimalist spaces, elevated urban settings. The visual says "this is the real deal" through quiet confidence, NOT aggressive dominance. Think: the person looks so good in their environment that cheap alternatives become unthinkable.
 
-2. KEY FEATURE CALLOUTS — Highlight what makes this product special through the visual environment. If it's premium materials, show luxurious settings that match. If it's durability, show rugged environments. If it's style, show fashion-forward scenes. The background and mood should REINFORCE the product's key selling point without any text needed.
+2. KEY FEATURE CALLOUTS — The environment visually reinforces the product's key selling points. If the product is about perfect fit/comfort, show relaxed comfortable settings (urban loft, morning coffee, easy living). If it's about durability, show settings that imply toughness without being gritty. If it's about style/limited editions, show fashion-forward or culturally relevant environments. The background and mood should make viewers FEEL the feature without any text needed.
 
-3. TESTIMONIAL / REVIEW STYLE — Create authentic, trustworthy scenes that feel like a real customer showing off their purchase. Think: natural environments, genuine candid energy, relatable settings (home, street, gym, coffee shop). The vibe should say "I love this product and want to show it off." Real-person energy, not studio-polished.
+3. TESTIMONIAL / REVIEW STYLE — Authentic real-customer energy. Natural, relatable settings where someone would genuinely show off a purchase they love: sidewalk cafe, gym mirror, travel snapshot, bedroom mirror selfie vibe, creator workspace, hanging with friends. Soft natural lighting, candid energy, real-life warmth. Should feel like an organic Instagram post from a happy customer, not a studio shoot. Trustworthy and relatable.
 
-4. BUNDLE / OFFER BASED — Maximum visual impact designed to stop the scroll. Think: bold dramatic lighting, striking colour contrasts, premium spotlight-on-dark setups, cinematic frames. Every element should scream exclusive, limited, premium. The composition should create urgency and desire — make the viewer feel like they need to act now.
+4. BUNDLE / OFFER BASED — Premium visual impact that stops the scroll. Clean but striking: think spotlight-on-dark, rich moody backgrounds with the brand's accent colours glowing, dramatic but tasteful lighting, exclusive atmosphere. Should evoke "limited drop" and "premium collection" energy. The scene should make viewers feel desire and urgency — like this is something special they need to grab before it's gone. Keep it on-brand (if the brand is minimal, the drama should be restrained and elegant, not over-the-top).
 
 Return a JSON array of exactly 20 objects:
 - "angle": one of "us_vs_them", "key_feature", "testimonial_review", "bundle_offer"
@@ -188,7 +200,7 @@ Generate exactly 5 prompts per category (5 x 4 = 20 total).`;
       );
     }
     userParts.push(
-      "Generate 20 high-conversion ad image prompts (5 per category: US VS THEM, KEY FEATURE CALLOUTS, TESTIMONIAL/REVIEW STYLE, BUNDLE/OFFER BASED). Each prompt should be 2-4 sentences describing the visual scene, background, lighting, and mood for the ad. Never describe the product or person — only the environment and vibe. Return ONLY the JSON array, no markdown."
+      "Generate 20 high-conversion ad image prompts (5 per category: US VS THEM, KEY FEATURE CALLOUTS, TESTIMONIAL/REVIEW STYLE, BUNDLE/OFFER BASED). CRITICAL: Match every prompt to the brand's visual style, colour palette, and mood from the brand info and image analysis. If the brand is clean & minimal, keep scenes clean and minimal. If the brand uses black/white/gold, keep environments in those tones. Each prompt: 2-4 sentences, describe only the scene/background/lighting/mood — never the product or person. Return ONLY the JSON array, no markdown."
     );
 
     const grokResp = await fetch("https://api.x.ai/v1/chat/completions", {
