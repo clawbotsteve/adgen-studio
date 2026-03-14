@@ -57,6 +57,8 @@ export function SmartBatchPage({
   const [contextLoading, setContextLoading] = useState(false);
   const [launching, setLaunching] = useState(false);
   const [referenceImages, setReferenceImages] = useState<
+    { file: File; preview: string }[]
+  >([]);
   const [clientsList, setClientsList] = useState(clients);
   const [clientDropdownOpen, setClientDropdownOpen] = useState(false);
   const [deleteConfirm, setDeleteConfirm] = useState<string | null>(null);
@@ -268,7 +270,7 @@ export function SmartBatchPage({
               margin: "4px 0 0",
             }}
           >
-            Brand context loaded â prompts will be generated from client data
+            Brand context loaded Ã¢ÂÂ prompts will be generated from client data
           </p>
         )}
         {!contextActive && !contextLoading && clientId && (
@@ -279,12 +281,12 @@ export function SmartBatchPage({
               margin: "4px 0 0",
             }}
           >
-            No brand context found â complete Client Generator first for best results
+            No brand context found Ã¢ÂÂ complete Client Generator first for best results
           </p>
         )}
       </div>
 
-      {/* Row 2: Generation Settings â all in one tight row */}
+      {/* Row 2: Generation Settings Ã¢ÂÂ all in one tight row */}
       <div
         className="card"
         style={{ padding: "12px 16px" }}
@@ -369,7 +371,7 @@ export function SmartBatchPage({
               }}
             >
               {selectedProfile
-                ? `${selectedProfile.mode} Â· ${selectedProfile.aspect_ratio} Â· ${selectedProfile.resolution}`
+                ? `${selectedProfile.mode} ÃÂ· ${selectedProfile.aspect_ratio} ÃÂ· ${selectedProfile.resolution}`
                 : ""}
             </span>
           </div>
@@ -513,7 +515,7 @@ export function SmartBatchPage({
           >
             {contextActive ? "Brand context active" : "No brand context"}
             {referenceImages.length > 0
-              ? ` Â· ${referenceImages.length} ref image${referenceImages.length > 1 ? "s" : ""}`
+              ? ` ÃÂ· ${referenceImages.length} ref image${referenceImages.length > 1 ? "s" : ""}`
               : ""}
           </span>
         </div>
