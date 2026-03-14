@@ -45,6 +45,10 @@ export const generateImage = async (
     input.aspect_ratio = options.aspectRatio;
   }
 
+  if (options?.resolution) {
+    input.resolution = options.resolution;
+  }
+
   try {
     const result = await fal.subscribe("fal-ai/nano-banana-2/edit", {
       input,
