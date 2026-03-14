@@ -8,7 +8,7 @@ if (env.falApiKey) {
 export const generateImage = async (
   prompt: string,
   referenceImageUrl?: string,
-  options?: { aspectRatio?: string; resolution?: string }
+  options?: { aspectRatio?: string; resolution?: string; negative_prompt?: string }
 ): Promise<string> => {
   if (!env.falApiKey) throw new Error("FAL_API_KEY not configured \u2014 cannot generate images.");
 
@@ -47,6 +47,10 @@ export const generateImage = async (
 
   if (options?.resolution) {
     input.resolution = options.resolution;
+  }
+
+  if (options?.negative_prompt) {
+    input.negative_prompt = options.negative_prompt;
   }
 
   try {

@@ -43,7 +43,7 @@ You deeply understand how to translate a brand's identity, style, and product in
 
 Each prompt should include:
 - A short "concept" name (2-5 words describing the shot type or angle)
-- A detailed "prompt_text" that an AI image generator can use to create the image. This should be specific, vivid, and production-ready — include camera angle, lighting, composition, setting, mood, and styling details.
+- A detailed "prompt_text" that an AI image generator can use to create the image. This should be specific, vivid, and production-ready â include camera angle, lighting, composition, setting, mood, and styling details.
 - Relevant "tags" for categorization
 
 Your prompts should cover a variety of:
@@ -53,7 +53,7 @@ Your prompts should cover a variety of:
 - Settings/backgrounds appropriate to the brand identity
 - Model diversity and styling where applicable
 
-Make each prompt unique and varied. Ensure the prompts feel cohesive as a collection — like they belong to the same shoot for the same brand. Include specific details about styling, mood, props, color palette, and environment that match the brand identity.
+Make each prompt unique and varied. Ensure the prompts feel cohesive as a collection â like they belong to the same shoot for the same brand. Include specific details about styling, mood, props, color palette, and environment that match the brand identity.
 The prompt_text should be 2-4 sentences, detailed enough for high-quality AI image generation.`;
 
   const userPrompt = `Generate exactly ${count} image generation prompts for the brand "${clientName}" based on this brand context:
@@ -87,7 +87,7 @@ Respond with ONLY a JSON array of objects, each with "concept" (string), "prompt
   const grokData = await grokResponse.json();
   const rawContent = grokData.choices?.[0]?.message?.content?.trim() ?? "";
 
-  // Parse JSON — strip markdown fences if present
+  // Parse JSON â strip markdown fences if present
   let cleaned = rawContent;
   if (cleaned.startsWith("```")) {
     cleaned = cleaned.replace(/^```(?:json)?\n?/, "").replace(/\n?```$/, "");
@@ -209,6 +209,8 @@ export async function POST(request: Request) {
     let batchRun;
     try {
       batchRun = await createBatchRun({
+        // Ad angle engine metadata
+        ...(selectedAngles.length > 0 ? { metadata: JSON.stringify({ selectedAngles, lockAngles }) } : {}),
         tenantId: auth.tenant.id,
         clientId: body.clientId,
         profileId: body.profileId,

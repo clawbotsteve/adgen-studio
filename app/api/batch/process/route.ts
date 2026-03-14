@@ -1,6 +1,15 @@
 import { NextResponse } from "next/server";
 import { createSupabaseService } from "@/lib/supabase";
 import { generateImage } from "@/lib/fal";
+import {
+  isPromptEngineEnabled,
+  composePrompt,
+  buildClientBrain,
+  getAngleDistribution,
+  GLOBAL_NEGATIVE_PROMPT,
+  type AngleKey,
+  type ClientBrain,
+} from "@/lib/prompt-engine";
 
 /**
  * POST /api/batch/process
@@ -147,6 +156,23 @@ export async function POST(request: Request) {
     let completedCount = 0;
     let failedCount = 0;
 
+    // ── Load client brain for prompt engine ──
+    let clientBrain: ClientBrain | null = null;
+    try {
+      if (isPromptEngineEnabled() && batchRun.client_id) {
+        const { data: clientData } = await supabase
+          .from("clients")
+          .select("name, description, industry, brand_tone, brand_colors, visual_style, target_audience")
+          .eq("id", batchRun.client_id)
+          .single();
+        if (clientData) {
+          clientBrain = buildClientBrain(clientData as Record<string, unknown>);
+        }
+      }
+    } catch (brainErr) {
+      console.warn("[process] Failed to load client brain, using fallback:", brainErr);
+    }
+
     // Process items in batches of CONCURRENCY
     for (let i = 0; i < items.length; i += CONCURRENCY) {
       // Check if batch was stopped/paused
@@ -185,12 +211,36 @@ export async function POST(request: Request) {
             }
 
             // Generate image via FAL
+            // ── Ad-Ready Prompt Engine ──
+            let enginePrompt = "";
+            let engineNegativePrompt = "";
+            let angleKey = "";
+            try {
+              if (isPromptEngineEnabled() && clientBrain) {
+                const angles = getAngleDistribution(items.length);
+                const thisAngle = angles[itemIdx % angles.length] || "product_hero";
+                const result = composePrompt(
+                  thisAngle as AngleKey,
+                  clientBrain,
+                  item.prompt || item.concept || ""
+                );
+                enginePrompt = result.final_prompt;
+                engineNegativePrompt = result.negative_prompt;
+                angleKey = result.angle_key;
+              }
+            } catch (engineErr) {
+              console.warn("[process] Prompt engine fallback:", engineErr);
+              enginePrompt = "";
+              engineNegativePrompt = "";
+            }
+
             const outputUrl = await generateImage(
               item.prompt || item.concept || "Generate creative ad",
               refUrl,
               {
                 aspectRatio: profileAspectRatio,
                 resolution: profileResolution,
+                negative_prompt: engineNegativePrompt || undefined,
               }
             );
 
@@ -201,6 +251,7 @@ export async function POST(request: Request) {
                 status: "completed",
                 output_url: outputUrl,
                 resolution: profileResolution,
+                ...(angleKey ? { engine_angle: angleKey, engine_prompt: enginePrompt.slice(0, 500), engine_negative: engineNegativePrompt.slice(0, 200) } : {}),
                 completed_at: new Date().toISOString(),
               })
               .eq("id", item.id);

@@ -25,6 +25,8 @@ export function SmartBatchPage({
     { file: File; preview: string }[]
   >([]);
   const [deleting, setDeleting] = useState(false);
+  const [selectedAngles, setSelectedAngles] = useState<string[]>([]);
+  const [lockAngles, setLockAngles] = useState(false);
 
   // Set initial profile
   const handleDeleteClient = async () => {
@@ -96,6 +98,8 @@ export function SmartBatchPage({
           aspectRatio,
           resolution,
           quantity,
+              selectedAngles,
+              lockAngles,
         }),
       });
 
@@ -194,7 +198,7 @@ export function SmartBatchPage({
               margin: "4px 0 0",
             }}
           >
-            Brand context loaded â prompts will be generated from client data
+            Brand context loaded Ã¢ÂÂ prompts will be generated from client data
           </p>
         )}
         {!contextActive && !contextLoading && clientId && (
@@ -205,12 +209,72 @@ export function SmartBatchPage({
               margin: "4px 0 0",
             }}
           >
-            No brand context found â complete Client Generator first for best results
+            No brand context found Ã¢ÂÂ complete Client Generator first for best results
           </p>
         )}
       </div>
 
-      {/* Row 2: Generation Settings â all in one tight row */}
+      {/* Row 2: Generation Settings Ã¢ÂÂ all in one tight row */}
+      {/* Ad Angle Selection (optional) */}
+      <div style={{
+        background: "rgba(255,255,255,0.03)",
+        border: "1px solid rgba(255,255,255,0.08)",
+        borderRadius: 8,
+        padding: 16,
+        marginBottom: 16,
+      }}>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
+          <label style={{ fontSize: 12, fontWeight: 600, color: "rgba(255,255,255,0.7)", textTransform: "uppercase", letterSpacing: 1 }}>
+            Ad Angles <span style={{ fontWeight: 400, textTransform: "none", letterSpacing: 0 }}>(optional)</span>
+          </label>
+          {selectedAngles.length > 0 && (
+            <label style={{ fontSize: 11, display: "flex", alignItems: "center", gap: 6, color: "rgba(255,255,255,0.6)", cursor: "pointer" }}>
+              <input type="checkbox" checked={lockAngles} onChange={(e) => setLockAngles(e.target.checked)} />
+              Lock to selected only
+            </label>
+          )}
+        </div>
+        <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
+          {[
+            { key: "product_hero", label: "Product Hero" },
+            { key: "ugc_testimonial", label: "UGC" },
+            { key: "problem_solution", label: "Problem/Solution" },
+            { key: "lifestyle_benefit", label: "Lifestyle" },
+            { key: "offer_urgency", label: "Offer/Urgency" },
+          ].map((angle) => {
+            const isSelected = selectedAngles.includes(angle.key);
+            return (
+              <button
+                key={angle.key}
+                type="button"
+                onClick={() => {
+                  setSelectedAngles((prev) =>
+                    isSelected ? prev.filter((a) => a !== angle.key) : [...prev, angle.key]
+                  );
+                }}
+                style={{
+                  padding: "6px 14px",
+                  fontSize: 12,
+                  borderRadius: 20,
+                  border: isSelected ? "1px solid #6366f1" : "1px solid rgba(255,255,255,0.15)",
+                  background: isSelected ? "rgba(99,102,241,0.2)" : "transparent",
+                  color: isSelected ? "#a5b4fc" : "rgba(255,255,255,0.6)",
+                  cursor: "pointer",
+                  transition: "all 0.15s ease",
+                }}
+              >
+                {angle.label}
+              </button>
+            );
+          })}
+        </div>
+        {selectedAngles.length === 0 && (
+          <p style={{ fontSize: 11, color: "rgba(255,255,255,0.4)", marginTop: 6, marginBottom: 0 }}>
+            No angles selected — auto-mix will distribute across all 5 styles for variety.
+          </p>
+        )}
+      </div>
+
       <div
         className="card"
         style={{ padding: "12px 16px" }}
@@ -295,7 +359,7 @@ export function SmartBatchPage({
               }}
             >
               {selectedProfile
-                ? `${selectedProfile.mode} Â· ${selectedProfile.aspect_ratio} Â· ${selectedProfile.resolution}`
+                ? `${selectedProfile.mode} ÃÂ· ${selectedProfile.aspect_ratio} ÃÂ· ${selectedProfile.resolution}`
                 : ""}
             </span>
           </div>
@@ -439,7 +503,7 @@ export function SmartBatchPage({
           >
             {contextActive ? "Brand context active" : "No brand context"}
             {referenceImages.length > 0
-              ? ` Â· ${referenceImages.length} ref image${referenceImages.length > 1 ? "s" : ""}`
+              ? ` ÃÂ· ${referenceImages.length} ref image${referenceImages.length > 1 ? "s" : ""}`
               : ""}
           </span>
         </div>
