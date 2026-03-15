@@ -36,7 +36,7 @@ export function ClientGeneratorPage({
 }: {
   initialClients: Client[];
 }) {
-  // ── Client selection ──
+  // ââ Client selection ââ
   const [clients, setClients] = useState(initialClients);
   const [selectedClientId, setSelectedClientId] = useState(
     initialClients[0]?.id ?? ""
@@ -44,12 +44,12 @@ export function ClientGeneratorPage({
   const [newClientName, setNewClientName] = useState("");
   const [creatingClient, setCreatingClient] = useState(false);
 
-  // ── Website Scan ──
+  // ââ Website Scan ââ
   const [websiteUrl, setWebsiteUrl] = useState("");
   const [scanStatus, setScanStatus] = useState<"idle" | "scanning" | "complete">("idle");
   const [scanStep, setScanStep] = useState("");
 
-  // ── Form fields ──
+  // ââ Form fields ââ
   const [productName, setProductName] = useState("");
   const [productDescription, setProductDescription] = useState("");
   const [usp, setUsp] = useState("");
@@ -60,27 +60,27 @@ export function ClientGeneratorPage({
   const [moreOfThis, setMoreOfThis] = useState("");
   const [lessOfThat, setLessOfThat] = useState("");
 
-  // ── Color Swatches ──
+  // ââ Color Swatches ââ
   const [colorSwatches, setColorSwatches] = useState<{ hex: string; label: string }[]>([]);
   const [newColorHex, setNewColorHex] = useState("#6366f1");
 
-  // ── Font Chooser ──
+  // ââ Font Chooser ââ
   const [selectedFont, setSelectedFont] = useState("");
   const [customFont, setCustomFont] = useState("");
 
-  // ── Top Creatives ──
+  // ââ Top Creatives ââ
   const [topCreatives, setTopCreatives] = useState<TopCreativeItem[]>([]);
   const [tcUploading, setTcUploading] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  // ── Prompts dropdown ──
+  // ââ Prompts dropdown ââ
   const [promptsOpen, setPromptsOpen] = useState(false);
 
-  // ── Save state ──
+  // ââ Save state ââ
   const [saving, setSaving] = useState(false);
   const [lastSaved, setLastSaved] = useState<string | null>(null);
 
-  // ── Curated prompts grouped by angle ──
+  // ââ Curated prompts grouped by angle ââ
   const promptsByAngle = DEFAULT_PROMPTS.reduce<
     Record<string, typeof DEFAULT_PROMPTS>
   >((acc, p) => {
@@ -89,7 +89,7 @@ export function ClientGeneratorPage({
     return acc;
   }, {});
 
-  // ── Load client data ──
+  // ââ Load client data ââ
   const loadClientData = useCallback(async (clientId: string) => {
     if (!clientId) return;
     try {
@@ -129,7 +129,7 @@ export function ClientGeneratorPage({
     if (selectedClientId) loadClientData(selectedClientId);
   }, [selectedClientId, loadClientData]);
 
-  // ── Save form data ──
+  // ââ Save form data ââ
   const handleSave = async () => {
     if (!selectedClientId) return;
     setSaving(true);
@@ -196,7 +196,7 @@ export function ClientGeneratorPage({
     }
   };
 
-  // ── Create client ──
+  // ââ Create client ââ
   const handleCreateClient = async () => {
     if (!newClientName.trim()) return;
     setCreatingClient(true);
@@ -219,7 +219,7 @@ export function ClientGeneratorPage({
     }
   };
 
-  // ── Upload top creative ──
+  // ââ Upload top creative ââ
   const handleUploadCreative = async (
     e: React.ChangeEvent<HTMLInputElement>
   ) => {
@@ -248,7 +248,7 @@ export function ClientGeneratorPage({
     }
   };
 
-  // ── Delete top creative ──
+  // ââ Delete top creative ââ
   const handleDeleteCreative = async (id: string) => {
     try {
       await fetch("/api/top-creatives/" + id, { method: "DELETE" });
@@ -258,7 +258,7 @@ export function ClientGeneratorPage({
     }
   };
 
-  // ── Website Scan ──
+  // ââ Website Scan ââ
   const handleScanWebsite = async () => {
     if (!websiteUrl.trim()) return;
     setScanStatus("scanning");
@@ -284,6 +284,8 @@ export function ClientGeneratorPage({
           setColorSwatches(data.colors);
         }
         if (data.font) setSelectedFont(data.font);
+        if (data.moreOfThis) setMoreOfThis(data.moreOfThis);
+        if (data.lessOfThat) setLessOfThat(data.lessOfThat);
         setScanStatus("complete");
         setScanStep("Scan complete");
       } else {
@@ -298,7 +300,7 @@ export function ClientGeneratorPage({
     }
   };
 
-  // ── Color swatch helpers ──
+  // ââ Color swatch helpers ââ
   const addColorSwatch = () => {
     if (colorSwatches.some((c) => c.hex.toLowerCase() === newColorHex.toLowerCase())) return;
     setColorSwatches((prev) => [...prev, { hex: newColorHex, label: "" }]);
@@ -410,7 +412,7 @@ export function ClientGeneratorPage({
 
       {selectedClientId && (
         <>
-          {/* ── Website Scan ── */}
+          {/* ââ Website Scan ââ */}
           <div
             style={{
               ...sectionStyle,
@@ -513,7 +515,7 @@ export function ClientGeneratorPage({
             )}
           </div>
 
-          {/* ── SECTION 1: Product Info ── */}
+          {/* ââ SECTION 1: Product Info ââ */}
           <div style={sectionStyle}>
             <h2
               style={{
@@ -563,7 +565,7 @@ export function ClientGeneratorPage({
             </div>
           </div>
 
-          {/* ── SECTION 2: Visual Identity ── */}
+          {/* ââ SECTION 2: Visual Identity ââ */}
           <div style={sectionStyle}>
             <h2
               style={{
@@ -770,7 +772,7 @@ export function ClientGeneratorPage({
             </div>
           </div>
 
-          {/* ── SECTION 3: Target Audience ── */}
+          {/* ââ SECTION 3: Target Audience ââ */}
           <div style={sectionStyle}>
             <h2
               style={{
@@ -790,7 +792,7 @@ export function ClientGeneratorPage({
             />
           </div>
 
-          {/* ── SECTION 4: Top Creatives ── */}
+          {/* ââ SECTION 4: Top Creatives ââ */}
           <div style={sectionStyle}>
             <div
               style={{
@@ -912,7 +914,7 @@ export function ClientGeneratorPage({
             )}
           </div>
 
-          {/* ── SECTION 5: Do's and Don'ts ── */}
+          {/* ââ SECTION 5: Do's and Don'ts ââ */}
           <div style={sectionStyle}>
             <h2
               style={{
@@ -960,7 +962,7 @@ export function ClientGeneratorPage({
             </div>
           </div>
 
-          {/* ── Save Button ── */}
+          {/* ââ Save Button ââ */}
           <div
             style={{
               display: "flex",
@@ -991,7 +993,7 @@ export function ClientGeneratorPage({
             </button>
           </div>
 
-          {/* ── SECTION 6: Prompts (collapsible dropdown) ── */}
+          {/* ââ SECTION 6: Prompts (collapsible dropdown) ââ */}
           <div
             style={{
               ...sectionStyle,
