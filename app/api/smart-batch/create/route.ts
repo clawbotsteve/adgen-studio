@@ -4,7 +4,7 @@ import { assertTenantUser } from "@/lib/access";
 import { createBatchRun, createBatchItems } from "@/lib/data/batches";
 import { getProfile } from "@/lib/data/profiles";
 import { getClient } from "@/lib/data/clients";
-import { buildMasterContextString } from "@/lib/data/brand-context";
+import { DEFAULT_PROMPTS } from "@/lib/constants/defaultPrompts";
 
 function errMsg(e: unknown): string {
   if (e instanceof Error) return e.message;
@@ -26,94 +26,6 @@ interface SavedPrompt {
   angle: string;
   label: string;
   prompt_text: string;
-}
-
-interface GeneratedPrompt {
-  concept: string;
-  prompt_text: string;
-  tags: string[];
-}
-
-/**
- * Generate prompts from client brand context using Grok AI.
- * This is the FALLBACK path when no saved prompts exist.
- */
-async function generatePromptsFromClient(
-  brandContext: string,
-  clientName: string,
-  count: number
-): Promise<GeneratedPrompt[]> {
-  const apiKey = process.env.GROK_API_KEY;
-  if (!apiKey) {
-    throw new Error("GROK_API_KEY not configured");
-  }
-
-  const systemPrompt = `You are an expert AI image prompt engineer for advertising and e-commerce creative production.
-You generate detailed, production-ready image generation prompts based on brand context data.
-
-Each prompt should include:
-- A short "concept" name (2-5 words)
-- A detailed "prompt_text" for AI image generation (2-4 sentences)
-- Relevant "tags" for categorization
-
-Make each prompt unique and varied.`;
-
-  const userPrompt = `Generate exactly ${count} image generation prompts for the brand "${clientName}" based on this brand context:
-
-${brandContext}
-
-Respond with ONLY a JSON array of objects, each with "concept" (string), "prompt_text" (string), and "tags" (string array). No markdown, no explanation, just the JSON array.`;
-
-  const grokResponse = await fetch("https://api.x.ai/v1/chat/completions", {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      Authorization: `Bearer ${apiKey}`,
-    },
-    body: JSON.stringify({
-      model: "grok-4-latest",
-      messages: [
-        { role: "system", content: systemPrompt },
-        { role: "user", content: userPrompt },
-      ],
-      temperature: 0.8,
-    }),
-  });
-
-  if (!grokResponse.ok) {
-    const errText = await grokResponse.text();
-    console.error(
-      "[smart-batch] Grok API error:",
-      grokResponse.status,
-      errText
-    );
-    throw new Error(`Grok API returned ${grokResponse.status}`);
-  }
-
-  const grokData = await grokResponse.json();
-  let rawContent = grokData.choices?.[0]?.message?.content?.trim() ?? "";
-
-  if (rawContent.startsWith("```")) {
-    rawContent = rawContent
-      .replace(/^```(?:json)?\n?/, "")
-      .replace(/\n?```$/, "");
-  }
-
-  const parsed: GeneratedPrompt[] = JSON.parse(rawContent);
-
-  if (!Array.isArray(parsed) || parsed.length === 0) {
-    throw new Error("AI returned empty results");
-  }
-
-  return parsed
-    .filter((p) => p.concept && p.prompt_text)
-    .map((p) => ({
-      concept: String(p.concept).slice(0, 200),
-      prompt_text: String(p.prompt_text).slice(0, 2000),
-      tags: Array.isArray(p.tags)
-        ? p.tags.map((t: unknown) => String(t)).slice(0, 10)
-        : [],
-    }));
 }
 
 export async function POST(request: Request) {
@@ -183,87 +95,49 @@ export async function POST(request: Request) {
     let prompts: { concept: string; prompt: string }[] = [];
     let usingSavedPrompts = false;
 
-    if (savedPrompts.length > 0) {
-      usingSavedPrompts = true;
+    // ── Use saved prompts if available, otherwise use curated defaults ──
+    const sourcePrompts: SavedPrompt[] =
+      savedPrompts.length > 0 ? savedPrompts : DEFAULT_PROMPTS;
 
-      // Use saved prompts, filtered by selected angles if any
-      let filtered = savedPrompts;
-      if (selectedAngles.length > 0) {
-        if (lockAngles) {
-          filtered = savedPrompts.filter((p) =>
-            selectedAngles.includes(p.angle)
-          );
-        } else {
-          const selected = savedPrompts.filter((p) =>
-            selectedAngles.includes(p.angle)
-          );
-          const others = savedPrompts.filter(
-            (p) => !selectedAngles.includes(p.angle)
-          );
-          filtered = [...selected, ...others];
-        }
-      }
+    const promptSourceLabel =
+      savedPrompts.length > 0 ? "saved (Client Generator)" : "curated defaults";
 
-      if (filtered.length === 0) filtered = savedPrompts;
+    usingSavedPrompts = true; // Always treat as pre-built prompts
 
-      // Pick prompts up to quantity, cycling if needed
-      for (let i = 0; i < quantity; i++) {
-        const p = filtered[i % filtered.length];
-        prompts.push({
-          concept: p.label || p.angle || "creative",
-          prompt: p.prompt_text,
-        });
-      }
-
-      console.log(
-        "[smart-batch] Using " +
-          prompts.length +
-          " saved prompts from Client Generator"
-      );
-    } else {
-      // ── Fallback: generate prompts on the fly with Grok ──
-      console.log(
-        "[smart-batch] No saved prompts found, falling back to Grok generation"
-      );
-
-      let masterContext = "";
-      try {
-        masterContext =
-          (await buildMasterContextString(auth.tenant.id, body.clientId)) || "";
-      } catch (ctxErr) {
-        console.error("[smart-batch] Brand context error:", ctxErr);
-      }
-
-      if (!masterContext) {
-        return NextResponse.json(
-          {
-            error:
-              "No brand context or saved prompts found. Please complete the Client Generator first.",
-          },
-          { status: 400 }
+    // Filter by selected angles if any
+    let filtered = sourcePrompts;
+    if (selectedAngles.length > 0) {
+      if (lockAngles) {
+        // Only use prompts from selected angles
+        filtered = sourcePrompts.filter((p) =>
+          selectedAngles.includes(p.angle)
         );
-      }
-
-      let generatedPrompts: GeneratedPrompt[];
-      try {
-        generatedPrompts = await generatePromptsFromClient(
-          masterContext,
-          client.name,
-          quantity
+      } else {
+        // Bias toward selected angles: put them first
+        const selected = sourcePrompts.filter((p) =>
+          selectedAngles.includes(p.angle)
         );
-      } catch (genErr) {
-        console.error("[smart-batch] Prompt generation error:", genErr);
-        return NextResponse.json(
-          { error: `Failed to generate prompts: ${errMsg(genErr)}` },
-          { status: 502 }
+        const others = sourcePrompts.filter(
+          (p) => !selectedAngles.includes(p.angle)
         );
+        filtered = [...selected, ...others];
       }
-
-      prompts = generatedPrompts.slice(0, quantity).map((item) => ({
-        concept: item.concept,
-        prompt: `${masterContext}\n\nGenerate creative for:\n${item.prompt_text}`,
-      }));
     }
+
+    if (filtered.length === 0) filtered = sourcePrompts;
+
+    // Pick prompts up to quantity, cycling if needed
+    for (let i = 0; i < quantity; i++) {
+      const p = filtered[i % filtered.length];
+      prompts.push({
+        concept: p.label || p.angle || "creative",
+        prompt: p.prompt_text,
+      });
+    }
+
+    console.log(
+      `[smart-batch] Using ${prompts.length} ${promptSourceLabel} prompts`
+    );
 
     if (prompts.length === 0) {
       return NextResponse.json(
