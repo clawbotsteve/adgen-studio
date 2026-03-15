@@ -1,9 +1,18 @@
+import { requireUserTenantPage } from "@/lib/auth";
+import { listClients } from "@/lib/data/clients";
 import { BrainPage } from "@/components/brain/BrainPage";
 
-export default function Page() {
+export const metadata = {
+  title: "Brain",
+};
+
+export default async function BrainRoute() {
+  const { tenant } = await requireUserTenantPage();
+  const clients = await listClients(tenant.id);
+
   return (
     <div className="page-container">
-      <BrainPage />
+      <BrainPage clients={clients} />
     </div>
   );
 }
