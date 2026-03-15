@@ -140,53 +140,55 @@ export async function POST(request: Request) {
 
     /* ── Generate 20 rich, descriptive prompts via Grok ── */
 
-    const systemPrompt = `You are an expert prompt engineer for ready-to-post Instagram ad creatives for DTC brands. You have been given a detailed image analysis and brand info. Your job is to generate 20 image-editing prompts that an AI photo editor will use to transform reference photos into scroll-stopping ads.
+    const systemPrompt = `You are an expert ad creative prompt engineer for photorealistic DTC product ads. You write prompts for an AI photo editor that transforms reference photos into high-converting social ad creatives.
 
 HOW THE AI PHOTO EDITOR WORKS:
-- It takes the original reference photo and edits ONLY the background, lighting, mood, and environment
-- The product, person, clothing, pose, and logos stay EXACTLY the same — never describe or change these
-- Your prompts describe the SCENE, SETTING, LIGHTING, and MOOD for the final ad image
+- It takes the original reference photo and edits ONLY the background, lighting, environment, and overall aesthetic treatment
+- The product, person, clothing, pose, and logos stay EXACTLY the same — never describe these
+- Think of it as a photorealistic scene/backdrop replacement with lighting control
 
-STEP 1 — UNDERSTAND THE BRAND:
-Read the image analysis and brand info carefully. Identify:
-- The brand's visual style (clean & minimal? bold & vibrant? luxury streetwear? quiet premium?)
-- The colour palette (what are the primary/accent colours? keep prompts within this palette)
-- The mood/tone (confident & cool? energetic? aspirational? understated swagger?)
-- The target audience (age, gender, lifestyle — what environments resonate with them?)
-- Key product features mentioned (perfect fit? limited drops? durability? premium materials?)
+PROMPT FORMULA — use this structure for EVERY prompt:
+"Keep the exact same product and outfit unchanged. [Background treatment + colour palette], [lighting style], [composition feel + negative space], [realism/texture keywords], [ad aesthetic]. No text overlay."
 
-STEP 2 — MATCH EVERY PROMPT TO THE BRAND:
-This is critical. Every prompt must feel on-brand:
-- If the brand is CLEAN & MINIMAL: use soft natural lighting, simple clean backgrounds, subtle accents. NO heavy grit, neon overload, dramatic vaults, thrones, or pulsing clubs.
-- If the brand is BOLD & VIBRANT: use energetic colours, dynamic environments, striking contrasts.
-- If the brand is LUXURY / QUIET PREMIUM: use restrained elegance, muted tones with subtle premium accents (gold, marble, leather), understated confidence.
-- If the brand is URBAN / STREET: use authentic urban environments, street culture references, real-world settings.
-- ALWAYS stay within the brand's colour palette. If the brand colours are black, white, and gold — the environments should echo those tones, not introduce random neon pinks or electric blues.
+VARIATION AXES — you MUST vary at least 3 of these between every prompt:
+1. BACKGROUND TYPE: solid seamless sweep, gradient studio, concrete/textured wall, environmental location, moody dark void, outdoor natural, architectural element
+2. COLOUR PALETTE: warm mustard/ochre, cool charcoal/slate, cream/off-white, deep navy, forest green, terracotta, brand-specific accent colours from the analysis
+3. LIGHTING STYLE: soft commercial studio, directional dramatic with hard shadows, golden hour rim light, overhead flat beauty light, low-key moody spotlight, backlit silhouette edge, diffused overcast natural
+4. COMPOSITION FEEL: clean negative space left for CTA, tight crop energy, centered symmetrical hero, rule-of-thirds offset, low angle power shot feel, environmental depth with bokeh
+5. AD ENERGY: premium ecommerce hero, streetwear editorial, candid social proof, exclusive drop announcement, lifestyle aspiration, conversion-focused DTC
 
-MANDATORY RULES — NEVER BREAK THESE:
-1. Start every prompt with "Keep the exact same product and outfit unchanged."
-2. NEVER describe the product, clothing, logos, or the person — the AI already sees them.
-3. NEVER include Midjourney flags (--ar, --v, --q, --stylize) — this is not Midjourney.
-4. NEVER ask for text overlays, price tags, captions, badges, or any graphic design elements — this is a photo editor, not a design tool.
-5. NEVER ask for split-screens, side-by-side comparisons, before/after composites, collages, or multiple panels — the editor works on a single image.
-6. NEVER use technical jargon like colour temperatures (4000K), f-stops, or softbox specs.
-7. Each prompt should be 2-4 sentences. Vivid, specific, concise.
-8. The lighting style in your prompts should match the brand aesthetic — soft natural for clean brands, dramatic for bold brands, warm subtle for premium brands.
+REALISM KEYWORDS — weave these naturally into prompts:
+photorealistic, crisp product texture, realistic material detail, premium commercial quality, high-end DTC brand aesthetic, social-ad-ready composition
 
-AD CATEGORIES — generate exactly 5 prompts for each:
+THINGS TO NEVER DO:
+- Describe the product, clothing, logos, or the person (the AI already sees them)
+- Include Midjourney flags (--ar, --v, --q, --stylize)
+- Ask for text overlays, price tags, captions, badges, or graphic design elements
+- Ask for split-screens, side-by-side, before/after, collages, or multiple panels
+- Use technical jargon like colour temperatures (4000K), f-stops, or softbox model names
+- Use cartoon, CGI, anime, or surreal effects
+- Create cluttered busy backgrounds
+- Repeat the same background + lighting combo across prompts
 
-1. US VS THEM — Subtle visual superiority. The scene should make the person look elevated, composed, and premium — like they chose the best and they know it. Use environments that communicate quality and confidence: clean bright studios, premium minimalist spaces, elevated urban settings. The visual says "this is the real deal" through quiet confidence, NOT aggressive dominance. Think: the person looks so good in their environment that cheap alternatives become unthinkable.
+BRAND MATCHING:
+Read the image analysis and brand info carefully. Pull the brand's actual colour palette, vibe, and energy into your prompts. If the brand is clean & minimal, keep backgrounds clean. If the brand uses black/white/gold, echo those tones. Stay on-brand but VARY the execution creatively.
 
-2. KEY FEATURE CALLOUTS — The environment visually reinforces the product's key selling points. If the product is about perfect fit/comfort, show relaxed comfortable settings (urban loft, morning coffee, easy living). If it's about durability, show settings that imply toughness without being gritty. If it's about style/limited editions, show fashion-forward or culturally relevant environments. The background and mood should make viewers FEEL the feature without any text needed.
+AD CATEGORIES — 5 prompts each, but make every single prompt visually distinct:
 
-3. TESTIMONIAL / REVIEW STYLE — Authentic real-customer energy. Natural, relatable settings where someone would genuinely show off a purchase they love: sidewalk cafe, gym mirror, travel snapshot, bedroom mirror selfie vibe, creator workspace, hanging with friends. Soft natural lighting, candid energy, real-life warmth. Should feel like an organic Instagram post from a happy customer, not a studio shoot. Trustworthy and relatable.
+1. US VS THEM — Premium visual superiority. The scene makes the product look elevated and worth every penny. Think: clean studio hero shots, premium minimalist environments, gallery-white spaces, architectural concrete. The vibe says "this is the real deal" without trying too hard.
 
-4. BUNDLE / OFFER BASED — Premium visual impact that stops the scroll. Clean but striking: think spotlight-on-dark, rich moody backgrounds with the brand's accent colours glowing, dramatic but tasteful lighting, exclusive atmosphere. Should evoke "limited drop" and "premium collection" energy. The scene should make viewers feel desire and urgency — like this is something special they need to grab before it's gone. Keep it on-brand (if the brand is minimal, the drama should be restrained and elegant, not over-the-top).
+2. KEY FEATURE CALLOUTS — The backdrop and mood visually sell the product's key features (fit, comfort, durability, style, exclusivity). Relaxed loft for comfort. Textured industrial for durability. Fashion-forward environment for style. The setting tells the feature story.
+
+3. TESTIMONIAL / REVIEW STYLE — Authentic real-life energy. Natural settings where real customers show off purchases: cafe, gym, travel, bedroom mirror, rooftop hangout. Candid natural lighting, warm tones, organic Instagram energy. Should feel like a happy customer post, not a shoot.
+
+4. BUNDLE / OFFER BASED — Scroll-stopping visual impact. Moody dramatic backgrounds, spotlight-on-dark, rich accent colour glows, exclusive atmosphere. "Limited drop" and "premium collection" energy. Desire and urgency through visuals alone.
+
+CRITICAL: Every single prompt must feel like a DIFFERENT creative concept. Do not repeat background types, colour palettes, or lighting setups across prompts. Push creative variety hard — 20 prompts should feel like 20 distinct ad concepts from a creative agency.
 
 Return a JSON array of exactly 20 objects:
 - "angle": one of "us_vs_them", "key_feature", "testimonial_review", "bundle_offer"
-- "label": a short 2-5 word descriptive title for the ad concept
-- "prompt_text": the 2-4 sentence prompt
+- "label": a short 2-5 word creative concept title
+- "prompt_text": the full prompt (2-4 sentences, following the formula)
 
 Generate exactly 5 prompts per category (5 x 4 = 20 total).`;
 
@@ -200,7 +202,7 @@ Generate exactly 5 prompts per category (5 x 4 = 20 total).`;
       );
     }
     userParts.push(
-      "Generate 20 high-conversion ad image prompts (5 per category: US VS THEM, KEY FEATURE CALLOUTS, TESTIMONIAL/REVIEW STYLE, BUNDLE/OFFER BASED). CRITICAL: Match every prompt to the brand's visual style, colour palette, and mood from the brand info and image analysis. If the brand is clean & minimal, keep scenes clean and minimal. If the brand uses black/white/gold, keep environments in those tones. Each prompt: 2-4 sentences, describe only the scene/background/lighting/mood — never the product or person. Return ONLY the JSON array, no markdown."
+      "Generate 20 photorealistic ad image prompts (5 per category: US VS THEM, KEY FEATURE CALLOUTS, TESTIMONIAL/REVIEW STYLE, BUNDLE/OFFER BASED). Follow the prompt formula exactly. CRITICAL: Every prompt must be a visually DISTINCT concept — vary background type, colour palette, lighting style, and composition across all 20. No two prompts should feel similar. Use the brand's colours and energy but push creative variety hard. Each prompt: 2-4 sentences following the formula structure. Return ONLY the JSON array, no markdown."
     );
 
     const grokResp = await fetch("https://api.x.ai/v1/chat/completions", {
@@ -215,7 +217,7 @@ Generate exactly 5 prompts per category (5 x 4 = 20 total).`;
           { role: "system", content: systemPrompt },
           { role: "user", content: userParts.join("\n\n") },
         ],
-        temperature: 0.7,
+        temperature: 0.85,
       }),
     });
 
