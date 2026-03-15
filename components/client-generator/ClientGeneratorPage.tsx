@@ -44,6 +44,11 @@ export function ClientGeneratorPage({
   const [newClientName, setNewClientName] = useState("");
   const [creatingClient, setCreatingClient] = useState(false);
 
+  // ── Website Scan ──
+  const [websiteUrl, setWebsiteUrl] = useState("");
+  const [scanStatus, setScanStatus] = useState<"idle" | "scanning" | "complete">("idle");
+  const [scanStep, setScanStep] = useState("");
+
   // ── Form fields ──
   const [productName, setProductName] = useState("");
   const [productDescription, setProductDescription] = useState("");
@@ -54,6 +59,14 @@ export function ClientGeneratorPage({
   const [targetAudience, setTargetAudience] = useState("");
   const [moreOfThis, setMoreOfThis] = useState("");
   const [lessOfThat, setLessOfThat] = useState("");
+
+  // ── Color Swatches ──
+  const [colorSwatches, setColorSwatches] = useState<{ hex: string; label: string }[]>([]);
+  const [newColorHex, setNewColorHex] = useState("#6366f1");
+
+  // ── Font Chooser ──
+  const [selectedFont, setSelectedFont] = useState("");
+  const [customFont, setCustomFont] = useState("");
 
   // ── Top Creatives ──
   const [topCreatives, setTopCreatives] = useState<TopCreativeItem[]>([]);
@@ -93,6 +106,9 @@ export function ClientGeneratorPage({
       setTargetAudience(fd.targetAudience || "");
       setMoreOfThis(fd.moreOfThis || fd.voiceMoreOf || "");
       setLessOfThat(fd.lessOfThat || fd.voiceLessOf || "");
+      if (fd.colorSwatches && Array.isArray(fd.colorSwatches)) setColorSwatches(fd.colorSwatches);
+      if (fd.selectedFont) setSelectedFont(fd.selectedFont);
+      if (fd.websiteUrl) setWebsiteUrl(fd.websiteUrl);
     } catch (e) {
       console.error("Failed to load client:", e);
     }
@@ -135,6 +151,9 @@ export function ClientGeneratorPage({
           targetAudience,
           moreOfThis,
           lessOfThat,
+          colorSwatches,
+          selectedFont: customFont.trim() || selectedFont,
+          websiteUrl,
         },
       };
 
@@ -239,6 +258,64 @@ export function ClientGeneratorPage({
     }
   };
 
+  // ── Website Scan ──
+  const handleScanWebsite = async () => {
+    if (!websiteUrl.trim()) return;
+    setScanStatus("scanning");
+    setScanStep("Researching brand...");
+    try {
+      setTimeout(() => setScanStep("Extracting brand assets..."), 2000);
+      const res = await fetch("/api/client-generator/scan-website", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ url: websiteUrl.trim() }),
+      });
+      if (res.ok) {
+        const data = await res.json();
+        setScanStep("Populating fields...");
+        if (data.productName) setProductName(data.productName);
+        if (data.productDescription) setProductDescription(data.productDescription);
+        if (data.usp) setUsp(data.usp);
+        if (data.moodTone) setMoodTone(data.moodTone);
+        if (data.targetAudience) setTargetAudience(data.targetAudience);
+        if (data.brandColors) setBrandColors(data.brandColors);
+        if (data.visualStyle) setVisualStyle(data.visualStyle);
+        if (data.colors && Array.isArray(data.colors)) {
+          setColorSwatches(data.colors);
+        }
+        if (data.font) setSelectedFont(data.font);
+        setScanStatus("complete");
+        setScanStep("Scan complete");
+      } else {
+        alert("Scan failed. Please try again.");
+        setScanStatus("idle");
+        setScanStep("");
+      }
+    } catch {
+      alert("Scan failed. Please try again.");
+      setScanStatus("idle");
+      setScanStep("");
+    }
+  };
+
+  // ── Color swatch helpers ──
+  const addColorSwatch = () => {
+    if (colorSwatches.some((c) => c.hex.toLowerCase() === newColorHex.toLowerCase())) return;
+    setColorSwatches((prev) => [...prev, { hex: newColorHex, label: "" }]);
+  };
+
+  const removeColorSwatch = (idx: number) => {
+    setColorSwatches((prev) => prev.filter((_, i) => i !== idx));
+  };
+
+  const COMMON_FONTS = [
+    "Inter", "Montserrat", "Poppins", "Roboto", "Open Sans",
+    "Playfair Display", "Raleway", "Oswald", "Lato", "DM Sans",
+    "Bebas Neue", "Work Sans", "Space Grotesk", "Nunito",
+  ];
+
+  const activeFont = customFont.trim() || selectedFont || "Not selected";
+
   const selectedClient = clients.find((c) => c.id === selectedClientId);
 
   const sectionStyle: React.CSSProperties = {
@@ -333,6 +410,109 @@ export function ClientGeneratorPage({
 
       {selectedClientId && (
         <>
+          {/* ── Website Scan ── */}
+          <div
+            style={{
+              ...sectionStyle,
+              borderColor: "rgba(99,102,241,0.3)",
+              background: "rgba(99,102,241,0.05)",
+            }}
+          >
+            <h2
+              style={{
+                fontSize: 15,
+                fontWeight: 600,
+                margin: "0 0 10px",
+                color: "rgba(255,255,255,0.9)",
+              }}
+            >
+              Website Scan{" "}
+              <span
+                style={{
+                  fontWeight: 400,
+                  fontSize: 12,
+                  color: "rgba(255,255,255,0.4)",
+                }}
+              >
+                Auto-populate fields from a brand website
+              </span>
+            </h2>
+            <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+              <input
+                value={websiteUrl}
+                onChange={(e) => setWebsiteUrl(e.target.value)}
+                placeholder="https://brand-website.com"
+                onKeyDown={(e) => e.key === "Enter" && handleScanWebsite()}
+                style={{ ...inputStyle, flex: 1 }}
+              />
+              <button
+                onClick={handleScanWebsite}
+                disabled={!websiteUrl.trim() || scanStatus === "scanning"}
+                style={{
+                  padding: "8px 20px",
+                  fontSize: 13,
+                  fontWeight: 600,
+                  background:
+                    !websiteUrl.trim() || scanStatus === "scanning"
+                      ? "rgba(99,102,241,0.3)"
+                      : "#6366f1",
+                  color: "#fff",
+                  border: "none",
+                  borderRadius: 6,
+                  cursor:
+                    !websiteUrl.trim() || scanStatus === "scanning"
+                      ? "default"
+                      : "pointer",
+                  whiteSpace: "nowrap" as const,
+                  minWidth: 80,
+                }}
+              >
+                {scanStatus === "scanning" ? "Scanning..." : "Scan"}
+              </button>
+            </div>
+            {scanStep && (
+              <div
+                style={{
+                  marginTop: 8,
+                  display: "flex",
+                  alignItems: "center",
+                  gap: 8,
+                }}
+              >
+                <div
+                  style={{
+                    width: 6,
+                    height: 6,
+                    borderRadius: "50%",
+                    background:
+                      scanStatus === "scanning"
+                        ? "#f59e0b"
+                        : scanStatus === "complete"
+                        ? "#22c55e"
+                        : "rgba(255,255,255,0.3)",
+                    animation:
+                      scanStatus === "scanning"
+                        ? "pulse 1.5s infinite"
+                        : "none",
+                  }}
+                />
+                <span
+                  style={{
+                    fontSize: 12,
+                    color:
+                      scanStatus === "scanning"
+                        ? "#f59e0b"
+                        : scanStatus === "complete"
+                        ? "#22c55e"
+                        : "rgba(255,255,255,0.4)",
+                  }}
+                >
+                  {scanStep}
+                </span>
+              </div>
+            )}
+          </div>
+
           {/* ── SECTION 1: Product Info ── */}
           <div style={sectionStyle}>
             <h2
@@ -391,6 +571,7 @@ export function ClientGeneratorPage({
                 fontWeight: 600,
                 margin: "0 0 14px",
                 color: "rgba(255,255,255,0.9)",
+                fontSize: 15,
               }}
             >
               2. Visual Identity
@@ -436,6 +617,156 @@ export function ClientGeneratorPage({
                 placeholder="e.g. Premium, sophisticated, confident"
                 style={inputStyle}
               />
+            </div>
+
+            {/* Color Swatches */}
+            <div style={{ marginTop: 14 }}>
+              <label style={labelStyle}>Color Swatches</label>
+              <div style={{ display: "flex", flexWrap: "wrap", gap: 8, marginBottom: colorSwatches.length > 0 ? 10 : 0 }}>
+                {colorSwatches.map((c, idx) => (
+                  <div
+                    key={idx}
+                    style={{
+                      display: "flex",
+                      alignItems: "center",
+                      gap: 6,
+                      background: "rgba(255,255,255,0.05)",
+                      border: "1px solid rgba(255,255,255,0.1)",
+                      borderRadius: 6,
+                      padding: "4px 10px",
+                    }}
+                  >
+                    <div
+                      style={{
+                        width: 18,
+                        height: 18,
+                        borderRadius: 4,
+                        background: c.hex,
+                        border: "1px solid rgba(255,255,255,0.2)",
+                      }}
+                    />
+                    <span style={{ fontSize: 11, color: "rgba(255,255,255,0.7)" }}>
+                      {c.hex}
+                    </span>
+                    {c.label && (
+                      <span style={{ fontSize: 10, color: "rgba(255,255,255,0.4)" }}>
+                        {c.label}
+                      </span>
+                    )}
+                    <button
+                      onClick={() => removeColorSwatch(idx)}
+                      style={{
+                        background: "transparent",
+                        border: "none",
+                        color: "#ef4444",
+                        cursor: "pointer",
+                        fontSize: 12,
+                        padding: 0,
+                        marginLeft: 2,
+                      }}
+                    >
+                      {"\u00D7"}
+                    </button>
+                  </div>
+                ))}
+              </div>
+              <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+                <input
+                  type="color"
+                  value={newColorHex}
+                  onChange={(e) => setNewColorHex(e.target.value)}
+                  style={{
+                    width: 36,
+                    height: 30,
+                    padding: 0,
+                    border: "1px solid rgba(255,255,255,0.15)",
+                    borderRadius: 4,
+                    cursor: "pointer",
+                    background: "transparent",
+                  }}
+                />
+                <span style={{ fontSize: 12, color: "rgba(255,255,255,0.5)", minWidth: 60 }}>
+                  {newColorHex}
+                </span>
+                <button
+                  onClick={addColorSwatch}
+                  style={{
+                    padding: "4px 12px",
+                    fontSize: 11,
+                    fontWeight: 600,
+                    background: "rgba(99,102,241,0.2)",
+                    color: "#a5b4fc",
+                    border: "1px solid rgba(99,102,241,0.3)",
+                    borderRadius: 4,
+                    cursor: "pointer",
+                  }}
+                >
+                  + Add Color
+                </button>
+              </div>
+            </div>
+
+            {/* Font Chooser */}
+            <div style={{ marginTop: 14 }}>
+              <label style={labelStyle}>Font</label>
+              <div style={{ marginBottom: 8 }}>
+                <div
+                  style={{
+                    display: "flex",
+                    flexWrap: "wrap",
+                    gap: 6,
+                    marginBottom: 8,
+                  }}
+                >
+                  {COMMON_FONTS.map((font) => (
+                    <button
+                      key={font}
+                      onClick={() => {
+                        setSelectedFont(font);
+                        setCustomFont("");
+                      }}
+                      style={{
+                        padding: "4px 12px",
+                        fontSize: 11,
+                        borderRadius: 4,
+                        border:
+                          selectedFont === font && !customFont
+                            ? "1px solid #6366f1"
+                            : "1px solid rgba(255,255,255,0.12)",
+                        background:
+                          selectedFont === font && !customFont
+                            ? "rgba(99,102,241,0.2)"
+                            : "transparent",
+                        color:
+                          selectedFont === font && !customFont
+                            ? "#a5b4fc"
+                            : "rgba(255,255,255,0.6)",
+                        cursor: "pointer",
+                        fontFamily: font + ", sans-serif",
+                      }}
+                    >
+                      {font}
+                    </button>
+                  ))}
+                </div>
+                <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+                  <input
+                    value={customFont}
+                    onChange={(e) => setCustomFont(e.target.value)}
+                    placeholder="Or type a custom font name..."
+                    style={{ ...inputStyle, flex: 1 }}
+                  />
+                  <span
+                    style={{
+                      fontSize: 12,
+                      color: "rgba(255,255,255,0.4)",
+                      whiteSpace: "nowrap" as const,
+                    }}
+                  >
+                    Active: <strong style={{ color: "#a5b4fc" }}>{activeFont}</strong>
+                  </span>
+                </div>
+              </div>
             </div>
           </div>
 
@@ -775,6 +1106,12 @@ export function ClientGeneratorPage({
           </div>
         </>
       )}
+      <style>{`
+        @keyframes pulse {
+          0%, 100% { opacity: 1; }
+          50% { opacity: 0.4; }
+        }
+      `}</style>
     </div>
   );
 }
