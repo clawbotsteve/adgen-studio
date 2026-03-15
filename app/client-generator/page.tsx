@@ -5,7 +5,6 @@ import { ClientGeneratorPage } from "@/components/client-generator/ClientGenerat
 export default async function Page() {
   const { tenant } = await requireUserTenantPage();
   const clients = await listClients(tenant.id);
-
   return (
     <div className="page-container">
       <ClientGeneratorPage initialClients={clients} />
