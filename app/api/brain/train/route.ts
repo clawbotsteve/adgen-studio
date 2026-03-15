@@ -1,11 +1,11 @@
 import { NextResponse } from "next/server";
-import { requireUserTenant } from "@/lib/auth";
-import { createServerClient } from "@/lib/supabase/server";
+import { requireUserTenantApi } from "@/lib/auth";
+import { createSupabaseServer } from "@/lib/supabase";
 
 export async function POST(request: Request) {
   try {
-    const { tenant } = await requireUserTenant();
-    const supabase = await createServerClient();
+    const { tenant } = await requireUserTenantApi();
+    const supabase = await createSupabaseServer();
 
     const formData = await request.formData();
     const files = formData.getAll("files") as File[];
@@ -55,7 +55,7 @@ export async function POST(request: Request) {
 
       if (insertError) {
         console.error("Insert error:", insertError);
-        // Non-fatal — files are uploaded even if DB insert fails
+        // Non-fatal â files are uploaded even if DB insert fails
       }
     }
 
