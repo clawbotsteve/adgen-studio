@@ -87,22 +87,10 @@ export async function POST(request: Request) {
 
     const quantity = Math.min(Math.max(body.quantity || 5, 1), 20);
 
-    // ── Try to use saved prompts from Client Generator ──
-    const savedPrompts: SavedPrompt[] =
-      ((client.defaults as Record<string, unknown>)
-        ?.generatedPrompts as SavedPrompt[]) || [];
-
     let prompts: { concept: string; prompt: string }[] = [];
-    let usingSavedPrompts = false;
 
-    // ── Use saved prompts if available, otherwise use curated defaults ──
-    const sourcePrompts: SavedPrompt[] =
-      savedPrompts.length > 0 ? savedPrompts : DEFAULT_PROMPTS;
-
-    const promptSourceLabel =
-      savedPrompts.length > 0 ? "saved (Client Generator)" : "curated defaults";
-
-    usingSavedPrompts = true; // Always treat as pre-built prompts
+    // ── Always use curated default prompts ──
+    const sourcePrompts: SavedPrompt[] = DEFAULT_PROMPTS;
 
     // Filter by selected angles if any
     let filtered = sourcePrompts;
@@ -136,7 +124,7 @@ export async function POST(request: Request) {
     }
 
     console.log(
-      `[smart-batch] Using ${prompts.length} ${promptSourceLabel} prompts`
+      `[smart-batch] Using ${prompts.length} curated default prompts`
     );
 
     if (prompts.length === 0) {
@@ -150,14 +138,13 @@ export async function POST(request: Request) {
     }
 
     // Build metadata — include promptSource so the process route
-    // knows to skip the prompt engine for saved (simple) prompts
-    const metadata: Record<string, unknown> = {};
+    // knows to skip the prompt engine for curated prompts
+    const metadata: Record<string, unknown> = {
+      promptSource: "client_generator",
+    };
     if (selectedAngles.length > 0) {
       metadata.selectedAngles = selectedAngles;
       metadata.lockAngles = lockAngles;
-    }
-    if (usingSavedPrompts) {
-      metadata.promptSource = "client_generator";
     }
 
     // Create batch run
