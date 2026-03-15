@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback, useRef } from "react";
 import type { Client } from "@/types/domain";
+import { DEFAULT_PROMPTS } from "@/lib/constants/defaultPrompts";
 
 interface TopCreativeItem {
   id: string;
@@ -10,19 +11,11 @@ interface TopCreativeItem {
   created_at: string;
 }
 
-interface GeneratedPrompt {
-  angle: string;
-  concept: string;
-  prompt_text: string;
-  tags: string[];
-}
-
 const ANGLE_LABELS: Record<string, string> = {
-  product_hero: "Product Hero",
-  ugc_testimonial: "UGC",
-  problem_solution: "Problem/Solution",
-  lifestyle_benefit: "Lifestyle",
-  offer_urgency: "Offer/Urgency",
+  us_vs_them: "Us vs Them",
+  key_feature: "Key Feature",
+  testimonial_review: "Testimonial / Review",
+  bundle_offer: "Bundle / Offer",
 };
 
 const VISUAL_STYLE_OPTIONS = [
@@ -45,7 +38,9 @@ export function ClientGeneratorPage({
 }) {
   // ── Client selection ──
   const [clients, setClients] = useState(initialClients);
-  const [selectedClientId, setSelectedClientId] = useState(initialClients[0]?.id ?? "");
+  const [selectedClientId, setSelectedClientId] = useState(
+    initialClients[0]?.id ?? ""
+  );
   const [newClientName, setNewClientName] = useState("");
   const [creatingClient, setCreatingClient] = useState(false);
 
@@ -65,13 +60,21 @@ export function ClientGeneratorPage({
   const [tcUploading, setTcUploading] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  // ── Generated Prompts ──
-  const [generatedPrompts, setGeneratedPrompts] = useState<GeneratedPrompt[]>([]);
-  const [generating, setGenerating] = useState(false);
+  // ── Prompts dropdown ──
+  const [promptsOpen, setPromptsOpen] = useState(false);
 
   // ── Save state ──
   const [saving, setSaving] = useState(false);
   const [lastSaved, setLastSaved] = useState<string | null>(null);
+
+  // ── Curated prompts grouped by angle ──
+  const promptsByAngle = DEFAULT_PROMPTS.reduce<
+    Record<string, typeof DEFAULT_PROMPTS>
+  >((acc, p) => {
+    if (!acc[p.angle]) acc[p.angle] = [];
+    acc[p.angle].push(p);
+    return acc;
+  }, {});
 
   // ── Load client data ──
   const loadClientData = useCallback(async (clientId: string) => {
@@ -81,7 +84,6 @@ export function ClientGeneratorPage({
       const data = await res.json();
       const client = data.client;
       const fd = client?.defaults?.formData || {};
-      
       setProductName(fd.productName || "");
       setProductDescription(fd.productDescription || "");
       setUsp(fd.usp || "");
@@ -91,10 +93,6 @@ export function ClientGeneratorPage({
       setTargetAudience(fd.targetAudience || "");
       setMoreOfThis(fd.moreOfThis || fd.voiceMoreOf || "");
       setLessOfThat(fd.lessOfThat || fd.voiceLessOf || "");
-
-      // Load generated prompts
-      const gp = client?.defaults?.generatedPrompts || [];
-      setGeneratedPrompts(Array.isArray(gp) ? gp : []);
     } catch (e) {
       console.error("Failed to load client:", e);
     }
@@ -103,7 +101,9 @@ export function ClientGeneratorPage({
     try {
       const tcRes = await fetch("/api/top-creatives?clientId=" + clientId);
       const tcData = await tcRes.json();
-      setTopCreatives(Array.isArray(tcData.creatives) ? tcData.creatives : []);
+      setTopCreatives(
+        Array.isArray(tcData.creatives) ? tcData.creatives : []
+      );
     } catch {
       setTopCreatives([]);
     }
@@ -150,8 +150,20 @@ export function ClientGeneratorPage({
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           clientId: selectedClientId,
-          brand_guidelines: [moodTone, moreOfThis ? "More of: " + moreOfThis : "", lessOfThat ? "Less of: " + lessOfThat : ""].filter(Boolean).join("\n"),
-          products: [productName, productDescription, usp ? "USP: " + usp : ""].filter(Boolean).join("\n"),
+          brand_guidelines: [
+            moodTone,
+            moreOfThis ? "More of: " + moreOfThis : "",
+            lessOfThat ? "Less of: " + lessOfThat : "",
+          ]
+            .filter(Boolean)
+            .join("\n"),
+          products: [
+            productName,
+            productDescription,
+            usp ? "USP: " + usp : "",
+          ]
+            .filter(Boolean)
+            .join("\n"),
           customer_personas: targetAudience,
         }),
       });
@@ -189,7 +201,9 @@ export function ClientGeneratorPage({
   };
 
   // ── Upload top creative ──
-  const handleUploadCreative = async (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleUploadCreative = async (
+    e: React.ChangeEvent<HTMLInputElement>
+  ) => {
     const files = e.target.files;
     if (!files || !selectedClientId) return;
     setTcUploading(true);
@@ -198,7 +212,10 @@ export function ClientGeneratorPage({
         const fd = new FormData();
         fd.append("file", file);
         fd.append("clientId", selectedClientId);
-        const res = await fetch("/api/top-creatives/upload", { method: "POST", body: fd });
+        const res = await fetch("/api/top-creatives/upload", {
+          method: "POST",
+          body: fd,
+        });
         if (res.ok) {
           const creative = await res.json();
           setTopCreatives((prev) => [...prev, creative]);
@@ -221,39 +238,6 @@ export function ClientGeneratorPage({
       alert("Failed to delete");
     }
   };
-
-  // ── Generate prompts via Grok ──
-  const handleGeneratePrompts = async () => {
-    if (!selectedClientId) return;
-    
-    // Save first to ensure latest data is persisted
-    await handleSave();
-    
-    setGenerating(true);
-    try {
-      const res = await fetch("/api/client-generator/generate-prompts", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ clientId: selectedClientId }),
-      });
-      if (!res.ok) {
-        const err = await res.json().catch(() => null);
-        throw new Error(err?.error || "Generation failed");
-      }
-      const data = await res.json();
-      setGeneratedPrompts(data.prompts || []);
-    } catch (e) {
-      alert("Failed to generate prompts: " + (e instanceof Error ? e.message : "Unknown error"));
-    } finally {
-      setGenerating(false);
-    }
-  };
-
-  const promptsByAngle = generatedPrompts.reduce<Record<string, GeneratedPrompt[]>>((acc, p) => {
-    if (!acc[p.angle]) acc[p.angle] = [];
-    acc[p.angle].push(p);
-    return acc;
-  }, {});
 
   const selectedClient = clients.find((c) => c.id === selectedClientId);
 
@@ -296,8 +280,17 @@ export function ClientGeneratorPage({
   return (
     <div style={{ maxWidth: 800, margin: "0 auto", padding: "20px 16px" }}>
       {/* Header + Client Selector */}
-      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 24 }}>
-        <h1 style={{ fontSize: 22, fontWeight: 700, margin: 0 }}>Client Generator</h1>
+      <div
+        style={{
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "space-between",
+          marginBottom: 24,
+        }}
+      >
+        <h1 style={{ fontSize: 22, fontWeight: 700, margin: 0 }}>
+          Client Generator
+        </h1>
         <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
           <select
             value={selectedClientId}
@@ -305,7 +298,9 @@ export function ClientGeneratorPage({
             style={{ ...inputStyle, width: "auto", minWidth: 160 }}
           >
             {clients.map((c) => (
-              <option key={c.id} value={c.id}>{c.name}</option>
+              <option key={c.id} value={c.id}>
+                {c.name}
+              </option>
             ))}
           </select>
           <input
@@ -319,9 +314,15 @@ export function ClientGeneratorPage({
             onClick={handleCreateClient}
             disabled={!newClientName.trim() || creatingClient}
             style={{
-              padding: "8px 14px", fontSize: 12, fontWeight: 600,
-              background: "#6366f1", color: "#fff", border: "none",
-              borderRadius: 6, cursor: "pointer", whiteSpace: "nowrap" as const,
+              padding: "8px 14px",
+              fontSize: 12,
+              fontWeight: 600,
+              background: "#6366f1",
+              color: "#fff",
+              border: "none",
+              borderRadius: 6,
+              cursor: "pointer",
+              whiteSpace: "nowrap" as const,
               opacity: !newClientName.trim() ? 0.5 : 1,
             }}
           >
@@ -334,65 +335,157 @@ export function ClientGeneratorPage({
         <>
           {/* ── SECTION 1: Product Info ── */}
           <div style={sectionStyle}>
-            <h2 style={{ fontSize: 15, fontWeight: 600, margin: "0 0 14px", color: "rgba(255,255,255,0.9)" }}>
+            <h2
+              style={{
+                fontSize: 15,
+                fontWeight: 600,
+                margin: "0 0 14px",
+                color: "rgba(255,255,255,0.9)",
+              }}
+            >
               1. Product Info
             </h2>
-            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, marginBottom: 12 }}>
+            <div
+              style={{
+                display: "grid",
+                gridTemplateColumns: "1fr 1fr",
+                gap: 12,
+                marginBottom: 12,
+              }}
+            >
               <div>
                 <label style={labelStyle}>Product / Brand Name</label>
-                <input value={productName} onChange={(e) => setProductName(e.target.value)} placeholder="e.g. Hydra Glow Serum" style={inputStyle} />
+                <input
+                  value={productName}
+                  onChange={(e) => setProductName(e.target.value)}
+                  placeholder="e.g. Hydra Glow Serum"
+                  style={inputStyle}
+                />
               </div>
               <div>
                 <label style={labelStyle}>USP (Unique Selling Point)</label>
-                <input value={usp} onChange={(e) => setUsp(e.target.value)} placeholder="e.g. 72-hour hydration with plant stem cells" style={inputStyle} />
+                <input
+                  value={usp}
+                  onChange={(e) => setUsp(e.target.value)}
+                  placeholder="e.g. 72-hour hydration with plant stem cells"
+                  style={inputStyle}
+                />
               </div>
             </div>
             <div>
               <label style={labelStyle}>Short Description</label>
-              <textarea value={productDescription} onChange={(e) => setProductDescription(e.target.value)} placeholder="1-2 sentences about the product. What it is, what it does, who it's for." style={textareaStyle} />
+              <textarea
+                value={productDescription}
+                onChange={(e) => setProductDescription(e.target.value)}
+                placeholder="1-2 sentences about the product. What it is, what it does, who it's for."
+                style={textareaStyle}
+              />
             </div>
           </div>
 
           {/* ── SECTION 2: Visual Identity ── */}
           <div style={sectionStyle}>
-            <h2 style={{ fontSize: 15, fontWeight: 600, margin: "0 0 14px", color: "rgba(255,255,255,0.9)" }}>
+            <h2
+              style={{
+                fontSize: 15,
+                fontWeight: 600,
+                margin: "0 0 14px",
+                color: "rgba(255,255,255,0.9)",
+              }}
+            >
               2. Visual Identity
             </h2>
-            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, marginBottom: 12 }}>
+            <div
+              style={{
+                display: "grid",
+                gridTemplateColumns: "1fr 1fr",
+                gap: 12,
+                marginBottom: 12,
+              }}
+            >
               <div>
                 <label style={labelStyle}>Brand Colors</label>
-                <input value={brandColors} onChange={(e) => setBrandColors(e.target.value)} placeholder="e.g. Deep navy, gold, off-white" style={inputStyle} />
+                <input
+                  value={brandColors}
+                  onChange={(e) => setBrandColors(e.target.value)}
+                  placeholder="e.g. Deep navy, gold, off-white"
+                  style={inputStyle}
+                />
               </div>
               <div>
                 <label style={labelStyle}>Visual Style</label>
-                <select value={visualStyle} onChange={(e) => setVisualStyle(e.target.value)} style={inputStyle}>
+                <select
+                  value={visualStyle}
+                  onChange={(e) => setVisualStyle(e.target.value)}
+                  style={inputStyle}
+                >
                   <option value="">Select a style...</option>
                   {VISUAL_STYLE_OPTIONS.map((s) => (
-                    <option key={s} value={s}>{s}</option>
+                    <option key={s} value={s}>
+                      {s}
+                    </option>
                   ))}
                 </select>
               </div>
             </div>
             <div>
               <label style={labelStyle}>Mood / Brand Tone</label>
-              <input value={moodTone} onChange={(e) => setMoodTone(e.target.value)} placeholder="e.g. Premium, sophisticated, confident" style={inputStyle} />
+              <input
+                value={moodTone}
+                onChange={(e) => setMoodTone(e.target.value)}
+                placeholder="e.g. Premium, sophisticated, confident"
+                style={inputStyle}
+              />
             </div>
           </div>
 
           {/* ── SECTION 3: Target Audience ── */}
           <div style={sectionStyle}>
-            <h2 style={{ fontSize: 15, fontWeight: 600, margin: "0 0 14px", color: "rgba(255,255,255,0.9)" }}>
+            <h2
+              style={{
+                fontSize: 15,
+                fontWeight: 600,
+                margin: "0 0 14px",
+                color: "rgba(255,255,255,0.9)",
+              }}
+            >
               3. Target Audience
             </h2>
-            <textarea value={targetAudience} onChange={(e) => setTargetAudience(e.target.value)} placeholder="Who are you making ads for? Age, interests, lifestyle, pain points..." style={textareaStyle} />
+            <textarea
+              value={targetAudience}
+              onChange={(e) => setTargetAudience(e.target.value)}
+              placeholder="Who are you making ads for? Age, interests, lifestyle, pain points..."
+              style={textareaStyle}
+            />
           </div>
 
           {/* ── SECTION 4: Top Creatives ── */}
           <div style={sectionStyle}>
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
-              <h2 style={{ fontSize: 15, fontWeight: 600, margin: 0, color: "rgba(255,255,255,0.9)" }}>
-                4. Top Creatives
-                <span style={{ fontWeight: 400, fontSize: 12, color: "rgba(255,255,255,0.4)", marginLeft: 8 }}>
+            <div
+              style={{
+                display: "flex",
+                justifyContent: "space-between",
+                alignItems: "center",
+                marginBottom: 12,
+              }}
+            >
+              <h2
+                style={{
+                  fontSize: 15,
+                  fontWeight: 600,
+                  margin: 0,
+                  color: "rgba(255,255,255,0.9)",
+                }}
+              >
+                4. Top Creatives{" "}
+                <span
+                  style={{
+                    fontWeight: 400,
+                    fontSize: 12,
+                    color: "rgba(255,255,255,0.4)",
+                    marginLeft: 8,
+                  }}
+                >
                   Upload your best 3-5 reference images
                 </span>
               </h2>
@@ -401,32 +494,72 @@ export function ClientGeneratorPage({
                   onClick={() => fileInputRef.current?.click()}
                   disabled={tcUploading}
                   style={{
-                    padding: "6px 14px", fontSize: 12, fontWeight: 600,
-                    background: "#6366f1", color: "#fff", border: "none",
-                    borderRadius: 6, cursor: "pointer",
+                    padding: "6px 14px",
+                    fontSize: 12,
+                    fontWeight: 600,
+                    background: "#6366f1",
+                    color: "#fff",
+                    border: "none",
+                    borderRadius: 6,
+                    cursor: "pointer",
                   }}
                 >
                   {tcUploading ? "Uploading..." : "+ Upload"}
                 </button>
               )}
-              <input ref={fileInputRef} type="file" accept="image/*" multiple onChange={handleUploadCreative} style={{ display: "none" }} />
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept="image/*"
+                multiple
+                onChange={handleUploadCreative}
+                style={{ display: "none" }}
+              />
             </div>
             {topCreatives.length > 0 ? (
               <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
                 {topCreatives.map((tc) => (
-                  <div key={tc.id} style={{ position: "relative", width: 90, height: 90, borderRadius: 8, overflow: "hidden", border: "1px solid rgba(255,255,255,0.1)" }}>
-                    <img src={tc.url} alt="creative" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+                  <div
+                    key={tc.id}
+                    style={{
+                      position: "relative",
+                      width: 90,
+                      height: 90,
+                      borderRadius: 8,
+                      overflow: "hidden",
+                      border: "1px solid rgba(255,255,255,0.1)",
+                    }}
+                  >
+                    <img
+                      src={tc.url}
+                      alt="creative"
+                      style={{
+                        width: "100%",
+                        height: "100%",
+                        objectFit: "cover",
+                      }}
+                    />
                     <button
                       onClick={() => handleDeleteCreative(tc.id)}
                       style={{
-                        position: "absolute", top: 3, right: 3,
-                        background: "rgba(0,0,0,0.7)", color: "#fff",
-                        border: "none", borderRadius: "50%",
-                        width: 20, height: 20, fontSize: 12,
-                        cursor: "pointer", display: "flex",
-                        alignItems: "center", justifyContent: "center",
+                        position: "absolute",
+                        top: 3,
+                        right: 3,
+                        background: "rgba(0,0,0,0.7)",
+                        color: "#fff",
+                        border: "none",
+                        borderRadius: "50%",
+                        width: 20,
+                        height: 20,
+                        fontSize: 12,
+                        cursor: "pointer",
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "center",
                       }}
-                    >x</button>
+                    >
+                      x
+                    </button>
                   </div>
                 ))}
               </div>
@@ -435,9 +568,12 @@ export function ClientGeneratorPage({
                 onClick={() => fileInputRef.current?.click()}
                 style={{
                   border: "2px dashed rgba(255,255,255,0.1)",
-                  borderRadius: 8, padding: "28px 0",
-                  textAlign: "center", cursor: "pointer",
-                  color: "rgba(255,255,255,0.4)", fontSize: 13,
+                  borderRadius: 8,
+                  padding: "28px 0",
+                  textAlign: "center",
+                  cursor: "pointer",
+                  color: "rgba(255,255,255,0.4)",
+                  fontSize: 13,
                 }}
               >
                 Click to upload your best ad reference images
@@ -447,23 +583,61 @@ export function ClientGeneratorPage({
 
           {/* ── SECTION 5: Do's and Don'ts ── */}
           <div style={sectionStyle}>
-            <h2 style={{ fontSize: 15, fontWeight: 600, margin: "0 0 14px", color: "rgba(255,255,255,0.9)" }}>
+            <h2
+              style={{
+                fontSize: 15,
+                fontWeight: 600,
+                margin: "0 0 14px",
+                color: "rgba(255,255,255,0.9)",
+              }}
+            >
               5. Do&apos;s and Don&apos;ts
             </h2>
-            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
+            <div
+              style={{
+                display: "grid",
+                gridTemplateColumns: "1fr 1fr",
+                gap: 12,
+              }}
+            >
               <div>
-                <label style={{ ...labelStyle, color: "rgba(34,197,94,0.7)" }}>More of this</label>
-                <textarea value={moreOfThis} onChange={(e) => setMoreOfThis(e.target.value)} placeholder="Bold product shots, lifestyle settings, warm tones, natural lighting..." style={textareaStyle} />
+                <label
+                  style={{ ...labelStyle, color: "rgba(34,197,94,0.7)" }}
+                >
+                  More of this
+                </label>
+                <textarea
+                  value={moreOfThis}
+                  onChange={(e) => setMoreOfThis(e.target.value)}
+                  placeholder="Bold product shots, lifestyle settings, warm tones, natural lighting..."
+                  style={textareaStyle}
+                />
               </div>
               <div>
-                <label style={{ ...labelStyle, color: "rgba(239,68,68,0.7)" }}>Less of that</label>
-                <textarea value={lessOfThat} onChange={(e) => setLessOfThat(e.target.value)} placeholder="Cartoon look, cluttered backgrounds, cold tones, stock photo feel..." style={textareaStyle} />
+                <label
+                  style={{ ...labelStyle, color: "rgba(239,68,68,0.7)" }}
+                >
+                  Less of that
+                </label>
+                <textarea
+                  value={lessOfThat}
+                  onChange={(e) => setLessOfThat(e.target.value)}
+                  placeholder="Cartoon look, cluttered backgrounds, cold tones, stock photo feel..."
+                  style={textareaStyle}
+                />
               </div>
             </div>
           </div>
 
           {/* ── Save Button ── */}
-          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 24 }}>
+          <div
+            style={{
+              display: "flex",
+              justifyContent: "space-between",
+              alignItems: "center",
+              marginBottom: 24,
+            }}
+          >
             <span style={{ fontSize: 12, color: "rgba(255,255,255,0.4)" }}>
               {lastSaved ? "Last saved at " + lastSaved : ""}
             </span>
@@ -471,9 +645,14 @@ export function ClientGeneratorPage({
               onClick={handleSave}
               disabled={saving}
               style={{
-                padding: "10px 28px", fontSize: 13, fontWeight: 600,
-                background: "#6366f1", color: "#fff", border: "none",
-                borderRadius: 8, cursor: "pointer",
+                padding: "10px 28px",
+                fontSize: 13,
+                fontWeight: 600,
+                background: "#6366f1",
+                color: "#fff",
+                border: "none",
+                borderRadius: 8,
+                cursor: "pointer",
                 opacity: saving ? 0.6 : 1,
               }}
             >
@@ -481,71 +660,112 @@ export function ClientGeneratorPage({
             </button>
           </div>
 
-          {/* ── SECTION 6: Generate Prompts ── */}
-          <div style={{
-            ...sectionStyle,
-            borderColor: "rgba(99,102,241,0.3)",
-            background: "rgba(99,102,241,0.05)",
-          }}>
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 14 }}>
-              <div>
-                <h2 style={{ fontSize: 15, fontWeight: 600, margin: "0 0 4px", color: "rgba(255,255,255,0.9)" }}>
-                  Generate Ad Prompts
+          {/* ── SECTION 6: Prompts (collapsible dropdown) ── */}
+          <div
+            style={{
+              ...sectionStyle,
+              borderColor: "rgba(99,102,241,0.3)",
+              background: "rgba(99,102,241,0.05)",
+              padding: 0,
+              overflow: "hidden",
+            }}
+          >
+            <button
+              onClick={() => setPromptsOpen(!promptsOpen)}
+              style={{
+                width: "100%",
+                display: "flex",
+                justifyContent: "space-between",
+                alignItems: "center",
+                padding: "14px 20px",
+                background: "transparent",
+                border: "none",
+                cursor: "pointer",
+                color: "rgba(255,255,255,0.9)",
+              }}
+            >
+              <div style={{ textAlign: "left" }}>
+                <h2
+                  style={{
+                    fontSize: 15,
+                    fontWeight: 600,
+                    margin: "0 0 2px",
+                  }}
+                >
+                  Prompts
                 </h2>
-                <p style={{ fontSize: 12, color: "rgba(255,255,255,0.4)", margin: 0 }}>
-                  Creates 20 prompts across all 5 ad angles based on the data above.
+                <p
+                  style={{
+                    fontSize: 12,
+                    color: "rgba(255,255,255,0.4)",
+                    margin: 0,
+                  }}
+                >
+                  {DEFAULT_PROMPTS.length} curated prompts across{" "}
+                  {Object.keys(promptsByAngle).length} ad angles
                 </p>
               </div>
-              <button
-                onClick={handleGeneratePrompts}
-                disabled={generating || !productName.trim()}
+              <span
                 style={{
-                  padding: "10px 24px", fontSize: 13, fontWeight: 600,
-                  background: generating ? "rgba(99,102,241,0.4)" : "#6366f1",
-                  color: "#fff", border: "none", borderRadius: 8,
-                  cursor: generating || !productName.trim() ? "not-allowed" : "pointer",
-                  minWidth: 160,
+                  fontSize: 18,
+                  color: "rgba(255,255,255,0.4)",
+                  transition: "transform 0.2s",
+                  transform: promptsOpen ? "rotate(180deg)" : "rotate(0deg)",
                 }}
               >
-                {generating ? "Generating..." : "Generate 20 Prompts"}
-              </button>
-            </div>
+                &#9660;
+              </span>
+            </button>
 
-            {!productName.trim() && (
-              <p style={{ fontSize: 12, color: "rgba(245,158,11,0.7)", margin: "8px 0 0" }}>
-                Fill in at least the Product Name above before generating.
-              </p>
-            )}
-
-            {generatedPrompts.length > 0 && (
-              <div style={{ marginTop: 16 }}>
+            {promptsOpen && (
+              <div style={{ padding: "0 20px 16px" }}>
                 {Object.entries(promptsByAngle).map(([angle, prompts]) => (
                   <div key={angle} style={{ marginBottom: 16 }}>
-                    <h3 style={{
-                      fontSize: 13, fontWeight: 600, margin: "0 0 8px",
-                      color: "#a5b4fc",
-                      display: "flex", alignItems: "center", gap: 8,
-                    }}>
+                    <h3
+                      style={{
+                        fontSize: 13,
+                        fontWeight: 600,
+                        margin: "0 0 8px",
+                        color: "#a5b4fc",
+                        display: "flex",
+                        alignItems: "center",
+                        gap: 8,
+                      }}
+                    >
                       {ANGLE_LABELS[angle] || angle}
-                      <span style={{
-                        fontSize: 11, fontWeight: 400,
-                        background: "rgba(99,102,241,0.2)",
-                        padding: "2px 8px", borderRadius: 10,
-                        color: "rgba(255,255,255,0.5)",
-                      }}>
+                      <span
+                        style={{
+                          fontSize: 11,
+                          fontWeight: 400,
+                          background: "rgba(99,102,241,0.2)",
+                          padding: "2px 8px",
+                          borderRadius: 10,
+                          color: "rgba(255,255,255,0.5)",
+                        }}
+                      >
                         {prompts.length} prompts
                       </span>
                     </h3>
                     {prompts.map((p, i) => (
-                      <div key={i} style={{
-                        background: "rgba(255,255,255,0.03)",
-                        border: "1px solid rgba(255,255,255,0.06)",
-                        borderRadius: 6, padding: "8px 12px",
-                        marginBottom: 6, fontSize: 12,
-                        color: "rgba(255,255,255,0.7)",
-                      }}>
-                        <strong style={{ color: "rgba(255,255,255,0.9)" }}>{p.concept}</strong>
-                        <span style={{ marginLeft: 8 }}>{p.prompt_text.slice(0, 120)}{p.prompt_text.length > 120 ? "..." : ""}</span>
+                      <div
+                        key={i}
+                        style={{
+                          background: "rgba(255,255,255,0.03)",
+                          border: "1px solid rgba(255,255,255,0.06)",
+                          borderRadius: 6,
+                          padding: "8px 12px",
+                          marginBottom: 6,
+                          fontSize: 12,
+                          color: "rgba(255,255,255,0.7)",
+                        }}
+                      >
+                        <strong style={{ color: "rgba(255,255,255,0.9)" }}>
+                          {p.label}
+                        </strong>
+                        <span style={{ marginLeft: 8 }}>
+                          {p.prompt_text.slice(0, 120)}
+                          {p.prompt_text.length > 120 ? "..." : ""}
+                        </span>
                       </div>
                     ))}
                   </div>
