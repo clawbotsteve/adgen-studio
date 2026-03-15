@@ -1,9 +1,9 @@
 import { NextResponse } from "next/server";
-import { requireUserTenant } from "@/lib/auth";
+import { requireUserTenantApi } from "@/lib/auth";
 
 export async function POST(request: Request) {
   try {
-    await requireUserTenant();
+    await requireUserTenantApi();
 
     const { url } = await request.json();
     if (!url || typeof url !== "string") {
