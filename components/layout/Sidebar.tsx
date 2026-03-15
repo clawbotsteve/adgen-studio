@@ -4,17 +4,13 @@ import { usePathname } from "next/navigation";
 import Link from "next/link";
 import {
   LayoutDashboard,
-  Users,
   UserCircle,
-  Palette,
   UserPlus,
-  Video,
-  Zap,
   Layers,
   Play,
   Clock,
   CreditCard,
-  FileText,
+  Brain,
 } from "lucide-react";
 
 export function Sidebar() {
@@ -32,7 +28,7 @@ export function Sidebar() {
   return (
     <aside className="sidebar">
       <div className="sidebar-logo">
-        <span className="sidebar-logo-icon">â</span>
+        <span className="sidebar-logo-icon">{"\u25C6"}</span>
         <span className="sidebar-logo-text">AdGen Studio</span>
       </div>
 
@@ -59,6 +55,13 @@ export function Sidebar() {
 
       <div className="sidebar-section">
         <div className="sidebar-section-header">Context</div>
+        <Link
+          href="/brain"
+          className={`sidebar-link ${isActive("/brain") ? "active" : ""}`}
+        >
+          <Brain size={18} />
+          <span>Brain</span>
+        </Link>
         <Link
           href="/client-generator"
           className={`sidebar-link ${isActive("/client-generator") ? "active" : ""}`}
