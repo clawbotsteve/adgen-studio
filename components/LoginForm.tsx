@@ -3,12 +3,8 @@
 import { useState, useEffect } from "react";
 import { createSupabaseBrowser } from "@/lib/supabase";
 
-type Mode = "login" | "signup";
-
 export default function LoginForm() {
   const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
-  const [mode, setMode] = useState<Mode>("login");
   const [status, setStatus] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
@@ -32,50 +28,25 @@ export default function LoginForm() {
     try {
       const supabase = createSupabaseBrowser();
 
-      if (mode === "signup") {
-        // Sign up with email + password
-        const { error: signUpError } = await supabase.auth.signUp({
-          email,
-          password,
-          options: {
-            emailRedirectTo: `${window.location.origin}/auth/callback`,
-          },
-        });
+      const { error: otpError } = await supabase.auth.signInWithOtp({
+        email,
+        options: {
+          emailRedirectTo: `${window.location.origin}/auth/callback`,
+          shouldCreateUser: true,
+        },
+      });
 
-        if (signUpError) {
-          console.error("[login] signUp error:", signUpError);
-          setError(signUpError.message || "Unable to create account. Please try again.");
-          return;
-        }
-
-        setStatus("Account created! Check your email to confirm, or try logging in.");
-      } else {
-        // Sign in with email + password
-        const { error: signInError } = await supabase.auth.signInWithPassword({
-          email,
-          password,
-        });
-
-        if (signInError) {
-          console.error("[login] signIn error:", signInError);
-          if (signInError.message?.includes("Invalid login")) {
-            setError("Invalid email or password. If you're new, click 'Create account' below.");
-          } else if (signInError.message?.includes("Email not confirmed")) {
-            setError("Please check your email and confirm your account first.");
-          } else {
-            setError(signInError.message || "Unable to sign in. Please try again.");
-          }
-          return;
-        }
-
-        // Auto-join tenant, then redirect to dashboard
-        try {
-          await fetch("/api/auth/ensure-tenant", { method: "POST" });
-        } catch {
-          // Non-fatal — don't block login
-        }
-        window.location.href = "/dashboard";
+      if (otpError) {
+        console.error("[login] magic link error:", otpError);
+        setError(
+          otpError.message || "Unable to send sign-in link. Please try again."
+        );
+        return;
       }
+
+      setStatus(
+        "Check your email! We sent you a sign-in link. Click it to log in."
+      );
     } finally {
       setLoading(false);
     }
@@ -83,11 +54,10 @@ export default function LoginForm() {
 
   return (
     <form onSubmit={onSubmit} className="card" style={{ maxWidth: 460 }}>
-      <h2>{mode === "login" ? "Sign in" : "Create account"}</h2>
+      <h2>Sign in</h2>
       <p>
-        {mode === "login"
-          ? "Enter your email and password to sign in."
-          : "Create a new account to get started."}
+        Enter your email and we&apos;ll send you a magic link to sign in
+        &mdash; no password needed.
       </p>
 
       <label htmlFor="email">Email</label>
@@ -100,63 +70,10 @@ export default function LoginForm() {
         placeholder="you@company.com"
       />
 
-      <label htmlFor="password" style={{ marginTop: 8 }}>
-        Password
-      </label>
-      <input
-        id="password"
-        type="password"
-        required
-        minLength={6}
-        value={password}
-        onChange={(e) => setPassword(e.target.value)}
-        placeholder="Min 6 characters"
-      />
-
       <div style={{ marginTop: 12 }}>
         <button type="submit" disabled={loading}>
-          {loading
-            ? "Please wait..."
-            : mode === "login"
-            ? "Sign in"
-            : "Create account"}
+          {loading ? "Sending..." : "Send magic link"}
         </button>
-      </div>
-
-      <div style={{ marginTop: 12, textAlign: "center", fontSize: 14, opacity: 0.7 }}>
-        {mode === "login" ? (
-          <span>
-            New here?{" "}
-            <a
-              href="#"
-              onClick={(e) => {
-                e.preventDefault();
-                setMode("signup");
-                setError(null);
-                setStatus(null);
-              }}
-              style={{ color: "#6366f1", textDecoration: "underline" }}
-            >
-              Create account
-            </a>
-          </span>
-        ) : (
-          <span>
-            Already have an account?{" "}
-            <a
-              href="#"
-              onClick={(e) => {
-                e.preventDefault();
-                setMode("login");
-                setError(null);
-                setStatus(null);
-              }}
-              style={{ color: "#6366f1", textDecoration: "underline" }}
-            >
-              Sign in
-            </a>
-          </span>
-        )}
       </div>
 
       {status && <p className="success">{status}</p>}
